@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments and local settings
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs and runtime state
+*.log
+*.lock
+*.pid
+lock_status.json
+status*.json
+
+# Generated data
+*.h5
+*.hdf5
+*.tmp
+*.part
+
+# Build artifacts
+build/
+dist/
+*.spec.bak
+
+# Original local-only archives and historical source snapshots
+/archive/source_snapshot/*
+!/archive/source_snapshot/README.md
+/archive/legacy/*
+!/archive/legacy/README.md
+
+# Local sample data
+/data/samples/*
+!/data/samples/README.md
+

@@ -1,0 +1,9 @@
+PyQt5>=5.15,<6
+caproto>=1.1
+h5py>=3.8
+matplotlib>=3.7
+numpy>=1.24
+pandas>=2.0
+paramiko>=3.0
+pyzmq>=25
+

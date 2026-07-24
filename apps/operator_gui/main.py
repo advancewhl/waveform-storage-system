@@ -1,0 +1,573 @@
+
+import functools
+import time
+import numpy as np
+import h5py
+import json
+import os
+import PyQt5
+from PyQt5.QtCore import pyqtSignal, Qt, QObject, QSize, QTimer, QTextStream, QSharedMemory, QDate
+from PyQt5.QtNetwork import QLocalSocket, QLocalServer
+from PyQt5.QtWidgets import QMainWindow, QHeaderView, QWidget, QHBoxLayout, QTableWidgetItem, QLabel, QPushButton, \
+    QListWidget, QListWidgetItem, QGraphicsScene, QGraphicsPixmapItem, QMessageBox, QFileDialog
+from PyQt5 import QtWidgets
+from PyQt5.QtGui import QColor, QFont, QTextCursor, QPixmap, QBrush
+import sys
+from pathlib import Path
+from zmq_client_dealer import send_start
+from caproto.threading.client import Context, Batch
+from mainWindow import Ui_StreamData
+# from mainWindow_update251105 import Ui_StreamData
+from utils import get_addr_list, get_pv_list
+from caproto.threading.client import Context, Batch
+# from h5_data_process import search_time_sec,get_para,main_dataprocess,remote_search_time_sec,remote_find_h5_files
+# from overlap import get_para,main_dataprocess,remote_search_time_sec,remote_find_h5_files,remote_save_timesec_h5_files,save_newfile
+from overlap import get_para,main_dataprocess,remote_search_time_sec,remote_find_h5_files,remote_save_timesec_h5_files,save_newfile,selectConfirm,showBunchID,plotbunchID
+import matplotlib
+matplotlib.use('Qt5Agg')  # 必须在导入 pyplot 之前设置
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+# pyuic5 mainWindow.ui -o mainWindow.py
+import re
+import fcntl
+import struct
+from datetime import datetime
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+CONFIG_DIR = PROJECT_ROOT / "config"
+
+class MyCommunicate(QObject):
+    update_table_signal = pyqtSignal(str)
+    ok_signal = pyqtSignal(str)
+
+BPMS_TO_STORE = {"INJ1":["SBPM08", "SBPM10"],
+                 "COL0":["SBPM01", "SBPM02", "SBPM06", "SBPM08", "SBPM09"],
+                 "L1":["COLDBPM01", "COLDBPM02", "COLDBPM04"],
+                 "BC1":["SBPM01", "SBPM02"]}
+
+
+class LockManager:
+    """锁管理类：自动检测并生成所需文件，支持状态恢复"""
+# path = '/home/desktop-user-a/Desktop/AlarmProject/20251011'  home/site-user/work/StreamDataPro
+    def __init__(self):
+        self.lock_file = "/home/site-user/waveform_data/lock/button_lock.lock"  # 锁文件路径
+        self.status_file = "/home/site-user/waveform_data/lock/lock_status.json"  # 状态文件路径
+        self.fd = None  # 锁文件描述符
+        self.lock_duration = 600
+        self._init_files()
+        self._load_lock_duration()  # 锁定时长（秒）)
+
+        # 初始化：自动检测并生成所需文件
+
+
+    def _init_files(self):
+        """自动检测并生成lock_file和status_file（若不存在）"""
+        # 生成锁文件（若不存在）
+        if not os.path.exists(self.lock_file):
+            with open(self.lock_file, "w") as f:
+                pass  # 创建空文件startButton
+            # os.chmod(self.lock_file, 0o777)
+            print(f"已自动生成锁文件：{self.lock_file}")
+
+        # 生成状态文件（若不存在）
+        if not os.path.exists(self.status_file):
+            # 初始化状态为未锁定
+            init_status = {
+                "is_locked": False,
+                "start_time": None,
+                # "pid": None,
+                "duration": self.lock_duration,
+                "last_save": datetime.now().isoformat()
+            }
+            with open(self.status_file, "w") as f:
+                json.dump(init_status, f, indent=2)
+            # os.chmod(self.status_file,0o777)
+            print(f"已自动生成状态文件：{self.status_file}")
+    def _load_lock_duration(self):
+
+        try:
+            # os.chmod(self.status_file, 0o777)
+            with open(self.status_file, "r") as f:
+                status = json.load(f)
+            # os.chmod(self.status_file, 0o777)
+            self.lock_duration = status.get("duration",self.lock_duration)
+        except  Exception as e:
+            print('get lock_duration from file failed')
+    def _load_status(self):
+        """加载状态文件（确保文件已存在）"""
+        try:
+            current = oct(os.stat(self.status_file).st_mode)[-3:]
+            print(current)
+            # os.chmod(self.status_file, 0o777)
+            with open(self.status_file, "r") as f:
+                status = json.load(f)
+            # os.chmod(self.status_file, 0o777)
+            return {
+                "is_locked": status.get("is_locked"),
+                "start_time": status.get("start_time")
+            }
+        except Exception as e:
+            print(f"加载状态文件失败，重置为初始状态：{e}")
+            # 若文件损坏，重置状态文件
+            self._init_files()
+            return {"is_locked": False, "start_time": None}
+
+    def _save_status(self, is_locked, start_time=None):
+        """保存状态到文件"""
+        status = {
+            "is_locked": is_locked,
+            "start_time": start_time,
+            # "pid": os.getpid(),
+            "duration": self.lock_duration,
+            "last_save": datetime.now().isoformat()
+        }
+        # os.chmod(self.status_file, 0o777)
+        with open(self.status_file, "w") as f:
+            json.dump(status, f, indent=2)
+
+
+    def get_remaining_time(self):
+        """计算剩余时间：总时长 -（当前时间 - 开始时间）"""
+        status = self._load_status()
+        if not status["is_locked"] or not status["start_time"]:
+            return 0
+
+        try:
+            start = datetime.fromisoformat(status["start_time"])
+            elapsed = (datetime.now() - start).total_seconds()
+            # print(f"self.lock_duration - elapsed{self.lock_duration - elapsed}")
+            return max(0, self.lock_duration - elapsed)
+        except Exception:
+            return 0
+
+    def acquire_lock(self):
+        """获取锁并记录开始时间"""
+        try:
+            # print('acquire_lock')
+            self.fd = open(self.lock_file, "a+")
+
+            # os.chmod(self.lock_file, 0o777)
+            lock_struct = struct.pack('hhllh', fcntl.F_WRLCK, 0, 0, 0, 0)
+            fcntl.fcntl(self.fd, fcntl.F_SETLK, lock_struct)
+
+            start_time = datetime.now().isoformat()
+            self._save_status(is_locked=True, start_time=start_time)
+            return True
+        except BlockingIOError:
+            if self.fd:
+                self.fd.close()
+            self.fd = None
+            return False
+        except Exception as e:
+            print(f"获取锁失败：{e}")
+            if self.fd:
+                self.fd.close()
+            self.fd = None
+            return False
+
+    def release_lock(self):
+        """时间到后释放锁"""
+        if self.fd:
+            try:
+                unlock_struct = struct.pack('hhllh', fcntl.F_UNLCK, 0, 0, 0, 0)
+                fcntl.fcntl(self.fd, fcntl.F_SETLK, unlock_struct)
+                self.fd.close()
+            except Exception as e:
+                print(f"释放锁失败：{e}")
+        self.fd = None
+        self._save_status(is_locked=False)
+
+    def try_restore(self):
+        """恢复状态（依赖自动生成的文件）"""
+        status = self._load_status()
+        if not status["is_locked"] or not status["start_time"]:
+            return False
+
+        remaining = self.get_remaining_time()
+        if remaining <= 0:
+            self._save_status(is_locked=False)
+            return False
+
+        try:
+            self.fd = open(self.lock_file, "a+")
+            lock_struct = struct.pack('hhllh', fcntl.F_WRLCK, 0, 0, 0, 0)
+            fcntl.fcntl(self.fd, fcntl.F_SETLK, lock_struct)
+            return True
+        except BlockingIOError:
+            if self.fd:
+                self.fd.close()
+            self.fd = None
+            self._save_status(is_locked=False)
+            return False
+        except Exception as e:
+            print(f"恢复锁失败：{e}")
+            if self.fd:
+                self.fd.close()
+            self.fd = None
+            return False
+
+    def get_status_text(self):
+        """生成状态显示文本"""
+        status = self._load_status()
+        remaining = self.get_remaining_time()
+
+        if status["is_locked"] and remaining > 0:
+            return (f"锁定中 | 剩余: {int(remaining)}秒 "
+                    f"开始于: {status['start_time'].split('.')[0]}")
+        else:
+            return "未锁定 | 可点击操作"
+
+#appimagekit-gqrx.svg
+class MainWindow(QMainWindow, Ui_StreamData):
+    # updateSignal = pyqtSignal(deque)
+    updateSignal = pyqtSignal()
+
+    def __init__(self):
+        super(MainWindow, self).__init__()
+        self.setupUi(self)
+        self.timer = QTimer(self)
+        self.interval = 10
+        # LockManager
+        self.lock_manager = LockManager()
+        self.is_locked = False
+        self.timer.timeout.connect(self.update_state)
+        self.restore_state()
+
+
+
+
+        self.progressBar.setVisible(False)
+        self.setPVButtons()
+        self.startButton.clicked.connect(self.startButton_click)
+        self.retrievalButton.clicked.connect(self.retrievalButton_click)
+
+        #add for plot
+        self.confirmButton.clicked.connect(self.confirmButton_click)
+        self.showidButton.clicked.connect(self.showidButton_click)
+        self.plotButton.clicked.connect(self.plotButton_click)
+
+        ###################
+
+        self.downloadButton.clicked.connect(self.downloadButton_click)
+        self.downloadRawDataButton.clicked.connect(self.rawDataDownload_click)
+        self.dateEdit.setDate(QDate.currentDate())
+        with open(CONFIG_DIR / 'pv_list_ALL.txt', 'r', encoding='utf-8') as file:
+            raw_data = file.read().strip()
+            raw_doc_data = "[" + raw_data + "]"
+        pv_data_list = json.loads(raw_doc_data)
+        self.pv_list = [item['pv'].replace('-E:RESULT_CAPTURE', '').replace('-', '_').replace(':', '_') for item in
+                             pv_data_list]
+
+    def restore_state(self):
+        if self.lock_manager.try_restore():
+            self.is_locked = True
+            self.startButton.setEnabled(False)
+            self.startButton.setText("锁定中...")
+            self.timer.start(1000)
+        self.update_state()
+    def setPVButtons(self):
+        for key in BPMS_TO_STORE.keys():
+            pvs = BPMS_TO_STORE[key]
+            for pv in pvs:
+                widget = self.findChild(QPushButton, key+"_"+pv)
+                if widget and isinstance(widget, QPushButton):
+                    button = widget
+                    button.setChecked(True)
+                    '''
+                    button.setStyleSheet("""
+                      QPushButton{
+                         background-color:#2196F3;
+                         color:white;                       
+                      }
+                      """)
+                    '''
+    def update_state(self):
+        remaining = self.lock_manager.get_remaining_time()
+        # print(f'remaining--------->{remaining}')
+        if remaining <= 0 and self.is_locked:
+            self.lock_manager.release_lock()
+            self.is_locked = False
+            self.startButton.setEnabled(True)
+            self.startButton.setText(f"Start Capture")
+            self.timer.stop()
+        self.label_9.setText(self.lock_manager.get_status_text())
+
+    def closeEvent(self, event):
+        if self.lock_manager.fd:
+            try:
+                self.lock_manager.fd.close()
+            except Exception:
+                pass
+            self.lock_manager.fd = None
+        event.accept()
+
+    def startButton_click(self):
+
+        interval_origin = self.interval_comboBox.currentText()
+        print(f'interval_origin:{interval_origin}')
+        self.interval = re.sub(r'[^0-9]', '', interval_origin)
+        print(f'interval:{self.interval}')
+        self.lock_manager.lock_duration = int(self.interval)*60
+        if not self.is_locked and self.lock_manager.acquire_lock():
+            self.is_locked = True
+            self.startButton.setEnabled(False)
+            self.startButton.setText("锁定中...")
+            self.timer.start(1000)
+        self.update_state()
+
+        activated_button = []
+        for row in range(self.gridLayout.rowCount()):
+            for col in range(self.gridLayout.columnCount()):
+                layout_item = self.gridLayout.itemAtPosition(row, col)
+                if layout_item:
+                    widget = layout_item.widget()
+                    if isinstance(widget, QtWidgets.QPushButton) and widget.isChecked():
+                        activated_button.append(widget.objectName())
+        print(f'activated_button__________->:{activated_button}')
+
+        os.environ['EPICS_CA_ADDR_LIST'] = "192.0.2.1:6310"
+        ctx = Context()
+        fre_pv = ctx.get_pvs("AC-LA-INJ1-TIM:WRN1:MCFQ8")[0]
+        frequency = fre_pv.read().data[0]
+        print(frequency)
+        interval_origin = self.interval_comboBox.currentText()
+        print(f'interval_origin:{interval_origin}')
+        interval = re.sub(r'[^0-9]','',interval_origin)
+        print(f'interval:{interval}')
+        #
+        # #if frequency==100 or frequency==1000 or frequency==2 or frequency==10:
+        if frequency and activated_button:
+            ###########################ZMQ stop send message###########
+            print("find frequency and BPMs names")
+            prex = 'AC_LA'
+            suffix = 'BI'
+            new_BPMname_list = []
+            for i in range(0, len(activated_button)):
+                part = activated_button[i].split('_')
+                if len(part) >= 2:
+                    inj_part = part[0]
+                    device_part = '_'.join(part[1:])
+                    new_name = f"{prex}_{inj_part}_{suffix}_{device_part}"
+                    new_BPMname_list.append(new_name)
+            message = f"{frequency},{interval},{new_BPMname_list}"
+            # print(message)
+
+            try:
+                server_host = os.environ.get("WAVEFORM_ZMQ_SERVER_HOST", "192.0.2.2")
+                return_message = send_start(server_host=server_host, message=message)
+                print("response from server:", return_message)
+            except:
+                print('something wrong in connecting serve')
+        else:
+            msg = QMessageBox()
+            msg.setWindowTitle("Reminder")
+            msg.setText("Please set the frequency!")
+            font = QFont()
+            font.setPointSize(12)
+            msg.setFont(font)
+            msg.exec_()
+
+        # os.environ['EPICS_CA_ADDR_LIST'] = "192.0.2.1:6310"
+        # ctx = Context()
+        # fre_pv = ctx.get_pvs("AC-LA-INJ1-TIM:WRN1:MCFQ8")[0]
+        # frequency = fre_pv.read().data[0]
+        # print(frequency)
+        #
+        # #if frequency==100 or frequency==1000 or frequency==2 or frequency==10:
+        # if frequency:
+        #     #send_start(server_host="192.0.2.4", message=str(frequency))   #gai cheng 8.30   fu wu qi de  ip
+        #     send_start(server_host="192.0.2.2", message=str(frequency))
+        #     self.progressBar.setVisible(True)
+        #     self.progressBar.setValue(100)
+        #     self.progressBar.setFormat("Fetching waveform data. The next acquisition can be started in 10 minitues")
+        #     # self.startButton.setEnabled(False)
+        #     # self.retrievalButton.setEnabled(False)
+        #     # self.downloadButton.setEnabled(False)
+        #     # self.progressBar.setValue(10)
+        #     # time.sleep(150)             #5min
+        #     # self.progressBar.setValue(50)
+        #     # time.sleep(150)            #5min
+        #     # self.progressBar.setValue(100)
+        #     # self.progressBar.setFormat("Finished")
+        #     # self.startButton.setEnabled(True)
+        #     # self.retrievalButton.setEnabled(True)
+        #     # self.downloadButton.setEnabled(True)
+        #     #time.sleep(1)
+        #     #self.startBPMs()
+        # else:
+        #     msg = QMessageBox()
+        #     msg.setWindowTitle("Reminder")
+        #     msg.setText("Please set the frequency!")
+        #     font = QFont()
+        #     font.setPointSize(12)
+        #     msg.setFont(font)
+        #     msg.exec_()
+
+    def retrievalButton_click(self):
+        self.hostname = os.environ.get("WAVEFORM_STORAGE_HOST", "192.0.2.2")
+        self.username = os.environ.get("WAVEFORM_STORAGE_USER", "storage-user")
+        self.password = os.environ.get("WAVEFORM_STORAGE_PASSWORD")
+
+        date = self.dateEdit.date().toPyDate()    #2025-09-30  xu yao cheng wei (quan ju bian liang)  fa song gei shu ju chu li
+        print(str(date))
+        self.runID = str(date).replace('-', '')
+
+        # remote_path = os.path.join("/home/desktop-user-a/Desktop/SHINE_DATA/AC/LA/",runID,"raw/BIData/")
+        self.remote_path = os.path.join("/SHINE_Data/AC/LA/",self.runID,"raw/BIData/")
+
+        # test = search_time_sec(self.remote_path)
+        test = remote_search_time_sec(hostname=self.hostname,username=self.username,remote_path=self.remote_path,password=self.password)
+        format_test = [f"{t[0:2]}:{t[2:4]}:{t[4:6]}" for t in test]
+        print(f'test---->{format_test}')
+        self.comboBox.clear()
+        self.comboBox.addItems(format_test)
+
+        self.comboBox.setCurrentIndex(0)  #######add for default select time_sec
+
+    def confirmButton_click(self):
+        # self.progressBar.setVisible(True)
+        text = self.comboBox.currentText()
+        time_sec = get_para(text)
+        self.Skip_BPMs_names, self.Final_BPM_number, self.Final_overlap_number, self.bunchID_new_list, self.x_new_list, self.y_new_list, self.filename, self.runID, self.time_sec, self.skip_ind = main_dataprocess(
+            self.remote_path, self.runID, time_sec,self.pv_list)
+        indexrange=selectConfirm(bunchID_new_list=self.bunchID_new_list)
+        print(indexrange)
+        self.rangelabel.setText(indexrange)
+
+    def showidButton_click(self):
+        # self.index_spinBox.setValue(0)  ###########设置默认值0
+
+        self.selectedIDindex=self.index_spinBox.value()
+        current_bunchID=showBunchID(selectedIDindex=self.selectedIDindex,bunchID_new_list=self.bunchID_new_list)
+        self.current_bunchID=str(current_bunchID)
+
+        self.select_bunchID_show.setText(self.current_bunchID)
+        print('show bunchID',self.current_bunchID)
+
+    def plotButton_click(self):
+
+        text = self.comboBox.currentText()
+        time_sec = get_para(text)
+        print("plot user select time_sec:", time_sec)
+        self.Skip_BPMs_names, self.Final_BPM_number, self.Final_overlap_number, self.bunchID_new_list, self.x_new_list, self.y_new_list, self.filename, self.runID, self.time_sec, self.skip_ind = main_dataprocess(
+            self.remote_path, self.runID, time_sec,self.pv_list)
+        print(f'self.filename{self.filename}')
+        self.selectedIDindex = self.index_spinBox.value()
+        current_bunchID = showBunchID(selectedIDindex=self.selectedIDindex, bunchID_new_list=self.bunchID_new_list)
+        self.current_bunchID = str(current_bunchID)
+
+        self.select_bunchID_show.setText(self.current_bunchID)
+        print('show bunchID after plot', self.current_bunchID)
+        print('show bunchID index after plot', self.selectedIDindex)
+        # self.filename_sorted = sorted(self.filename,key = lambda x: self.pv_list.index(x))
+
+        self.fig=plotbunchID(selectedIDindex=self.selectedIDindex,bunchID_new_list=self.bunchID_new_list,x_new_list=self.x_new_list,
+                             y_new_list=self.y_new_list,devicename=self.filename,skip_ind=self.skip_ind)
+
+        # 转换为 FigureCanvas
+        self.canvas = FigureCanvas(self.fig)
+
+
+        if self.groupBox.layout():
+            QtWidgets.QWidget().setLayout(self.groupBox.layout())
+
+        self.gridlayout = QtWidgets.QGridLayout(self.groupBox)
+        # self.ui.gridlayout.addWidget(self.fig)
+        self.gridlayout.addWidget(self.canvas)  # 添加的是 canvas，不是 fig
+
+    def downloadButton_click(self):
+        self.progressBar.setVisible(True)
+        text = self.comboBox.currentText()
+        #print(type(text))
+        ######################edit251010-start##########
+        time_sec = get_para(text)
+        #print("user select time_sec:", time_sec)
+        Skip_BPMs_names,Final_BPM_number, Final_overlap_number, bunchID_new_list, x_new_list, y_new_list, filename, runID, time_sec, skip_ind = main_dataprocess(
+            self.remote_path, self.runID, time_sec,self.pv_list)
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            "Please choose the directory",
+            os.path.join(os.path.expanduser("~"), "Downloads")
+        )
+        if directory:
+            self.progressBar.setFormat("Data is downloading")
+            self.startButton.setEnabled(False)
+            self.retrievalButton.setEnabled(False)
+            self.downloadButton.setEnabled(False)
+            self.progressBar.setValue(10)
+
+            save_path = directory
+            new_h5_filename = save_newfile(bunchID_new_list, x_new_list, y_new_list, filename, runID, time_sec,
+                                           skip_ind,
+                                           save_path)
+
+            #print("Align BPM number and overlap length:", Final_BPM_number, Final_overlap_number)
+            time.sleep(1)
+            self.progressBar.setFormat("Finished")
+            self.startButton.setEnabled(True)
+            self.retrievalButton.setEnabled(True)
+            self.downloadButton.setEnabled(True)
+            self.progressBar.setValue(100)
+
+            msg = QMessageBox()
+            msg.setWindowTitle("Reminder")
+            msg.setText(f"The data have been stored in {new_h5_filename}\n\n{Final_BPM_number} BPMs can be matched.\n\n"
+                        f"The number of overlapping bunchID is {Final_overlap_number}.\n\n"
+                        f"The skipped BPMs names are {Skip_BPMs_names}")
+            font = QFont()
+            font.setPointSize(14)
+            msg.setFont(font)
+            msg.exec_()
+
+    def rawDataDownload_click(self):
+        self.hostname = os.environ.get("WAVEFORM_STORAGE_HOST", "192.0.2.2")
+        self.username = os.environ.get("WAVEFORM_STORAGE_USER", "storage-user")
+        self.password = os.environ.get("WAVEFORM_STORAGE_PASSWORD")
+        date = self.dateEdit.date().toPyDate()
+        #print(str(date))
+        self.runID = str(date).replace('-', '')
+        self.remote_path = os.path.join("/SHINE_Data/AC/LA/", self.runID, "raw/BIData/")
+
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            "Please choose the directory",
+            os.path.join(os.path.expanduser("~"), "Downloads")
+        )
+        if directory:
+            self.progressBar.setFormat("Data is downloading")
+            self.startButton.setEnabled(False)
+            self.retrievalButton.setEnabled(False)
+            self.downloadButton.setEnabled(False)
+            self.progressBar.setValue(10)
+
+            local_path = os.path.join(directory, self.runID)
+
+            text = self.comboBox.currentText()
+            #print(type(text))
+            time_sec = get_para(text)
+            if time_sec is None:
+                print('please retrieval time_sec')
+
+            remote_save_timesec_h5_files(hostname=self.hostname, username=self.username, password=self.password,
+                                         remote_path=self.remote_path, local_path=local_path, time_sec=time_sec,
+                                         port=22)
+            time.sleep(1)
+            self.progressBar.setFormat("Finished")
+            self.startButton.setEnabled(True)
+            self.retrievalButton.setEnabled(True)
+            self.downloadButton.setEnabled(True)
+            self.progressBar.setValue(100)
+
+            msg = QMessageBox()
+            msg.setWindowTitle("Reminder")
+            msg.setText(f"The data have been stored in {local_path}")
+            font = QFont()
+            font.setPointSize(14)
+            msg.setFont(font)
+            msg.exec_()
+
+if __name__ == '__main__':
+
+    app = QtWidgets.QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec())
