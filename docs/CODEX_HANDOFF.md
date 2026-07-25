@@ -680,6 +680,13 @@ DOWNLOADING、ALIGNING、READY、EXPORTING、FAILED、CANCELLED 状态。工作�
 SSH gateway 和 `CaptureService` 分别可 fake 测试。新 parser 不执行未确认的 X/Y
 `/1000` 缩放；未运行真实 EPICS、SSH 或 ZMQ。
 
+### 结构重构阶段 6：本地 fake ZMQ 闭环
+
+新增 `transport/zmq_transport.py` 和 `acquisition/task.py`，仅通过共享 Context 的
+`inproc://` endpoint 测试候选 JSON。已覆盖非法请求、accepted/running/终态、重复
+request_id、超时、部分设备失败、异常和取消。GUI 仍发送原 legacy 字符串，生产协议差异
+仍未知，未连接 `192.0.2.2:5000`。
+
 ### 2026-07-25 本地实现检查点
 
 本检查点只改动本地仓库和本地 Conda 环境，未修改生产服务器：
