@@ -33,6 +33,7 @@ from overlap import (
     AlignmentResultCache,
     alignment_bunch_id,
     alignment_summary,
+    clear_retrieval_cache,
     get_para,
     main_alignment_process,
     plot_alignment_result,
@@ -414,6 +415,7 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
     def retrievalButton_click(self):
         self.alignment_cache.clear()
+        clear_retrieval_cache()
         self.hostname = self.settings.storage_host
         self.username = self.settings.storage_user
         self.password = self.settings.storage_password

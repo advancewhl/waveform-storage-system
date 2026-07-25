@@ -660,6 +660,12 @@ feature/gui-v2
 legacy 包装分别位于 `transport/ssh_storage.py`、`gui/plotting.py` 和
 `legacy/overlap_adapter.py`；旧 import 路径和旧包装函数继续可用。
 
+### 结构重构阶段 3：RetrievalService
+
+新增无 Qt 的 `application/retrieval_service.py`，统一文件发现、设备过滤、读取、对齐、缓存
+与 legacy/v2 导出。storage gateway、reader、aligner 和 writer 均可注入；GUI 兼容 facade
+委托该服务，缓存键继续包含远程路径、runID、时刻和完整设备列表。
+
 ### 2026-07-25 本地实现检查点
 
 本检查点只改动本地仓库和本地 Conda 环境，未修改生产服务器：
