@@ -7,11 +7,16 @@ import logging
 from pathlib import Path
 import time
 
+from waveform_storage.acquisition.protocol import (
+    CaptureRequest as ProtocolCaptureRequest,
+)
 from waveform_storage.logging_config import log_context
 
 
 @dataclass(frozen=True)
-class CaptureRequest:
+class CapturePlan:
+    """Application-level capture plan derived from a validated wire request."""
+
     request_id: str
     frequency_hz: float
     duration_seconds: int
@@ -26,6 +31,22 @@ class CaptureRequest:
             raise ValueError("duration_seconds must be positive")
         if not self.device_ids or len(set(self.device_ids)) != len(self.device_ids):
             raise ValueError("device_ids must be non-empty and unique")
+
+    @classmethod
+    def from_protocol(cls, request: ProtocolCaptureRequest) -> "CapturePlan":
+        if request.command != "start_capture":
+            raise ValueError(f"unsupported capture command: {request.command}")
+        return cls(
+            request_id=request.request_id,
+            frequency_hz=float(request.frequency_hz),
+            duration_seconds=request.duration_seconds,
+            device_ids=tuple(request.devices),
+        )
+
+
+# Compatibility alias for callers created before the protocol/application split
+# was made explicit. New code should use CapturePlan.
+CaptureRequest = CapturePlan
 
 
 @dataclass(frozen=True)
@@ -99,3 +120,18 @@ class CaptureService:
             error_type="PartialDeviceFailure" if failures else None,
         ).info("capture candidate completed")
         return completed
+
+    def capture_protocol_request(
+        self,
+        request: ProtocolCaptureRequest,
+        resolver,
+    ):
+        """Run a validated v1 request through the application service.
+
+        ``resolver`` converts the device IDs in the plan into the EPICS PV and
+        download request collections required by the deployment adapter.
+        """
+
+        plan = CapturePlan.from_protocol(request)
+        device_pvs, download_requests = resolver(plan)
+        return self.capture(plan, device_pvs, download_requests)

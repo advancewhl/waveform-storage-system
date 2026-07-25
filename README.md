@@ -52,7 +52,7 @@
 │  ├─ transport/             # SSH、EPICS 和本地 fake ZMQ
 │  └─ legacy/                # 旧行为兼容适配器
 ├─ config/                   # devices.json 单一事实源和兼容 TXT
-├─ tests/                    # 79 项离线测试
+├─ tests/                    # 当前实验分支 85 项离线测试
 ├─ tools/                    # 注册表、质量和敏感信息检查入口
 ├─ data/
 │  └─ samples/               # 本地 HDF5 样例，默认不提交 Git
@@ -222,6 +222,7 @@ coverage 模式存在缺失单元时只能写 v2，旧格式适配器会明确�
 - [数据对齐 v2 设计基线](docs/数据对齐v2设计.md)：纯函数、覆盖共识和接入边界。
 - [设备注册表](docs/设备注册表.md)：47/200 台设备配置、校验和旧格式生成方法。
 - [采集协议 v1 候选](docs/采集协议v1候选.md)：仅用于本地/fake 测试的版本化消息和状态模型。
+- [通信升级调查目录](docs/通信升级调查/README.md)：生产服务、ZMQ、任务、文件和回滚事实的统一查询模板。
 - [项目功能与文件说明](docs/项目功能与文件说明.md)：原始项目逐文件静态分析。
 
 ## 本地测试
@@ -235,9 +236,10 @@ $env:PYTHONPATH = (Resolve-Path src).Path
 python -m unittest discover -s tests -v
 ```
 
-当前 79 项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
+当前实验分支 85 项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
 Controller/Worker、严格 TXT、fake EPICS/SSH、CaptureService、本地 fake ZMQ、日志、
-对齐、注册表和 HDF5；不连接 EPICS、SSH、生产 ZMQ 或生产存储。
+双协议通信分派、协议到 CaptureService 的本地组合闭环、对齐、注册表和 HDF5；不连接
+EPICS、SSH、生产 ZMQ 或生产存储。`main` 的已审计基线仍为 79 项。
 
 完整本地质量门禁使用当前环境中已有工具：
 
