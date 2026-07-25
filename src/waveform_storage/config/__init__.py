@@ -10,6 +10,7 @@ from .registry import (
     save_registry,
     validate_registry,
 )
+from .settings import AppSettings, SettingsError
 
 __all__ = [
     "Device",
@@ -20,4 +21,6 @@ __all__ = [
     "render_legacy_json_lines",
     "save_registry",
     "validate_registry",
+    "AppSettings",
+    "SettingsError",
 ]

@@ -16,11 +16,9 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SRC_DIR = PROJECT_ROOT / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
 from waveform_storage.config.registry import load_registry
+from waveform_storage.config.settings import AppSettings
 from waveform_storage.gui.device_selection import build_button_specs
 
 from zmq_client_dealer import send_start
@@ -51,7 +49,8 @@ import fcntl
 import struct
 from datetime import datetime
 
-CONFIG_DIR = PROJECT_ROOT / "config"
+APP_SETTINGS = AppSettings.from_env(project_root=PROJECT_ROOT)
+CONFIG_DIR = APP_SETTINGS.config_dir
 
 class MyCommunicate(QObject):
     update_table_signal = pyqtSignal(str)
@@ -235,6 +234,7 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
     def __init__(self):
         super(MainWindow, self).__init__()
+        self.settings = APP_SETTINGS
         self.setupUi(self)
         self.timer = QTimer(self)
         self.interval = 10
@@ -359,8 +359,11 @@ class MainWindow(QMainWindow, Ui_StreamData):
             # print(message)
 
             try:
-                server_host = os.environ.get("WAVEFORM_ZMQ_SERVER_HOST", "192.0.2.2")
-                return_message = send_start(server_host=server_host, message=message)
+                return_message = send_start(
+                    server_host=self.settings.zmq_server_host,
+                    server_port=self.settings.zmq_server_port,
+                    message=message,
+                )
                 print("response from server:", return_message)
             except:
                 print('something wrong in connecting serve')
@@ -411,9 +414,9 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
     def retrievalButton_click(self):
         self.alignment_cache.clear()
-        self.hostname = os.environ.get("WAVEFORM_STORAGE_HOST", "192.0.2.2")
-        self.username = os.environ.get("WAVEFORM_STORAGE_USER", "storage-user")
-        self.password = os.environ.get("WAVEFORM_STORAGE_PASSWORD")
+        self.hostname = self.settings.storage_host
+        self.username = self.settings.storage_user
+        self.password = self.settings.storage_password
 
         date = self.dateEdit.date().toPyDate()    #2025-09-30  xu yao cheng wei (quan ju bian liang)  fa song gei shu ju chu li
         print(str(date))
@@ -544,10 +547,7 @@ class MainWindow(QMainWindow, Ui_StreamData):
             self.progressBar.setValue(10)
 
             save_path = directory
-            export_format = os.environ.get(
-                "WAVEFORM_ALIGNMENT_EXPORT_FORMAT",
-                "auto",
-            )
+            export_format = self.settings.alignment_export_format
             new_h5_filename = save_alignment_result(
                 result,
                 self.runID,
@@ -576,9 +576,9 @@ class MainWindow(QMainWindow, Ui_StreamData):
             msg.exec_()
 
     def rawDataDownload_click(self):
-        self.hostname = os.environ.get("WAVEFORM_STORAGE_HOST", "192.0.2.2")
-        self.username = os.environ.get("WAVEFORM_STORAGE_USER", "storage-user")
-        self.password = os.environ.get("WAVEFORM_STORAGE_PASSWORD")
+        self.hostname = self.settings.storage_host
+        self.username = self.settings.storage_user
+        self.password = self.settings.storage_password
         date = self.dateEdit.date().toPyDate()
         #print(str(date))
         self.runID = str(date).replace('-', '')
@@ -606,7 +606,7 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
             remote_save_timesec_h5_files(hostname=self.hostname, username=self.username, password=self.password,
                                          remote_path=self.remote_path, local_path=local_path, time_sec=time_sec,
-                                         port=22)
+                                         port=self.settings.storage_port)
             time.sleep(1)
             self.progressBar.setFormat("Finished")
             self.startButton.setEnabled(True)

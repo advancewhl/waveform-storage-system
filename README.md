@@ -79,17 +79,26 @@
 | 变量 | 用途 |
 |---|---|
 | `WAVEFORM_ZMQ_SERVER_HOST` | GUI 发送采集命令的 ZMQ 主机 |
+| `WAVEFORM_ZMQ_SERVER_PORT` | ZMQ 端口，默认 5000 |
+| `WAVEFORM_ZMQ_RECEIVE_TIMEOUT_MS` | ZMQ 接收超时，默认 3000 ms |
 | `WAVEFORM_STORAGE_HOST` | 中央 HDF5 存储 SSH 主机 |
+| `WAVEFORM_STORAGE_PORT` | 中央存储 SSH 端口，默认 22 |
 | `WAVEFORM_STORAGE_USER` | 中央存储 SSH 用户 |
 | `WAVEFORM_STORAGE_PASSWORD` | 中央存储 SSH 密码 |
+| `WAVEFORM_STORAGE_DATA_ROOT` | 中央存储数据根目录 |
 | `WAVEFORM_DEVICE_SSH_USER` | BPM 设备 SSH 用户 |
 | `WAVEFORM_DEVICE_SSH_PASSWORD` | BPM 设备 SSH 密码 |
+| `WAVEFORM_DEVICE_SSH_PORT` | BPM 设备 SSH 默认端口 |
 | `WAVEFORM_DEVICE_REMOTE_DIR` | BPM 设备远程 TXT 目录 |
 | `WAVEFORM_LOCAL_DATA_ROOT` | 采集端本地数据根目录 |
 | `WAVEFORM_CONFIG_DIR` | 可选，自定义配置目录 |
 | `WAVEFORM_ALIGNMENT_EXPORT_FORMAT` | 对齐导出格式：`auto`（默认）、`legacy` 或 `v2` |
+| `WAVEFORM_SSH_CONNECT_TIMEOUT_SECONDS` | SSH 连接超时，默认 30 秒 |
+| `WAVEFORM_EPICS_CONNECT_TIMEOUT_SECONDS` | EPICS 连接超时，默认 10 秒 |
 
 推荐后续改成 SSH key 或系统密钥管理，不长期使用密码环境变量。
+这些值由纯 Python 的 `waveform_storage.config.settings.AppSettings` 统一解析；凭据不会进入
+对象表示或公共诊断字典。
 
 ### 配置文件
 
@@ -118,6 +127,15 @@ conda activate waveform-storage
 已有环境可用 `conda env update -f environment.yml --prune` 同步。Linux 电脑也优先使用同一个
 `environment.yml` 新建环境；GUI 运行还需要桌面会话和 Qt 所需系统库。`environment/conda-linux-64-explicit.txt`
 只是原环境快照，没有完整覆盖源码依赖，不应作为唯一依赖来源。
+
+项目现已采用 `src` layout，可在现有环境中离线执行：
+
+```powershell
+python -m pip install -e . --no-deps
+python -c "import waveform_storage"
+```
+
+当前阶段不新增 console script，原 GUI 与采集脚本入口保持不变。
 
 ## 运行
 

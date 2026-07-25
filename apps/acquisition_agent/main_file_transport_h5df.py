@@ -16,6 +16,7 @@ import glob
 import zmq
 
 from caproto.threading.client import Context, Batch
+from waveform_storage.config.settings import AppSettings
 
 # pyinstaller - -onefile - n 'saveApp' - -exclude - module PySide6 main_file_transport_h5df.py
 
@@ -29,13 +30,11 @@ class file_transport():
         self.year_month_day = 0
         self.localpath = ''
         self.project_root = Path(__file__).resolve().parents[2]
-        self.config_dir = Path(os.environ.get(
-            "WAVEFORM_CONFIG_DIR",
-            self.project_root / "config"
-        ))
-        self.remote_dir = os.environ.get("WAVEFORM_DEVICE_REMOTE_DIR", "/home/data")
-        self.ssh_username = os.environ.get("WAVEFORM_DEVICE_SSH_USER", "root")
-        self.ssh_password = os.environ.get("WAVEFORM_DEVICE_SSH_PASSWORD")
+        self.settings = AppSettings.from_env(project_root=self.project_root)
+        self.config_dir = self.settings.config_dir
+        self.remote_dir = self.settings.device_remote_dir
+        self.ssh_username = self.settings.device_ssh_user
+        self.ssh_password = self.settings.device_ssh_password
         self.caput_timestr =  int(time.time())
 
     def start_server(self,host="0.0.0.0", port=5000):
@@ -71,7 +70,9 @@ class file_transport():
         ctx = Context()
         pvs = ctx.get_pvs(*pv_list)
         for pv in pvs:
-            pv.wait_for_connection(timeout=10)  # 1s
+            pv.wait_for_connection(
+                timeout=self.settings.epics_connect_timeout_seconds
+            )  # legacy default: 10s
         with Batch() as b:
             for pv in pvs:
                 b.write(pv, 0)
@@ -239,7 +240,7 @@ class file_transport():
                 # username=host_config['username'],
                     username=host_config.get('username', self.ssh_username),
                     key_filename=host_config['key_filename'],
-                    timeout=30
+                    timeout=self.settings.ssh_connect_timeout_seconds
                 )
             else:
                 client.connect(
@@ -248,7 +249,7 @@ class file_transport():
                 # username=host_config['username'],
                     username=host_config.get('username', self.ssh_username),
                     password=self.ssh_password,
-                    timeout=30
+                    timeout=self.settings.ssh_connect_timeout_seconds
                 )
             return client
         except Exception as e:
@@ -268,7 +269,7 @@ class file_transport():
 
             files_name = sftp.listdir(self.remote_dir)
             target_file = f'{files_name[0]}'
-            remote_file_path = f'/home/data/{target_file}'
+            remote_file_path = f'{self.remote_dir}/{target_file}'
             file_start = sftp.stat(remote_file_path)
             modify_last_timestamp = int(file_start.st_mtime)
             # print(f'{modify_last_timestamp}---------------{self.caput_timestr}')
@@ -305,7 +306,7 @@ class file_transport():
         self.hour_minite_secend = timestr[-6:]
         self.year_month_day = timestr[:-6]
         # self.localpath = f'/SHINE_Data/AC/LA/{self.year_month_day}/raw/BIData'
-        local_root = os.environ.get("WAVEFORM_LOCAL_DATA_ROOT", "/SHINE_Data/AC/LA")
+        local_root = str(self.settings.local_data_root)
         self.localpath = os.path.join(
             local_root,
             self.year_month_day,
@@ -385,5 +386,4 @@ if __name__ == "__main__":
     # aa.save_h5_data()
     # data = aa.get_addr_list_BPM()
     # print(data)
-
 

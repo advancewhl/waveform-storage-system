@@ -26,10 +26,12 @@ from waveform_storage.processing.alignment import (
     SkippedDevice,
     align_devices,
 )
+from waveform_storage.config.settings import AppSettings
 
-DEFAULT_STORAGE_HOST = os.environ.get("WAVEFORM_STORAGE_HOST", "192.0.2.2")
-DEFAULT_STORAGE_USER = os.environ.get("WAVEFORM_STORAGE_USER", "storage-user")
-DEFAULT_STORAGE_PASSWORD = os.environ.get("WAVEFORM_STORAGE_PASSWORD")
+_SETTINGS = AppSettings.from_env()
+DEFAULT_STORAGE_HOST = _SETTINGS.storage_host
+DEFAULT_STORAGE_USER = _SETTINGS.storage_user
+DEFAULT_STORAGE_PASSWORD = _SETTINGS.storage_password
 
 
 class AlignmentResultCache:

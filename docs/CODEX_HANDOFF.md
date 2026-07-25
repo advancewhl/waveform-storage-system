@@ -647,6 +647,13 @@ feature/gui-v2
 
 ## 13. 新 Codex 窗口的第一个任务
 
+### 结构重构阶段 1：标准包与统一 Settings
+
+已新增 `pyproject.toml` 和 `waveform_storage.config.settings.AppSettings`。当前 GUI 与采集
+脚本继续作为原入口，使用相同环境变量名称与 legacy 默认值；没有新增 console script，也
+没有改变 GUI 布局、消息格式、远程目录、文件名或 HDF5 语义。阶段验证与 checkpoint 以
+本地 Git 历史为准。
+
 ### 2026-07-25 本地实现检查点
 
 本检查点只改动本地仓库和本地 Conda 环境，未修改生产服务器：
