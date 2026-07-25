@@ -654,6 +654,12 @@ feature/gui-v2
 没有改变 GUI 布局、消息格式、远程目录、文件名或 HDF5 语义。阶段验证与 checkpoint 以
 本地 Git 历史为准。
 
+### 结构重构阶段 2：overlap 职责拆分
+
+活动 `apps/operator_gui/overlap.py` 现为兼容 facade。SSH storage gateway、纯结果绘图和
+legacy 包装分别位于 `transport/ssh_storage.py`、`gui/plotting.py` 和
+`legacy/overlap_adapter.py`；旧 import 路径和旧包装函数继续可用。
+
 ### 2026-07-25 本地实现检查点
 
 本检查点只改动本地仓库和本地 Conda 环境，未修改生产服务器：
