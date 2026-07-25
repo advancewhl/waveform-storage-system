@@ -4,7 +4,9 @@
 > 项目目录：`D:\study_file\postgraduate\x射线自由电子激光\波形存储系统`  
 > 更新日期：2026-07-25  
 > 当前 Git 分支：`main`  
-> 当前基线提交：`e432d0b chore: establish initial project baseline`
+> 当前 HEAD：`a4d7b1c docs: add Codex project handoff plan`
+> 当前工作区：包含本轮未提交实现，必须先检查并保留
+> 本轮专项记录：`docs/本轮工作交接_2026-07-25.md`
 
 ## 1. 用户当前目标
 
@@ -44,7 +46,7 @@ git status --short
 git log -1 --oneline --decorate
 ```
 
-当前基线在上次复核时工作区干净。不要覆盖用户后续产生的未提交修改。
+当前工作区已包含本轮尚未提交的实现和文档。它们是需要交接的成果，不得还原、覆盖或清理。
 
 ## 3. 当前仓库结构
 
@@ -159,7 +161,7 @@ IP：192.0.2.2
 主机提示符：storage-user@storage-user-PC
 ```
 
-截图确认：
+2026-07-25 的只读命令输出确认：
 
 ```text
 ~/saveApp/
@@ -169,42 +171,64 @@ IP：192.0.2.2
 └─ zmq-server
 ```
 
-服务器上的 `pv_list_ALL.txt` 当前为 47 行。
+服务器上的 `pv_list_ALL.txt` 当前为 47 行，SHA-256 与本地
+`config/pv_list_ALL.txt` 完全一致。
 
-基于本地源码推断，这台服务器很可能同时承担：
+进一步确认：
 
-1. 接收 GUI 的 ZMQ 采集命令；
-2. 协调或执行 EPICS 触发；
-3. SSH/SFTP 收集 BPM 原始数据；
-4. 转换或保存 HDF5；
-5. 作为 `/SHINE_Data` 中央存储的访问入口。
+- `saveApp` 和 `zmq-server` 都是 x86-64 ELF 可执行程序；
+- 当前实际运行的是两个父子关系的 `saveApp` 进程；
+- 子进程监听 `0.0.0.0:5000`；
+- 两个进程自 2025-11-12 启动后持续运行，命令行均为 `./saveApp`；
+- 进程输入指向 `/dev/null`，输出和错误指向 `nohup.out`，起源于用户登录会话；
+- 子进程当前可见 85 个线程，线程用途和增长规律尚未确认；
+- `zmq-server` 当前没有运行；
+- 没有对应名称的 systemd unit、匹配 service 项或 `storage-user` 用户 crontab；
+- 日志证明 `saveApp` 能解析包含客户端、频率、时长和设备的复合请求；
+- 最近可见请求均因 BPM PV 无法连接而以 `no BPM connect` 结束；
+- 已确认数据目录规则为 `/SHINE_Data/AC/LA/YYYYMMDD/raw/BIData/`；
+- 最新可见 HDF5 批次为 2025-11-12 12:07 左右的多个 35,952 字节文件；
+- 已确认一份真实 HDF5：`BunchIDData` 为 `uint64 (1,1024)`，`Data` 为
+  `int64 (2,1024)`，并含 `Device/Data_0/Data_1` 根属性；
+- 该样例的 1,024 个 bunchID 全部非零、唯一、严格递增，范围为
+  `38212018001007` 至 `38212529501007`；
+- legacy 合并导出会先转 `int32` 再写 `uint64`，对上述真实 bunchID 存在确定的溢出风险；
+- 真实 X/Y 中存在正常零值，对齐质量逻辑不能把 X/Y 为 0 当作 bunchID 无效；
+- 同批 36 台设备的 shape/dtype/长度一致，但全设备严格 bunchID 交集为 0；
+- 其中 33 台步长为 500,000，`L1_COLDBPM01/02` 步长为 75/76，
+  `COL0_SBPM07` 步长为 61/75/76；在确认语义前不得猜测换算或直接判坏；
+- 500,000 步长组内部仍无严格交集：主覆盖簇约 30 台，另有 3 台处于完全错开的窗口；
+- 已停止面向对齐的生产遍历，后续转入本地纯函数和脱敏 fixture；
+- 线上共有 3,025 个 HDF5，分布在 24 个日期；
+- `nohup.out` 最后更新于 2026-06-03；进程存活不能作为采集链路健康证据；
+- `/SHINE_Data` 当前可用约 459 GiB，目录权限为 `0777`。
 
 但以下内容尚未确认：
 
-- `saveApp` 是文件、目录、脚本还是 PyInstaller 程序；
-- `zmq-server` 是文件还是目录；
-- 当前运行的进程；
-- ZMQ 监听端口和 socket 类型；
 - 实际启动命令；
-- 当前日志状态；
-- 当前真正使用的消息协议；
+- ZMQ socket 类型、响应内容和重试语义；
+- 父子进程的职责；
+- 当前有效日志位置及日志轮转方式；
+- `zmq-server` 的用途；
+- 停止、启动和回滚方法；
+- 不同步长设备的组内交集、覆盖率和 bunchID 物理语义，以及 X/Y 的单位和缩放；
 - 当前程序是否与本地源码同版本。
+
+本地已新增并完成 GUI 最小接入的对齐 v2 基线：
+
+- `src/waveform_storage/processing/alignment.py`
+- `tests/test_alignment.py`
+- `docs/数据对齐v2设计.md`
+
+该模块保留 `uint64` bunchID，支持 strict/coverage、设备级质量报告和 `valid_mask`，
+选择结果不依赖输入顺序。14 个本地对齐测试包含 200 台合成设备场景；现有 `overlap.py`
+已增加适配层，让 GUI 确认、绘图和导出共享一个 `AlignmentResult`，但网络和处理仍在主线程，
+不能把离线测试表述为现场性能或 GUI 点击流验证。
 
 不要把推断当作确认事实。
 
-建议先在服务器执行只读检查：
-
-```bash
-cd ~/saveApp
-
-pwd
-ls -lah
-file saveApp zmq-server
-ps -ef | grep -E 'saveApp|zmq' | grep -v grep
-ss -lntp | grep -E ':5000|saveApp|zmq'
-tail -n 100 nohup.out
-sha256sum saveApp pv_list_ALL.txt
-```
+完整证据、哈希、日志分析和下一轮只读命令见
+`docs/线上运行基线调查.md`。
 
 不要在确认启动和回滚方法之前覆盖服务器程序或配置。
 
@@ -364,6 +388,9 @@ tags:
 
 对应问题：WF-018、WF-014。
 
+当前状态：本地基础已完成。`config/devices.json` 已容纳现有 47 台设备，兼容清单生成、
+一致性检查和 200 台规模测试已通过；等待正式约 200 台新表后生成 candidate 和差异报告。
+
 任务：
 
 - 设计设备 schema；
@@ -383,6 +410,10 @@ tags:
 ### 阶段 2：建立测试基线
 
 对应问题：WF-019、WF-020、WF-005。
+
+当前状态：部分完成。已有 41 项离线测试覆盖对齐、注册表、HDF5 v2/legacy、旧 GUI
+导出、GUI 最小适配层、按钮绑定规格和候选采集协议；ZMQ fake server、TXT 严格解析、
+GUI worker 与 CI 尚未覆盖。
 
 至少测试：
 
@@ -407,6 +438,9 @@ tags:
 ### 阶段 3：统一采集协议和任务模型
 
 对应问题：WF-001、WF-002、WF-009、WF-010、WF-013。
+
+当前状态：已新增仅用于本地/fake 测试的 v1 候选协议和任务状态转换，尚未接入现有 GUI、
+采集原型或生产 `saveApp`。现有 legacy 消息保持不变。
 
 建议协议：
 
@@ -445,6 +479,10 @@ tags:
 ### 阶段 4：数据对齐 v2
 
 对应问题：WF-005、WF-006、WF-007、WF-012、WF-017。
+
+当前状态：纯处理模块、HDF5 v2/legacy 适配器和回归测试已完成；现有 GUI 的确认、绘图和
+导出入口已通过最小适配层统一使用并缓存 `AlignmentResult`，但尚未完成 GUI 点击流验证，
+也没有确定不同 bunchID 时基的物理换算。
 
 先拆出纯数据模块，不依赖 Qt、SSH 或 matplotlib。
 
@@ -609,6 +647,29 @@ feature/gui-v2
 
 ## 13. 新 Codex 窗口的第一个任务
 
+### 2026-07-25 本地实现检查点
+
+本检查点只改动本地仓库和本地 Conda 环境，未修改生产服务器：
+
+- 已创建 `waveform-storage` Conda 环境（Python 3.10.20），依赖来源为 `environment.yml`
+  和 `requirements.txt`；
+- `config/devices.json` 已成为当前 47 台设备的单一事实源，其中 12 台启用采集；
+- `src/waveform_storage/config/registry.py` 与 `tools/device_registry.py` 提供校验、旧表导入、
+  兼容表生成和一致性检查，200 台合成设备测试通过；
+- `src/waveform_storage/io/hdf5_io.py` 提供单 BPM reader、HDF5 v2 round-trip 及 legacy
+  合并格式适配器；
+- 活动旧 GUI 的 `overlap.py:create_hdf5()` 已修复约 `3.8e13` bunchID 的 `int32`
+  溢出和跳过设备后的元数据错位；
+- 对齐、注册表、HDF5、旧 GUI 导出、GUI 适配层、按钮规格和候选协议共 41 项离线测试全部通过；
+- 对齐 v2/HDF5 v2 已最小接入 GUI；未做现场 EPICS、ZMQ、SSH 写操作或 GUI 点击流验证。
+
+下一阶段优先顺序：
+
+1. 新约 200 台 PV 表到位后，生成 candidate 注册表和差异报告，不直接覆盖正式配置；
+2. 取得可提交的脱敏真实 fixture，比较 legacy/v2 的设备选择、ID 数量和耗时；
+3. 在 Linux 环境验证 GUI 确认、绘图、导出的实际点击流和错误提示；
+4. 再做动态设备模型、后台任务、进度、取消和错误反馈。
+
 如果新 PV 表尚未拿到：
 
 1. 先读取本文和问题文档；
@@ -633,11 +694,16 @@ feature/gui-v2
 
 请先完整阅读：
 1. docs/CODEX_HANDOFF.md
-2. README.md
-3. docs/问题清单与改进路线.md
+2. docs/本轮工作交接_2026-07-25.md
+3. README.md
+4. docs/问题清单与改进路线.md
 
-先检查 git status，不要覆盖我的现有修改，不要修改 waveform 生产服务器。
+先检查 git status，不要覆盖、还原或清理当前未提交修改，不要修改 waveform 生产服务器。
+当前未提交工作区包含已完成的设备注册表、数据对齐 v2、HDF5 v2/legacy 修复、测试和文档。
 当前目标是在整体功能不变的前提下支持约 200 台 BPM、优化数据对齐并改进 GUI。
-根据交接文档，从当前阶段继续。
-```
 
+先在 waveform-storage Conda 环境复核 41 项离线测试和设备兼容清单。
+随后从交接记录的“下一窗口建议起点”继续；如果正式约 200 台 PV 表尚未到位，
+优先把现有 GUI 的确认、绘图和导出改为共享 AlignmentResult，但先提出最小接入方案，
+不要一次性重写 GUI。
+```

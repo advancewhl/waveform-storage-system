@@ -12,10 +12,42 @@ import numpy as np
 import re
 import tempfile
 import matplotlib.pyplot as plt
+from dataclasses import replace
+from pathlib import Path
+
+from waveform_storage.io.hdf5_io import (
+    read_single_device_hdf5,
+    write_alignment_v2,
+    write_legacy_merged_hdf5,
+)
+from waveform_storage.processing.alignment import (
+    AlignmentParameters,
+    DeviceSeries,
+    SkippedDevice,
+    align_devices,
+)
 
 DEFAULT_STORAGE_HOST = os.environ.get("WAVEFORM_STORAGE_HOST", "192.0.2.2")
 DEFAULT_STORAGE_USER = os.environ.get("WAVEFORM_STORAGE_USER", "storage-user")
 DEFAULT_STORAGE_PASSWORD = os.environ.get("WAVEFORM_STORAGE_PASSWORD")
+
+
+class AlignmentResultCache:
+    """Cache one aligned GUI query so confirm, plot, and export can share it."""
+
+    def __init__(self):
+        self._key = None
+        self._result = None
+
+    def clear(self):
+        self._key = None
+        self._result = None
+
+    def get_or_load(self, key, loader):
+        if self._key != key or self._result is None:
+            self._result = loader()
+            self._key = key
+        return self._result
 
 def get_para(time_sec):
 
@@ -97,15 +129,15 @@ def remote_find_h5_files(hostname, username, password, remote_path, time_sec, po
         error_output = stderr.read().decode()
         if error_output:
             print(f"错误信息: {error_output}")
-        matching_files = file_list
-        #print("找到的文件:")
-        for file in matching_files:
-            print(file)
-        for file_path in matching_files:
+        # Keep paths and parsed device IDs paired.  Ignoring a malformed name
+        # must not shift every later file onto the wrong device.
+        for file_path in file_list:
+            print(file_path)
             filename = file_path.split("/")[-1]
             match = re.search(r'RAW-\d+-(.*?)-S\d+\.h5', filename)
             if match:
                 device_name = match.group(1)
+                matching_files.append(file_path)
                 h5_file_name.append(device_name)
     except Exception as e:
         print(f"连接错误: {e}")
@@ -197,6 +229,165 @@ def read_h5(h5_file):
 
 
 
+def read_h5_device_series(file_device_pairs):
+    """Download single-device files and preserve file/device association."""
+
+    if not file_device_pairs:
+        return [], []
+
+    hostname = DEFAULT_STORAGE_HOST
+    username = DEFAULT_STORAGE_USER
+    password = DEFAULT_STORAGE_PASSWORD
+    records = []
+    skipped = []
+    ssh = None
+    sftp = None
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(hostname, port=22, username=username, password=password)
+        sftp = ssh.open_sftp()
+        for remote_file, expected_device_id in file_device_pairs:
+            try:
+                with tempfile.NamedTemporaryFile(suffix=".h5", delete=True) as temp_file:
+                    sftp.get(remote_file, temp_file.name)
+                    source = read_single_device_hdf5(temp_file.name)
+                if source.device_id != expected_device_id:
+                    raise ValueError(
+                        f"file metadata device {source.device_id!r} does not match "
+                        f"filename device {expected_device_id!r}"
+                    )
+                records.append(
+                    DeviceSeries(
+                        device_id=expected_device_id,
+                        bunch_ids=source.bunch_ids,
+                        x=source.x,
+                        y=source.y,
+                    )
+                )
+            except Exception as exc:
+                skipped.append(
+                    SkippedDevice(expected_device_id, "read_failed", str(exc))
+                )
+    finally:
+        if sftp is not None:
+            sftp.close()
+        if ssh is not None:
+            ssh.close()
+    return records, skipped
+
+
+def main_alignment_process(
+    remote_path,
+    runID,
+    time_sec,
+    pv_list_sorted,
+    parameters=None,
+):
+    """Retrieve one GUI query and return the shared AlignmentResult."""
+
+    hostname = DEFAULT_STORAGE_HOST
+    username = DEFAULT_STORAGE_USER
+    password = DEFAULT_STORAGE_PASSWORD
+    h5_files, device_ids = remote_find_h5_files(
+        hostname,
+        username,
+        password,
+        remote_path,
+        time_sec,
+    )
+    order = {device_id: index for index, device_id in enumerate(pv_list_sorted)}
+    known_pairs = []
+    skipped = []
+    for remote_file, device_id in zip(h5_files, device_ids):
+        if device_id not in order:
+            skipped.append(
+                SkippedDevice(
+                    device_id,
+                    "unknown_device",
+                    "device is absent from the configured full device list",
+                )
+            )
+            continue
+        known_pairs.append((remote_file, device_id))
+    known_pairs.sort(key=lambda item: order[item[1]])
+
+    records, read_skipped = read_h5_device_series(known_pairs)
+    result = align_devices(
+        records,
+        parameters or AlignmentParameters(mode="strict"),
+    )
+    return replace(
+        result,
+        skipped_devices=tuple(skipped) + tuple(read_skipped) + result.skipped_devices,
+    )
+
+
+def alignment_summary(result):
+    return f"{result.bunch_ids.size} are overlapped!"
+
+
+def alignment_bunch_id(result, selected_index):
+    if result.bunch_ids.size == 0:
+        raise ValueError("the alignment result contains no bunchID")
+    index = min(max(int(selected_index), 0), result.bunch_ids.size - 1)
+    return result.bunch_ids[index]
+
+
+def plot_alignment_result(result, selected_index):
+    """Plot one bunchID directly from AlignmentResult and its validity mask."""
+
+    bunch_id = alignment_bunch_id(result, selected_index)
+    index = min(max(int(selected_index), 0), result.bunch_ids.size - 1)
+    valid = result.valid_mask[:, index]
+    devices = np.asarray(result.device_ids, dtype=object)[valid]
+    plot_x = result.x[:, index][valid]
+    plot_y = result.y[:, index][valid]
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(devices, plot_x, marker="o", label="X", linewidth=2)
+    ax.plot(devices, plot_y, marker="s", label="Y", linewidth=2)
+    ax.set_title(f"BunchID:{bunch_id} <-----> Index:{index}")
+    ax.set_xticks(range(len(devices)))
+    ax.set_xticklabels(devices, rotation=90)
+    ax.set_xlabel("Devicename")
+    ax.set_ylabel("Value")
+    ax.legend()
+    ax.grid(True, linestyle="--", alpha=0.7)
+    fig.tight_layout()
+    return fig
+
+
+def save_alignment_result(
+    result,
+    runID,
+    time_sec,
+    save_path,
+    export_format="auto",
+):
+    """Export one shared result as legacy or v2 without realigning it."""
+
+    selected_format = str(export_format).strip().lower()
+    if selected_format not in {"auto", "legacy", "v2"}:
+        raise ValueError("export_format must be one of: auto, legacy, v2")
+    if selected_format == "auto":
+        selected_format = "legacy" if np.all(result.valid_mask) else "v2"
+
+    destination_dir = Path(save_path)
+    if selected_format == "legacy":
+        destination = destination_dir / f"{runID}_{time_sec}_BPMdata.h5"
+        return str(write_legacy_merged_hdf5(destination, result))
+
+    destination = destination_dir / f"{runID}_{time_sec}_BPMdata_v2.h5"
+    return str(
+        write_alignment_v2(
+            destination,
+            result,
+            metadata={"run_id": runID, "time_sec": time_sec},
+        )
+    )
+
+
 def get_overlap_indices_matrix(lists_2d):
     if not lists_2d:
         return [], []
@@ -275,7 +466,10 @@ def create_hdf5(bunchID,x_new,y_new,devicename,runID,time_sec,skip_ind,save_path
             devicename_new.append(devicename[i])
 
     #print("new device:",devicename_new)
-    bunchID_array = np.array(bunchID, dtype=np.int32)  # (len(overlap))
+    # Bunch IDs in production are around 10^13.  Keep them as uint64 from
+    # conversion through HDF5 serialization; an intermediate int32 conversion
+    # silently wrapped valid IDs.
+    bunchID_array = np.asarray(bunchID, dtype=np.uint64)  # (len(overlap))
     item_len = len(bunchID_array)
     #print("number of overslap:", len(bunchID_array))
     x_new_array = np.array(x_new, dtype=np.int32)  # (len(h5_file),len(overlap))
@@ -289,14 +483,17 @@ def create_hdf5(bunchID,x_new,y_new,devicename,runID,time_sec,skip_ind,save_path
     #print("the newest h5 file path:", new_filename)
 
     with h5py.File(new_filename, 'w') as f:
-        f.attrs['Device'] = devicename
-        for i in range(0, len(devicename)):
-            f.attrs[f'Data[0:]_{i}'] = devicename[i] + '_X'
-            f.attrs[f'Data[1:]_{i}'] = devicename[i] + '_Y'
+        # x_new/y_new contain only devices that survived alignment.  Metadata
+        # must use the same filtered order so each pair of Data rows is mapped
+        # to the correct device.
+        f.attrs['Device'] = devicename_new
+        for i in range(0, len(devicename_new)):
+            f.attrs[f'Data[0:]_{i}'] = devicename_new[i] + '_X'
+            f.attrs[f'Data[1:]_{i}'] = devicename_new[i] + '_Y'
 
         BunchIDData_dset = f.create_dataset('BunchIDData', shape=(1, item_len), dtype=np.uint64)
         Data_dset = f.create_dataset('Data', shape=(2 * group_len, item_len), dtype=np.int32)
-        BunchIDData_dset[:] = bunchID_array.astype(np.uint64).reshape(1, item_len)
+        BunchIDData_dset[:] = bunchID_array.reshape(1, item_len)
         data_combined = np.zeros((2 * group_len, item_len), dtype=np.int32)
         for i in range(group_len):
             data_combined[2 * i, :] = x_new_array[i, :].astype(np.int32)  # x数据

@@ -28,7 +28,8 @@
 
 1. GUI 使用 ZMQ `DEALER`，采集端使用 `PULL`，协议尚未统一。
 2. GUI 发送复合消息，采集端只接受整数频率。
-3. 项目内没有一份完整的、能回复 GUI 的采集服务端。
+3. 生产服务器存在监听 5000 端口的外部 `saveApp` 服务端，但其源码、启动方式和响应协议
+   尚未进入当前仓库或得到完整确认。
 4. 代码依赖 Linux `fcntl`，Windows 只适合阅读、整理和运行不涉及锁的静态检查。
 5. 现场 EPICS、SSH、存储路径和 HDF5 schema 仍需确认。
 
@@ -86,6 +87,7 @@
 | `WAVEFORM_DEVICE_REMOTE_DIR` | BPM 设备远程 TXT 目录 |
 | `WAVEFORM_LOCAL_DATA_ROOT` | 采集端本地数据根目录 |
 | `WAVEFORM_CONFIG_DIR` | 可选，自定义配置目录 |
+| `WAVEFORM_ALIGNMENT_EXPORT_FORMAT` | 对齐导出格式：`auto`（默认）、`legacy` 或 `v2` |
 
 推荐后续改成 SSH key 或系统密钥管理，不长期使用密码环境变量。
 
@@ -93,6 +95,7 @@
 
 | 文件 | 用途 |
 |---|---|
+| `config/devices.json` | 设备单一事实源；当前包含 47 台、其中 12 台启用采集 |
 | `config/pv_list_ALL.txt` | GUI 用于设备标准顺序的全量 PV 清单 |
 | `config/SWITCH_PV_IP.txt` | 原 GUI/触发工具使用的 12 台设备清单 |
 | `config/acquisition_pv_list.txt` | 当前采集端读取的 PV/IP 清单 |
@@ -100,20 +103,21 @@
 | `config/BPMS_TO_STORE.txt` | 原默认设备草稿；格式有问题，当前主线未读取 |
 | `config/variants/` | 历史配置变体，不应直接作为正式配置使用 |
 
-目前 PV 清单采用“每行一个 JSON 对象并带逗号”的历史格式，不是标准 JSON。后续应迁移为一个经过 schema 校验的 YAML 或 JSON 文件。
+`config/devices.json` 是新增或修改设备时应维护的文件。两个旧 JSON-lines 清单仍供现有 GUI/采集原型读取，
+由 `tools/device_registry.py` 校验和生成；详见 [设备注册表](docs/设备注册表.md)。
 
 ## 开发环境
 
-目标运行环境是 Linux。建议使用 Python 3.10 创建独立虚拟环境：
+项目使用 Python 3.10。Windows 本机已经建立并验证 Conda 环境 `waveform-storage`：
 
 ```bash
-python3.10 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+conda env create -f environment.yml
+conda activate waveform-storage
 ```
 
-`environment/conda-linux-64-explicit.txt` 是原环境快照，但没有完整覆盖源码依赖，不建议直接把它当作唯一依赖来源。
+已有环境可用 `conda env update -f environment.yml --prune` 同步。Linux 电脑也优先使用同一个
+`environment.yml` 新建环境；GUI 运行还需要桌面会话和 Qt 所需系统库。`environment/conda-linux-64-explicit.txt`
+只是原环境快照，没有完整覆盖源码依赖，不应作为唯一依赖来源。
 
 ## 运行
 
@@ -158,7 +162,10 @@ python apps/acquisition_agent/main_file_transport_h5df.py
 
 ### 合并 HDF5
 
-`overlap.py` 会对多个 BPM 的共同 bunchID 进行对齐，并把 X/Y 按设备交错写入 `Data`。当前元数据在跳过异常 BPM 时可能错位，修复前不要把该格式作为稳定公共接口。
+`src/waveform_storage/io/hdf5_io.py` 提供版本化 v2 读写和旧合并格式适配器。v2 保存
+`uint64` bunchID、X/Y、`valid_mask`、设备 ID、跳过原因、质量报告、参数和元数据。
+旧 GUI 导出仍按设备交错写入 `Data`，但已修复大 bunchID 溢出及跳过设备后的元数据错位。
+coverage 模式存在缺失单元时只能写 v2，旧格式适配器会明确拒绝，避免把占位值误当真实数据。
 
 ## Git 内容策略
 
@@ -175,15 +182,36 @@ python apps/acquisition_agent/main_file_transport_h5df.py
 ## 文档
 
 - [Codex 项目交接与改进规划](docs/CODEX_HANDOFF.md)：新任务窗口继续工作时首先阅读。
+- [2026-07-25 本轮工作交接](docs/本轮工作交接_2026-07-25.md)：本轮实现、验证、工作区和下一窗口起点。
+- [线上运行基线调查](docs/线上运行基线调查.md)：生产服务的只读事实、风险和待补证据。
+- [数据对齐 v2 设计基线](docs/数据对齐v2设计.md)：纯函数、覆盖共识和接入边界。
+- [设备注册表](docs/设备注册表.md)：47/200 台设备配置、校验和旧格式生成方法。
+- [采集协议 v1 候选](docs/采集协议v1候选.md)：仅用于本地/fake 测试的版本化消息和状态模型。
 - [项目功能与文件说明](docs/项目功能与文件说明.md)：原始项目逐文件静态分析。
 - [问题清单与改进路线](docs/问题清单与改进路线.md)：按优先级列出的修复任务、风险和验收标准。
 
+## 本地测试
+
+对齐 v2 已最小接入 GUI 的确认、绘图和导出入口；三条路径按日期、时刻、远程目录和设备清单
+共享同一个 `AlignmentResult`，查询条件不变时不重复下载或对齐。导出默认 `auto`：完整结果
+保持 legacy 格式，coverage 缺失结果写 v2。从仓库根目录运行：
+
+```powershell
+$env:PYTHONPATH = (Resolve-Path src).Path
+python -m unittest discover -s tests -v
+```
+
+当前 41 项测试覆盖对齐、200 台合成设备、注册表、单 BPM/v2/旧合并 HDF5 round-trip、
+旧 GUI 导出、GUI 适配层、注册表驱动的按钮规格，以及候选采集协议的编解码、字段校验和
+任务状态转换；不连接 EPICS、SSH、ZMQ 或生产存储。
+
 ## 下一步
 
-建议先完成 Milestone 1：
+阶段 1（统一设备注册表）、对齐/HDF5 本地基础和 GUI 最小接入已经完成，尚未部署或完成
+GUI 点击流验证。下一批建议：
 
-1. 定义版本化 JSON ZMQ 协议；
-2. 实现可测试的采集服务端；
-3. 用 fake EPICS/SSH 环境跑通 GUI 到服务端；
-4. 修复 bunchID 对齐边界情况和 HDF5 元数据；
-5. 再进行 GUI 线程化、日志、打包和部署工作。
+1. 取得约 200 台的新设备表，导入注册表并生成新旧差异报告；
+2. 用脱敏真实批次比较 legacy 与 v2 的设备选择、ID 数量和耗时；
+3. 为 GUI 适配层补充脱敏真实 fixture，并确认 strict/coverage 的现场业务规则；
+4. 再推进动态设备界面、后台线程、任务进度和取消；
+5. 在候选协议之上建立 fake ZMQ server 及 fake EPICS/SSH 闭环，确认后再考虑 GUI 接入。

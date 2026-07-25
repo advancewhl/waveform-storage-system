@@ -14,6 +14,15 @@ from PyQt5 import QtWidgets
 from PyQt5.QtGui import QColor, QFont, QTextCursor, QPixmap, QBrush
 import sys
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+SRC_DIR = PROJECT_ROOT / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from waveform_storage.config.registry import load_registry
+from waveform_storage.gui.device_selection import build_button_specs
+
 from zmq_client_dealer import send_start
 from caproto.threading.client import Context, Batch
 from mainWindow import Ui_StreamData
@@ -22,7 +31,17 @@ from utils import get_addr_list, get_pv_list
 from caproto.threading.client import Context, Batch
 # from h5_data_process import search_time_sec,get_para,main_dataprocess,remote_search_time_sec,remote_find_h5_files
 # from overlap import get_para,main_dataprocess,remote_search_time_sec,remote_find_h5_files,remote_save_timesec_h5_files,save_newfile
-from overlap import get_para,main_dataprocess,remote_search_time_sec,remote_find_h5_files,remote_save_timesec_h5_files,save_newfile,selectConfirm,showBunchID,plotbunchID
+from overlap import (
+    AlignmentResultCache,
+    alignment_bunch_id,
+    alignment_summary,
+    get_para,
+    main_alignment_process,
+    plot_alignment_result,
+    remote_save_timesec_h5_files,
+    remote_search_time_sec,
+    save_alignment_result,
+)
 import matplotlib
 matplotlib.use('Qt5Agg')  # 必须在导入 pyplot 之前设置
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -32,18 +51,11 @@ import fcntl
 import struct
 from datetime import datetime
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_DIR = PROJECT_ROOT / "config"
 
 class MyCommunicate(QObject):
     update_table_signal = pyqtSignal(str)
     ok_signal = pyqtSignal(str)
-
-BPMS_TO_STORE = {"INJ1":["SBPM08", "SBPM10"],
-                 "COL0":["SBPM01", "SBPM02", "SBPM06", "SBPM08", "SBPM09"],
-                 "L1":["COLDBPM01", "COLDBPM02", "COLDBPM04"],
-                 "BC1":["SBPM01", "SBPM02"]}
-
 
 class LockManager:
     """锁管理类：自动检测并生成所需文件，支持状态恢复"""
@@ -226,6 +238,10 @@ class MainWindow(QMainWindow, Ui_StreamData):
         self.setupUi(self)
         self.timer = QTimer(self)
         self.interval = 10
+        self.alignment_cache = AlignmentResultCache()
+        self.device_registry = load_registry(CONFIG_DIR / "devices.json")
+        self.device_button_specs = build_button_specs(self.device_registry)
+        self.device_buttons = {}
         # LockManager
         self.lock_manager = LockManager()
         self.is_locked = False
@@ -237,18 +253,7 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
         self.progressBar.setVisible(False)
         self.setPVButtons()
-        self.startButton.clicked.connect(self.startButton_click)
-        self.retrievalButton.clicked.connect(self.retrievalButton_click)
-
-        #add for plot
-        self.confirmButton.clicked.connect(self.confirmButton_click)
-        self.showidButton.clicked.connect(self.showidButton_click)
-        self.plotButton.clicked.connect(self.plotButton_click)
-
-        ###################
-
-        self.downloadButton.clicked.connect(self.downloadButton_click)
-        self.downloadRawDataButton.clicked.connect(self.rawDataDownload_click)
+        self._connect_actions()
         self.dateEdit.setDate(QDate.currentDate())
         with open(CONFIG_DIR / 'pv_list_ALL.txt', 'r', encoding='utf-8') as file:
             raw_data = file.read().strip()
@@ -264,22 +269,41 @@ class MainWindow(QMainWindow, Ui_StreamData):
             self.startButton.setText("锁定中...")
             self.timer.start(1000)
         self.update_state()
+    def _connect_actions(self):
+        action_bindings = (
+            (self.startButton, self.startButton_click),
+            (self.retrievalButton, self.retrievalButton_click),
+            (self.confirmButton, self.confirmButton_click),
+            (self.showidButton, self.showidButton_click),
+            (self.plotButton, self.plotButton_click),
+            (self.downloadButton, self.downloadButton_click),
+            (self.downloadRawDataButton, self.rawDataDownload_click),
+        )
+        for button, handler in action_bindings:
+            button.clicked.connect(handler)
+
     def setPVButtons(self):
-        for key in BPMS_TO_STORE.keys():
-            pvs = BPMS_TO_STORE[key]
-            for pv in pvs:
-                widget = self.findChild(QPushButton, key+"_"+pv)
-                if widget and isinstance(widget, QPushButton):
-                    button = widget
-                    button.setChecked(True)
-                    '''
-                    button.setStyleSheet("""
-                      QPushButton{
-                         background-color:#2196F3;
-                         color:white;                       
-                      }
-                      """)
-                    '''
+        missing_widgets = []
+        for spec in self.device_button_specs:
+            button = self.findChild(QPushButton, spec.widget_name)
+            if button is None:
+                missing_widgets.append(spec.widget_name)
+                continue
+            button.setChecked(spec.default_selected)
+            self.device_buttons[spec.device_id] = button
+        if missing_widgets:
+            print(
+                "registry devices without current static GUI buttons:",
+                missing_widgets,
+            )
+
+    def _selected_capture_devices(self):
+        return [
+            spec.device_id
+            for spec in self.device_button_specs
+            if spec.device_id in self.device_buttons
+            and self.device_buttons[spec.device_id].isChecked()
+        ]
     def update_state(self):
         remaining = self.lock_manager.get_remaining_time()
         # print(f'remaining--------->{remaining}')
@@ -314,15 +338,8 @@ class MainWindow(QMainWindow, Ui_StreamData):
             self.timer.start(1000)
         self.update_state()
 
-        activated_button = []
-        for row in range(self.gridLayout.rowCount()):
-            for col in range(self.gridLayout.columnCount()):
-                layout_item = self.gridLayout.itemAtPosition(row, col)
-                if layout_item:
-                    widget = layout_item.widget()
-                    if isinstance(widget, QtWidgets.QPushButton) and widget.isChecked():
-                        activated_button.append(widget.objectName())
-        print(f'activated_button__________->:{activated_button}')
+        selected_devices = self._selected_capture_devices()
+        print(f"selected capture devices: {selected_devices}")
 
         os.environ['EPICS_CA_ADDR_LIST'] = "192.0.2.1:6310"
         ctx = Context()
@@ -335,20 +352,10 @@ class MainWindow(QMainWindow, Ui_StreamData):
         print(f'interval:{interval}')
         #
         # #if frequency==100 or frequency==1000 or frequency==2 or frequency==10:
-        if frequency and activated_button:
+        if frequency and selected_devices:
             ###########################ZMQ stop send message###########
             print("find frequency and BPMs names")
-            prex = 'AC_LA'
-            suffix = 'BI'
-            new_BPMname_list = []
-            for i in range(0, len(activated_button)):
-                part = activated_button[i].split('_')
-                if len(part) >= 2:
-                    inj_part = part[0]
-                    device_part = '_'.join(part[1:])
-                    new_name = f"{prex}_{inj_part}_{suffix}_{device_part}"
-                    new_BPMname_list.append(new_name)
-            message = f"{frequency},{interval},{new_BPMname_list}"
+            message = f"{frequency},{interval},{selected_devices}"
             # print(message)
 
             try:
@@ -403,6 +410,7 @@ class MainWindow(QMainWindow, Ui_StreamData):
         #     msg.exec_()
 
     def retrievalButton_click(self):
+        self.alignment_cache.clear()
         self.hostname = os.environ.get("WAVEFORM_STORAGE_HOST", "192.0.2.2")
         self.username = os.environ.get("WAVEFORM_STORAGE_USER", "storage-user")
         self.password = os.environ.get("WAVEFORM_STORAGE_PASSWORD")
@@ -423,21 +431,61 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
         self.comboBox.setCurrentIndex(0)  #######add for default select time_sec
 
+    def _ensure_alignment_result(self, time_sec):
+        key = (
+            self.remote_path,
+            self.runID,
+            time_sec,
+            tuple(self.pv_list),
+        )
+        result = self.alignment_cache.get_or_load(
+            key,
+            lambda: main_alignment_process(
+                self.remote_path,
+                self.runID,
+                time_sec,
+                self.pv_list,
+            ),
+        )
+        self.alignment_result = result
+        return result
+
+    def _require_aligned_bunch_ids(self, result):
+        if result.bunch_ids.size:
+            return True
+        skipped = [
+            f"{item.device_id or '<unknown>'}: {item.reason}"
+            for item in result.skipped_devices
+        ]
+        detail = "\n".join(skipped[:10]) or "No usable device data were found."
+        QMessageBox.warning(
+            self,
+            "No aligned data",
+            f"No common bunchID is available for this query.\n\n{detail}",
+        )
+        return False
+
     def confirmButton_click(self):
         # self.progressBar.setVisible(True)
         text = self.comboBox.currentText()
         time_sec = get_para(text)
-        self.Skip_BPMs_names, self.Final_BPM_number, self.Final_overlap_number, self.bunchID_new_list, self.x_new_list, self.y_new_list, self.filename, self.runID, self.time_sec, self.skip_ind = main_dataprocess(
-            self.remote_path, self.runID, time_sec,self.pv_list)
-        indexrange=selectConfirm(bunchID_new_list=self.bunchID_new_list)
+        result = self._ensure_alignment_result(time_sec)
+        indexrange = alignment_summary(result)
+        self.index_spinBox.setMaximum(max(0, result.bunch_ids.size - 1))
         print(indexrange)
         self.rangelabel.setText(indexrange)
+        self._require_aligned_bunch_ids(result)
 
     def showidButton_click(self):
         # self.index_spinBox.setValue(0)  ###########设置默认值0
 
         self.selectedIDindex=self.index_spinBox.value()
-        current_bunchID=showBunchID(selectedIDindex=self.selectedIDindex,bunchID_new_list=self.bunchID_new_list)
+        text = self.comboBox.currentText()
+        time_sec = get_para(text)
+        result = self._ensure_alignment_result(time_sec)
+        if not self._require_aligned_bunch_ids(result):
+            return
+        current_bunchID = alignment_bunch_id(result, self.selectedIDindex)
         self.current_bunchID=str(current_bunchID)
 
         self.select_bunchID_show.setText(self.current_bunchID)
@@ -448,11 +496,11 @@ class MainWindow(QMainWindow, Ui_StreamData):
         text = self.comboBox.currentText()
         time_sec = get_para(text)
         print("plot user select time_sec:", time_sec)
-        self.Skip_BPMs_names, self.Final_BPM_number, self.Final_overlap_number, self.bunchID_new_list, self.x_new_list, self.y_new_list, self.filename, self.runID, self.time_sec, self.skip_ind = main_dataprocess(
-            self.remote_path, self.runID, time_sec,self.pv_list)
-        print(f'self.filename{self.filename}')
+        result = self._ensure_alignment_result(time_sec)
+        if not self._require_aligned_bunch_ids(result):
+            return
         self.selectedIDindex = self.index_spinBox.value()
-        current_bunchID = showBunchID(selectedIDindex=self.selectedIDindex, bunchID_new_list=self.bunchID_new_list)
+        current_bunchID = alignment_bunch_id(result, self.selectedIDindex)
         self.current_bunchID = str(current_bunchID)
 
         self.select_bunchID_show.setText(self.current_bunchID)
@@ -460,8 +508,7 @@ class MainWindow(QMainWindow, Ui_StreamData):
         print('show bunchID index after plot', self.selectedIDindex)
         # self.filename_sorted = sorted(self.filename,key = lambda x: self.pv_list.index(x))
 
-        self.fig=plotbunchID(selectedIDindex=self.selectedIDindex,bunchID_new_list=self.bunchID_new_list,x_new_list=self.x_new_list,
-                             y_new_list=self.y_new_list,devicename=self.filename,skip_ind=self.skip_ind)
+        self.fig = plot_alignment_result(result, self.selectedIDindex)
 
         # 转换为 FigureCanvas
         self.canvas = FigureCanvas(self.fig)
@@ -481,8 +528,9 @@ class MainWindow(QMainWindow, Ui_StreamData):
         ######################edit251010-start##########
         time_sec = get_para(text)
         #print("user select time_sec:", time_sec)
-        Skip_BPMs_names,Final_BPM_number, Final_overlap_number, bunchID_new_list, x_new_list, y_new_list, filename, runID, time_sec, skip_ind = main_dataprocess(
-            self.remote_path, self.runID, time_sec,self.pv_list)
+        result = self._ensure_alignment_result(time_sec)
+        if not self._require_aligned_bunch_ids(result):
+            return
         directory = QFileDialog.getExistingDirectory(
             self,
             "Please choose the directory",
@@ -496,9 +544,17 @@ class MainWindow(QMainWindow, Ui_StreamData):
             self.progressBar.setValue(10)
 
             save_path = directory
-            new_h5_filename = save_newfile(bunchID_new_list, x_new_list, y_new_list, filename, runID, time_sec,
-                                           skip_ind,
-                                           save_path)
+            export_format = os.environ.get(
+                "WAVEFORM_ALIGNMENT_EXPORT_FORMAT",
+                "auto",
+            )
+            new_h5_filename = save_alignment_result(
+                result,
+                self.runID,
+                time_sec,
+                save_path,
+                export_format=export_format,
+            )
 
             #print("Align BPM number and overlap length:", Final_BPM_number, Final_overlap_number)
             time.sleep(1)
@@ -510,9 +566,10 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
             msg = QMessageBox()
             msg.setWindowTitle("Reminder")
-            msg.setText(f"The data have been stored in {new_h5_filename}\n\n{Final_BPM_number} BPMs can be matched.\n\n"
-                        f"The number of overlapping bunchID is {Final_overlap_number}.\n\n"
-                        f"The skipped BPMs names are {Skip_BPMs_names}")
+            skipped_names = [item.device_id for item in result.skipped_devices]
+            msg.setText(f"The data have been stored in {new_h5_filename}\n\n{len(result.device_ids)} BPMs can be matched.\n\n"
+                        f"The number of overlapping bunchID is {result.bunch_ids.size}.\n\n"
+                        f"The skipped BPMs names are {skipped_names}")
             font = QFont()
             font.setPointSize(14)
             msg.setFont(font)
