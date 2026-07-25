@@ -174,6 +174,7 @@ python apps/acquisition_agent/main_file_transport_h5df.py
 
 ## 文档
 
+- [Codex 项目交接与改进规划](docs/CODEX_HANDOFF.md)：新任务窗口继续工作时首先阅读。
 - [项目功能与文件说明](docs/项目功能与文件说明.md)：原始项目逐文件静态分析。
 - [问题清单与改进路线](docs/问题清单与改进路线.md)：按优先级列出的修复任务、风险和验收标准。
 
@@ -186,4 +187,3 @@ python apps/acquisition_agent/main_file_transport_h5df.py
 3. 用 fake EPICS/SSH 环境跑通 GUI 到服务端；
 4. 修复 bunchID 对齐边界情况和 HDF5 元数据；
 5. 再进行 GUI 线程化、日志、打包和部署工作。
-
