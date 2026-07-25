@@ -219,7 +219,7 @@ $env:PYTHONPATH = (Resolve-Path src).Path
 python -m unittest discover -s tests -v
 ```
 
-当前 78 项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
+当前 79 项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
 Controller/Worker、严格 TXT、fake EPICS/SSH、CaptureService、本地 fake ZMQ、日志、
 对齐、注册表和 HDF5；不连接 EPICS、SSH、生产 ZMQ 或生产存储。
 

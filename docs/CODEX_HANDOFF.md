@@ -699,6 +699,8 @@ heuristic、GitHub Actions workflow、Ruff/mypy 候选配置和 console script �
 legacy 字符串字符化测试继续通过。
 检索、对齐、导出和原始下载 action 也已通过构造参数注入 `GuiController`，MainWindow
 的按钮回调不再自行选择具体应用服务。
+原 app 目录中的 `zmq_client_dealer.py` 和 `utils.py` 已收缩为兼容 facade，实际 legacy
+ZMQ/EPICS/HDF5 工具实现移入 `waveform_storage.legacy`。
 
 ### 2026-07-25 本地实现检查点
 
