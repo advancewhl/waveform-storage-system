@@ -4,9 +4,13 @@
 > 项目目录：`D:\study_file\postgraduate\x射线自由电子激光\波形存储系统`  
 > 更新日期：2026-07-25  
 > 当前 Git 分支：`main`  
-> 当前 HEAD：`a4d7b1c docs: add Codex project handoff plan`
-> 当前工作区：包含本轮未提交实现，必须先检查并保留
-> 本轮专项记录：`docs/本轮工作交接_2026-07-25.md`
+> 已审计代码基线：`f438a94 refactor: isolate remaining app legacy facades`
+> 当前工作区：不得依赖本文硬编码判断；每次以 `git status` 为准并保留未知修改
+> 完成审计：`docs/结构重构完成审计_2026-07-25.md`
+> 历史专项记录：`docs/本轮工作交接_2026-07-25.md`
+
+当前事实的优先级是：实时 Git/文件检查 → 本文 → 完成审计 → 问题清单。`本轮工作交接`
+和 `结构重构总目标模式提示词` 是历史过程证据，不再代表当前 HEAD、测试数量或待执行阶段。
 
 ## 1. 用户当前目标
 
@@ -35,9 +39,10 @@
 
 1. `README.md`
 2. `docs/CODEX_HANDOFF.md`
-3. `docs/问题清单与改进路线.md`
-4. `docs/项目功能与文件说明.md`
-5. 与当前任务直接相关的源码
+3. `docs/结构重构完成审计_2026-07-25.md`
+4. `docs/问题清单与改进路线.md`
+5. `docs/项目功能与文件说明.md`
+6. 与当前任务直接相关的源码
 
 每次开始改动前执行：
 
@@ -46,7 +51,8 @@ git status --short
 git log -1 --oneline --decorate
 ```
 
-当前工作区已包含本轮尚未提交的实现和文档。它们是需要交接的成果，不得还原、覆盖或清理。
+无论文档记录为何，都不得假设工作区干净；先识别并保留所有已修改和未跟踪文件，不得还原、
+覆盖或清理未知成果。
 
 ## 3. 当前仓库结构
 
@@ -54,21 +60,31 @@ git log -1 --oneline --decorate
 .
 ├─ apps/
 │  ├─ operator_gui/
-│  │  ├─ main.py
-│  │  ├─ mainWindow.ui
-│  │  ├─ mainWindow.py
-│  │  ├─ overlap.py
-│  │  ├─ utils.py
-│  │  └─ zmq_client_dealer.py
+│  │  ├─ main.py                 # Qt 视图编排、依赖组装、legacy 锁
+│  │  ├─ mainWindow.ui/.py       # Qt Designer 资源
+│  │  └─ overlap/utils/zmq_*     # 兼容 facade
 │  └─ acquisition_agent/
-│     └─ main_file_transport_h5df.py
+│     └─ main_file_transport_h5df.py  # legacy 兼容启动入口
+├─ src/waveform_storage/
+│  ├─ application/               # RetrievalService、CaptureService
+│  ├─ acquisition/               # 候选协议和任务状态
+│  ├─ config/                    # Settings、设备注册表
+│  ├─ gui/                       # Controller、Worker、设备选择、绘图
+│  ├─ io/                        # TXT、HDF5
+│  ├─ processing/                # 纯数据对齐
+│  ├─ transport/                 # SSH、EPICS、本地 fake ZMQ
+│  └─ legacy/                    # 旧行为兼容适配器
 ├─ config/
+│  ├─ devices.json
 │  ├─ pv_list_ALL.txt
 │  ├─ acquisition_pv_list.txt
 │  ├─ SWITCH_PV_IP.txt
 │  ├─ BPMS_TO_STORE.txt
 │  ├─ duration_seconds.txt
 │  └─ variants/
+├─ tests/                        # 79 项离线测试
+├─ tools/                        # 注册表与本地质量入口
+├─ .github/workflows/            # 尚未远端运行
 ├─ docs/
 ├─ environment/
 ├─ packaging/
@@ -222,8 +238,9 @@ IP：192.0.2.2
 
 该模块保留 `uint64` bunchID，支持 strict/coverage、设备级质量报告和 `valid_mask`，
 选择结果不依赖输入顺序。14 个本地对齐测试包含 200 台合成设备场景；现有 `overlap.py`
-已增加适配层，让 GUI 确认、绘图和导出共享一个 `AlignmentResult`，但网络和处理仍在主线程，
-不能把离线测试表述为现场性能或 GUI 点击流验证。
+已增加适配层，让 GUI 确认、绘图和导出共享一个 `AlignmentResult`。检索侧 SSH、HDF5、
+对齐和导出已通过后台 worker 执行；legacy 采集启动路径仍只做兼容保留。不能把离线测试
+表述为现场性能或 GUI 点击流验证。
 
 不要把推断当作确认事实。
 
@@ -411,9 +428,10 @@ tags:
 
 对应问题：WF-019、WF-020、WF-005。
 
-当前状态：部分完成。已有 41 项离线测试覆盖对齐、注册表、HDF5 v2/legacy、旧 GUI
-导出、GUI 最小适配层、按钮绑定规格和候选采集协议；ZMQ fake server、TXT 严格解析、
-GUI worker 与 CI 尚未覆盖。
+当前状态：部分完成。已有 79 项离线测试覆盖原行为基线、Settings、对齐、注册表、
+HDF5 v2/legacy、旧 GUI 导出、GUI Controller/Worker、严格 TXT、采集服务、本地 fake
+ZMQ、日志和 app facade 边界。本地质量门禁与 GitHub Actions workflow 已建立，但远端
+CI、Ruff、mypy、外部 secret scanner、Linux GUI 和现场链路仍未实际验证。
 
 至少测试：
 
@@ -536,6 +554,9 @@ AlignmentResult
 
 对应问题：WF-008、WF-016、WF-025。
 
+当前状态：后台 worker、Controller 状态和注册表驱动的现有按钮规格已经建立；完整动态设备
+模型、真实进度、服务端任务状态和 Linux GUI 点击流仍未完成。
+
 不要继续为每台 BPM 手工增加按钮。
 
 建议结构：
@@ -645,7 +666,7 @@ feature/gui-v2
 - 不要因为能 SSH 登录就认为已经具备部署条件；
 - 不要声称现场运行验证，除非实际完成并有证据。
 
-## 13. 新 Codex 窗口的第一个任务
+## 13. 已完成的结构重构与当前接续任务
 
 ### 结构重构阶段 1：标准包与统一 Settings
 
@@ -715,7 +736,8 @@ ZMQ/EPICS/HDF5 工具实现移入 `waveform_storage.legacy`。
   合并格式适配器；
 - 活动旧 GUI 的 `overlap.py:create_hdf5()` 已修复约 `3.8e13` bunchID 的 `int32`
   溢出和跳过设备后的元数据错位；
-- 对齐、注册表、HDF5、旧 GUI 导出、GUI 适配层、按钮规格和候选协议共 41 项离线测试全部通过；
+- 当前完整离线测试共 79 项，覆盖原行为基线、Settings、SSH/绘图、应用服务、GUI
+  Controller/Worker、采集服务、候选协议、日志、对齐、注册表和 HDF5；
 - 对齐 v2/HDF5 v2 已最小接入 GUI；未做现场 EPICS、ZMQ、SSH 写操作或 GUI 点击流验证。
 
 下一阶段优先顺序：
@@ -723,15 +745,18 @@ ZMQ/EPICS/HDF5 工具实现移入 `waveform_storage.legacy`。
 1. 新约 200 台 PV 表到位后，生成 candidate 注册表和差异报告，不直接覆盖正式配置；
 2. 取得可提交的脱敏真实 fixture，比较 legacy/v2 的设备选择、ID 数量和耗时；
 3. 在 Linux 环境验证 GUI 确认、绘图、导出的实际点击流和错误提示；
-4. 再做动态设备模型、后台任务、进度、取消和错误反馈。
+4. 确认 strict/coverage、bunchID 时基、X/Y 单位、缩放和正式点数语义；
+5. 在既有后台 worker 基础上完善动态设备模型、真实进度、安全取消和错误反馈；
+6. 生产协议确认前，仅扩展本地 fake 闭环，不替换 GUI legacy sender。
 
 如果新 PV 表尚未拿到：
 
 1. 先读取本文和问题文档；
 2. 检查 Git 状态；
-3. 帮助用户完成 waveform 服务器的只读基线调查；
-4. 根据命令输出更新事实，不修改服务器；
-5. 明确 `saveApp`、`zmq-server`、端口、进程和日志。
+3. 优先取得脱敏真实 fixture，并固化 legacy/v2 对比报告；
+4. 整理仍需用户确认的业务语义，不从源码猜测正式规则；
+5. 可继续完善完全离线的组合 fake 闭环、Linux GUI 验证准备和远端 CI 准备；
+6. 除非用户明确要求刷新，否则不重复连接生产服务器；任何现场调查仍保持只读。
 
 如果新 PV 表已经拿到：
 
@@ -739,8 +764,8 @@ ZMQ/EPICS/HDF5 工具实现移入 `waveform_storage.legacy`。
 2. 读取原文件格式；
 3. 确认字段是否包含 PV、IP、EPICS 端口、区段和排序；
 4. 生成数量、重复、缺失和新旧差异报告；
-5. 先提出设备 schema 和导入方案；
-6. 用户确认后再实现统一设备注册表。
+5. 使用现有设备注册表 schema 和工具生成 candidate，不直接覆盖三个兼容 TXT；
+6. 用户确认差异报告后，再更新正式注册表并生成兼容文件。
 
 ## 14. 建议用户在新窗口发送的提示
 
@@ -749,16 +774,14 @@ ZMQ/EPICS/HDF5 工具实现移入 `waveform_storage.legacy`。
 
 请先完整阅读：
 1. docs/CODEX_HANDOFF.md
-2. docs/本轮工作交接_2026-07-25.md
+2. docs/结构重构完成审计_2026-07-25.md
 3. README.md
 4. docs/问题清单与改进路线.md
 
-先检查 git status，不要覆盖、还原或清理当前未提交修改，不要修改 waveform 生产服务器。
-当前未提交工作区包含已完成的设备注册表、数据对齐 v2、HDF5 v2/legacy 修复、测试和文档。
+先检查 git status 和最近提交，不要覆盖、还原或清理已有修改，不要修改 waveform 生产服务器。
 当前目标是在整体功能不变的前提下支持约 200 台 BPM、优化数据对齐并改进 GUI。
 
-先在 waveform-storage Conda 环境复核 41 项离线测试和设备兼容清单。
-随后从交接记录的“下一窗口建议起点”继续；如果正式约 200 台 PV 表尚未到位，
-优先把现有 GUI 的确认、绘图和导出改为共享 AlignmentResult，但先提出最小接入方案，
-不要一次性重写 GUI。
+先在 waveform-storage Conda 环境运行完整质量门禁；当前审计基线为 79 项离线测试。
+随后从本文“当前接续任务”继续。正式约 200 台 PV 表未到位时，优先准备脱敏真实 fixture、
+业务语义确认、Linux GUI 验证或完全离线的组合 fake 闭环，不要重复已完成的七阶段重构。
 ```

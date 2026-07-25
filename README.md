@@ -40,16 +40,26 @@
 ```text
 .
 ├─ apps/
-│  ├─ operator_gui/          # 当前 GUI 主线
-│  └─ acquisition_agent/     # 无界面采集/搬运原型
-├─ config/                   # 当前配置和历史配置变体
+│  ├─ operator_gui/          # Qt 入口、生成 UI 和兼容 facade
+│  └─ acquisition_agent/     # legacy 采集兼容启动入口
+├─ src/waveform_storage/
+│  ├─ application/           # RetrievalService、CaptureService
+│  ├─ acquisition/           # 候选协议和任务状态
+│  ├─ config/                # Settings 和设备注册表
+│  ├─ gui/                   # Controller、Worker、设备选择和绘图
+│  ├─ io/                    # TXT 与 HDF5
+│  ├─ processing/            # 纯数据对齐
+│  ├─ transport/             # SSH、EPICS 和本地 fake ZMQ
+│  └─ legacy/                # 旧行为兼容适配器
+├─ config/                   # devices.json 单一事实源和兼容 TXT
+├─ tests/                    # 79 项离线测试
+├─ tools/                    # 注册表、质量和敏感信息检查入口
 ├─ data/
 │  └─ samples/               # 本地 HDF5 样例，默认不提交 Git
-├─ docs/
-│  ├─ 项目功能与文件说明.md
-│  └─ 问题清单与改进路线.md
+├─ docs/                     # 当前交接、审计、设计与历史记录
+├─ .github/workflows/        # 尚未在远端运行的离线质量 workflow
 ├─ environment/              # 原 Linux Conda 显式环境快照
-├─ packaging/                # 原 PyInstaller spec，仅供参考
+├─ packaging/                # 原 spec 和 console script 候选
 ├─ archive/
 │  ├─ source_snapshot/       # 原 ZIP，本地保留、默认不提交
 │  └─ legacy/                # 旧版/试验代码，本地保留、默认不提交
@@ -63,12 +73,16 @@
 
 | 文件 | 作用 |
 |---|---|
-| `apps/operator_gui/main.py` | GUI 入口、采集按钮、检索、绘图和下载流程 |
+| `apps/operator_gui/main.py` | Qt 视图编排、依赖组装、按钮状态和 legacy 锁兼容 |
 | `apps/operator_gui/mainWindow.ui` | Qt Designer 界面源文件 |
 | `apps/operator_gui/mainWindow.py` | 由 UI 生成的 Python 界面类 |
-| `apps/operator_gui/overlap.py` | SSH/SFTP、HDF5 读取、bunchID 对齐、绘图和导出 |
-| `apps/operator_gui/zmq_client_dealer.py` | GUI 的 ZMQ DEALER 客户端 |
-| `apps/acquisition_agent/main_file_transport_h5df.py` | 采集、TXT 搬运和 HDF5 转换原型 |
+| `apps/operator_gui/overlap.py` | 新检索服务与旧函数名之间的兼容 facade |
+| `apps/operator_gui/zmq_client_dealer.py` | legacy ZMQ sender 的兼容 facade |
+| `apps/acquisition_agent/main_file_transport_h5df.py` | legacy 采集原型的兼容启动入口 |
+| `src/waveform_storage/application/` | 无 Qt 的检索与采集应用服务 |
+| `src/waveform_storage/processing/alignment.py` | strict/coverage 对齐和 `AlignmentResult` |
+| `src/waveform_storage/io/hdf5_io.py` | 单 BPM、v2 和 legacy HDF5 读写 |
+| `src/waveform_storage/config/registry.py` | 设备注册表校验、导入和兼容格式生成 |
 
 ## 配置
 
@@ -200,13 +214,15 @@ coverage 模式存在缺失单元时只能写 v2，旧格式适配器会明确�
 ## 文档
 
 - [Codex 项目交接与改进规划](docs/CODEX_HANDOFF.md)：新任务窗口继续工作时首先阅读。
-- [2026-07-25 本轮工作交接](docs/本轮工作交接_2026-07-25.md)：本轮实现、验证、工作区和下一窗口起点。
+- [结构重构完成审计](docs/结构重构完成审计_2026-07-25.md)：七阶段提交、最终离线证据、兼容结论和未验证边界。
+- [问题清单与改进路线](docs/问题清单与改进路线.md)：当前问题状态、风险和后续验收标准。
+- [2026-07-25 本轮工作交接](docs/本轮工作交接_2026-07-25.md)：早期设备注册表和对齐接入阶段的历史快照，不代表当前工作区。
+- [结构重构总目标模式提示词](docs/结构重构总目标模式提示词.md)：已执行完成的七阶段历史实施方案，不应再次作为当前任务直接执行。
 - [线上运行基线调查](docs/线上运行基线调查.md)：生产服务的只读事实、风险和待补证据。
 - [数据对齐 v2 设计基线](docs/数据对齐v2设计.md)：纯函数、覆盖共识和接入边界。
 - [设备注册表](docs/设备注册表.md)：47/200 台设备配置、校验和旧格式生成方法。
 - [采集协议 v1 候选](docs/采集协议v1候选.md)：仅用于本地/fake 测试的版本化消息和状态模型。
 - [项目功能与文件说明](docs/项目功能与文件说明.md)：原始项目逐文件静态分析。
-- [问题清单与改进路线](docs/问题清单与改进路线.md)：按优先级列出的修复任务、风险和验收标准。
 
 ## 本地测试
 
@@ -236,11 +252,13 @@ Ruff、mypy 和外部 secret scanner 仅有候选配置，本机未安装或运�
 
 ## 下一步
 
-阶段 1（统一设备注册表）、对齐/HDF5 本地基础和 GUI 最小接入已经完成，尚未部署或完成
-GUI 点击流验证。下一批建议：
+七阶段结构重构及其后的 GUI/legacy 边界收缩已经完成。设备注册表、对齐/HDF5、后台
+worker、应用服务和本地 fake ZMQ 基础均已建立；尚未部署，也未完成 Linux GUI 点击流或
+生产链路验证。下一批按以下顺序推进：
 
-1. 取得约 200 台的新设备表，导入注册表并生成新旧差异报告；
+1. 取得约 200 台的新设备表，先生成 candidate 注册表和新旧差异报告，不覆盖现有配置；
 2. 用脱敏真实批次比较 legacy 与 v2 的设备选择、ID 数量和耗时；
-3. 为 GUI 适配层补充脱敏真实 fixture，并确认 strict/coverage 的现场业务规则；
-4. 再推进动态设备界面、后台线程、任务进度和取消；
-5. 在候选协议之上建立 fake ZMQ server 及 fake EPICS/SSH 闭环，确认后再考虑 GUI 接入。
+3. 确认 strict/coverage、不同 bunchID 时基、X/Y 单位、`/1000` 缩放和 1024 点正式语义；
+4. 在 Linux/PyQt 环境验证七按钮点击流、后台状态、错误提示和安全取消；
+5. 在现有 fake ZMQ、fake EPICS/SSH 基础上补齐组合闭环；生产协议确认前不替换 legacy sender；
+6. 获得远端仓库授权后配置 upstream，并让现有 GitHub Actions 在远端实际运行。
