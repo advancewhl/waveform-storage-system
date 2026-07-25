@@ -28,12 +28,48 @@ class QueryParameters:
 class GuiController:
     """Own task state and results without knowing concrete Qt controls."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        retrieve_action=None,
+        align_action=None,
+        export_action=None,
+        raw_download_action=None,
+    ) -> None:
         self.state = TaskState.IDLE
         self.query = None
         self.current_result = None
         self.user_status = ""
         self.error = None
+        self._retrieve_action = retrieve_action
+        self._align_action = align_action
+        self._export_action = export_action
+        self._raw_download_action = raw_download_action
+
+    def retrieve_times(self, query):
+        if self._retrieve_action is None:
+            raise RuntimeError("retrieve action is not configured")
+        return self._retrieve_action(query)
+
+    def align(self, query):
+        if self._align_action is None:
+            raise RuntimeError("align action is not configured")
+        return self._align_action(query)
+
+    def export(self, result, query, directory, export_format):
+        if self._export_action is None:
+            raise RuntimeError("export action is not configured")
+        return self._export_action(
+            result,
+            query,
+            directory,
+            export_format,
+        )
+
+    def download_raw(self, query, local_path):
+        if self._raw_download_action is None:
+            raise RuntimeError("raw download action is not configured")
+        return self._raw_download_action(query, local_path)
 
     def begin(self, state: TaskState, query: QueryParameters | None = None):
         if state not in {

@@ -34,6 +34,29 @@ class GuiControllerTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             controller.begin(TaskState.ALIGNING)
 
+    def test_actions_are_injected_and_do_not_depend_on_widgets(self):
+        calls = []
+        controller = GuiController(
+            retrieve_action=lambda query: calls.append(("retrieve", query)) or [],
+            align_action=lambda query: calls.append(("align", query)) or "result",
+            export_action=lambda result, query, directory, export_format:
+                calls.append(("export", result, query, directory, export_format))
+                or "file.h5",
+            raw_download_action=lambda query, local:
+                calls.append(("raw", query, local)) or [],
+        )
+        query = QueryParameters("/r", "20260725", "120000", ("BPM_A",))
+        self.assertEqual(controller.retrieve_times(query), [])
+        self.assertEqual(controller.align(query), "result")
+        self.assertEqual(
+            controller.export("result", query, "D:/out", "auto"),
+            "file.h5",
+        )
+        self.assertEqual(controller.download_raw(query, "D:/raw"), [])
+        self.assertEqual([item[0] for item in calls], [
+            "retrieve", "align", "export", "raw",
+        ])
+
     def test_mainwindow_has_no_direct_h5py_or_paramiko_import(self):
         source = (
             Path(__file__).resolve().parents[1]

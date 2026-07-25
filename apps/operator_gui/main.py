@@ -249,7 +249,38 @@ class MainWindow(QMainWindow, Ui_StreamData):
         self.setupUi(self)
         self.timer = QTimer(self)
         self.interval = 10
-        self.controller = GuiController()
+        self.controller = GuiController(
+            retrieve_action=lambda query: remote_search_time_sec(
+                hostname=self.settings.storage_host,
+                username=self.settings.storage_user,
+                remote_path=query.remote_path,
+                password=self.settings.storage_password,
+            ),
+            align_action=lambda query: main_alignment_process(
+                query.remote_path,
+                query.run_id,
+                query.time_sec,
+                query.device_ids,
+            ),
+            export_action=lambda result, query, directory, export_format:
+                save_alignment_result(
+                    result,
+                    query.run_id,
+                    query.time_sec,
+                    directory,
+                    export_format=export_format,
+                ),
+            raw_download_action=lambda query, local_path:
+                remote_save_timesec_h5_files(
+                    hostname=self.settings.storage_host,
+                    username=self.settings.storage_user,
+                    password=self.settings.storage_password,
+                    remote_path=query.remote_path,
+                    local_path=local_path,
+                    time_sec=query.time_sec,
+                    port=self.settings.storage_port,
+                ),
+        )
         self.thread_pool = QThreadPool.globalInstance()
         self._active_workers = set()
         self.alignment_cache = AlignmentResultCache()
@@ -515,12 +546,7 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
         self._start_background(
             TaskState.RETRIEVING,
-            lambda: remote_search_time_sec(
-                hostname=self.hostname,
-                username=self.username,
-                remote_path=self.remote_path,
-                password=self.password,
-            ),
+            lambda: self.controller.retrieve_times(query),
             completed,
             query=query,
         )
@@ -532,14 +558,15 @@ class MainWindow(QMainWindow, Ui_StreamData):
             time_sec,
             tuple(self.pv_list),
         )
+        query = QueryParameters(
+            self.remote_path,
+            self.runID,
+            time_sec,
+            tuple(self.pv_list),
+        )
         result = self.alignment_cache.get_or_load(
             key,
-            lambda: main_alignment_process(
-                self.remote_path,
-                self.runID,
-                time_sec,
-                self.pv_list,
-            ),
+            lambda: self.controller.align(query),
         )
         self.alignment_result = result
         return result
@@ -573,7 +600,15 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
         return self._start_background(
             TaskState.ALIGNING,
-            lambda: self._ensure_alignment_result(time_sec),
+            lambda: self.alignment_cache.get_or_load(
+                (
+                    query.remote_path,
+                    query.run_id,
+                    query.time_sec,
+                    query.device_ids,
+                ),
+                lambda: self.controller.align(query),
+            ),
             completed,
             query=query,
             ready=True,
@@ -676,12 +711,16 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
             self._start_background(
                 TaskState.EXPORTING,
-                lambda: save_alignment_result(
+                lambda: self.controller.export(
                     result,
-                    self.runID,
-                    time_sec,
+                    QueryParameters(
+                        self.remote_path,
+                        self.runID,
+                        time_sec,
+                        tuple(self.pv_list),
+                    ),
                     directory,
-                    export_format=self.settings.alignment_export_format,
+                    self.settings.alignment_export_format,
                 ),
                 export_completed,
                 ready=True,
@@ -731,14 +770,14 @@ class MainWindow(QMainWindow, Ui_StreamData):
 
             self._start_background(
                 TaskState.DOWNLOADING,
-                lambda: remote_save_timesec_h5_files(
-                    hostname=self.hostname,
-                    username=self.username,
-                    password=self.password,
-                    remote_path=self.remote_path,
-                    local_path=local_path,
-                    time_sec=time_sec,
-                    port=self.settings.storage_port,
+                lambda: self.controller.download_raw(
+                    QueryParameters(
+                        self.remote_path,
+                        self.runID,
+                        time_sec,
+                        tuple(self.pv_list),
+                    ),
+                    local_path,
                 ),
                 completed,
             )

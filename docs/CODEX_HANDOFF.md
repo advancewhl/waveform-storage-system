@@ -697,6 +697,8 @@ heuristic、GitHub Actions workflow、Ruff/mypy 候选配置和 console script �
 最终完整性审计还把 `startButton` 的 EPICS 频率读取和 legacy sender 调用移入
 `legacy/gui_capture_adapter.py`；`MainWindow` 只组装依赖、构造原消息并处理 Qt 状态，
 legacy 字符串字符化测试继续通过。
+检索、对齐、导出和原始下载 action 也已通过构造参数注入 `GuiController`，MainWindow
+的按钮回调不再自行选择具体应用服务。
 
 ### 2026-07-25 本地实现检查点
 
