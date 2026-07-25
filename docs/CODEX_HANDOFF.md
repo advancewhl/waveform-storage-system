@@ -673,6 +673,13 @@ legacy 包装分别位于 `transport/ssh_storage.py`、`gui/plotting.py` 和
 DOWNLOADING、ALIGNING、READY、EXPORTING、FAILED、CANCELLED 状态。工作线程不直接
 更新控件，关闭窗口只在安全边界请求取消。
 
+### 结构重构阶段 5：采集端服务拆分
+
+`apps/acquisition_agent/main_file_transport_h5df.py` 已成为兼容启动入口。旧原型完整隔离到
+`legacy/acquisition_agent_adapter.py`；严格 TXT parser、EPICS gateway、有限并发设备
+SSH gateway 和 `CaptureService` 分别可 fake 测试。新 parser 不执行未确认的 X/Y
+`/1000` 缩放；未运行真实 EPICS、SSH 或 ZMQ。
+
 ### 2026-07-25 本地实现检查点
 
 本检查点只改动本地仓库和本地 Conda 环境，未修改生产服务器：
