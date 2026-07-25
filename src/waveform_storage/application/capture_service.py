@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from pathlib import Path
+import time
+
+from waveform_storage.logging_config import log_context
 
 
 @dataclass(frozen=True)
@@ -41,6 +45,18 @@ class CaptureService:
         self._waiter = waiter
 
     def capture(self, request, device_pvs, download_requests):
+        started = time.monotonic()
+        logger = log_context(
+            logging.getLogger("waveform_storage.capture"),
+            request_id=request.request_id,
+            task_id=request.request_id,
+            stage="capture",
+            device=None,
+            duration=None,
+            status="running",
+            error_type=None,
+        )
+        logger.info("capture candidate started")
         trigger_by_device = {
             item.device_id: item
             for item in self._epics.trigger(device_pvs)
@@ -70,4 +86,16 @@ class CaptureService:
                 results.append(
                     DeviceCaptureResult(device_id, False, error=str(exc))
                 )
-        return tuple(results)
+        completed = tuple(results)
+        failures = sum(not item.success for item in completed)
+        log_context(
+            logging.getLogger("waveform_storage.capture"),
+            request_id=request.request_id,
+            task_id=request.request_id,
+            stage="capture",
+            device=None,
+            duration=round(time.monotonic() - started, 6),
+            status="failed" if failures else "succeeded",
+            error_type="PartialDeviceFailure" if failures else None,
+        ).info("capture candidate completed")
+        return completed

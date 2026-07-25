@@ -687,6 +687,13 @@ SSH gateway 和 `CaptureService` 分别可 fake 测试。新 parser 不执行未
 request_id、超时、部分设备失败、异常和取消。GUI 仍发送原 legacy 字符串，生产协议差异
 仍未知，未连接 `192.0.2.2:5000`。
 
+### 结构重构阶段 7：日志、质量、CI 和打包准备
+
+新增 credential-safe 结构化 logging、本地 `tools/run_quality.py`、tracked-source secret
+heuristic、GitHub Actions workflow、Ruff/mypy 候选配置和 console script 候选说明。当前
+脚本入口保留，未构建或部署生产包。Ruff、mypy 和外部 secret scanner 未在本机安装或运行；
+本机实际运行结果只包括依赖-free source check 和 secret heuristic。
+
 ### 2026-07-25 本地实现检查点
 
 本检查点只改动本地仓库和本地 Conda 环境，未修改生产服务器：

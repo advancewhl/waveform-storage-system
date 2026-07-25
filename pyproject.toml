@@ -18,3 +18,17 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+exclude = [
+    "src/waveform_storage/legacy",
+    "apps/operator_gui/mainWindow.py",
+]
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["waveform_storage"]
+exclude = "waveform_storage/legacy"
+ignore_missing_imports = true

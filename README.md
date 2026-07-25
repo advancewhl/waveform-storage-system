@@ -219,9 +219,20 @@ $env:PYTHONPATH = (Resolve-Path src).Path
 python -m unittest discover -s tests -v
 ```
 
-当前 41 项测试覆盖对齐、200 台合成设备、注册表、单 BPM/v2/旧合并 HDF5 round-trip、
-旧 GUI 导出、GUI 适配层、注册表驱动的按钮规格，以及候选采集协议的编解码、字段校验和
-任务状态转换；不连接 EPICS、SSH、ZMQ 或生产存储。
+当前 76 项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
+Controller/Worker、严格 TXT、fake EPICS/SSH、CaptureService、本地 fake ZMQ、日志、
+对齐、注册表和 HDF5；不连接 EPICS、SSH、生产 ZMQ 或生产存储。
+
+完整本地质量门禁使用当前环境中已有工具：
+
+```powershell
+& 'D:\miniconda3_repair\envs\waveform-storage\python.exe' tools\run_quality.py
+```
+
+它运行 unittest、compileall、注册表/legacy 一致性、非 legacy 新模块的裸
+`except`/`print` 检查、tracked-source secret heuristic、`git diff --check` 和包导入。
+Ruff、mypy 和外部 secret scanner 仅有候选配置，本机未安装或运行，不能把配置存在表述为
+对应工具已经通过。
 
 ## 下一步
 

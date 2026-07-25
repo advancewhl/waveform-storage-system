@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import logging
 from pathlib import Path
 from typing import Callable, Protocol, Sequence
 
 import numpy as np
 
+from waveform_storage.logging_config import log_context
 from waveform_storage.io.hdf5_io import (
     read_single_device_hdf5,
     write_alignment_v2,
@@ -87,7 +89,18 @@ class RetrievalService:
         query: StorageQuery,
         parameters: AlignmentParameters | None = None,
     ) -> AlignmentResult:
+        logger = log_context(
+            logging.getLogger("waveform_storage.retrieval"),
+            request_id=None,
+            task_id=None,
+            stage="retrieval",
+            device=None,
+            duration=None,
+            status="running",
+            error_type=None,
+        )
         if self._cache_key == query.cache_key and self._cache_result is not None:
+            logger.info("retrieval cache hit")
             return self._cache_result
 
         order = {
@@ -126,6 +139,16 @@ class RetrievalService:
         )
         self._cache_key = query.cache_key
         self._cache_result = result
+        log_context(
+            logging.getLogger("waveform_storage.retrieval"),
+            request_id=None,
+            task_id=None,
+            stage="retrieval",
+            device=None,
+            duration=None,
+            status="succeeded",
+            error_type=None,
+        ).info("retrieval completed")
         return result
 
     def export(
