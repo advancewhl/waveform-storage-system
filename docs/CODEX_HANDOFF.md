@@ -666,6 +666,13 @@ legacy 包装分别位于 `transport/ssh_storage.py`、`gui/plotting.py` 和
 与 legacy/v2 导出。storage gateway、reader、aligner 和 writer 均可注入；GUI 兼容 facade
 委托该服务，缓存键继续包含远程路径、runID、时刻和完整设备列表。
 
+### 结构重构阶段 4：GUI Controller/Worker
+
+未修改 `mainWindow.ui`、对象名、文字或七按钮映射。检索、下载、HDF5 读取、对齐和导出
+通过 `QThreadPool` 后台 worker 执行；`GuiController` 维护 IDLE、RETRIEVING、
+DOWNLOADING、ALIGNING、READY、EXPORTING、FAILED、CANCELLED 状态。工作线程不直接
+更新控件，关闭窗口只在安全边界请求取消。
+
 ### 2026-07-25 本地实现检查点
 
 本检查点只改动本地仓库和本地 Conda 环境，未修改生产服务器：

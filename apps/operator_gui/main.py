@@ -2,11 +2,13 @@
 import functools
 import time
 import numpy as np
-import h5py
 import json
 import os
 import PyQt5
-from PyQt5.QtCore import pyqtSignal, Qt, QObject, QSize, QTimer, QTextStream, QSharedMemory, QDate
+from PyQt5.QtCore import (
+    pyqtSignal, Qt, QObject, QSize, QTimer, QTextStream, QSharedMemory, QDate,
+    QThreadPool,
+)
 from PyQt5.QtNetwork import QLocalSocket, QLocalServer
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QWidget, QHBoxLayout, QTableWidgetItem, QLabel, QPushButton, \
     QListWidget, QListWidgetItem, QGraphicsScene, QGraphicsPixmapItem, QMessageBox, QFileDialog
@@ -20,6 +22,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 from waveform_storage.config.registry import load_registry
 from waveform_storage.config.settings import AppSettings
 from waveform_storage.gui.device_selection import build_button_specs
+from waveform_storage.gui.controllers import (
+    GuiController,
+    QueryParameters,
+    TaskState,
+)
+from waveform_storage.gui.workers import BackgroundWorker
 
 from zmq_client_dealer import send_start
 from caproto.threading.client import Context, Batch
@@ -239,6 +247,9 @@ class MainWindow(QMainWindow, Ui_StreamData):
         self.setupUi(self)
         self.timer = QTimer(self)
         self.interval = 10
+        self.controller = GuiController()
+        self.thread_pool = QThreadPool.globalInstance()
+        self._active_workers = set()
         self.alignment_cache = AlignmentResultCache()
         self.device_registry = load_registry(CONFIG_DIR / "devices.json")
         self.device_button_specs = build_button_specs(self.device_registry)
@@ -317,6 +328,8 @@ class MainWindow(QMainWindow, Ui_StreamData):
         self.label_9.setText(self.lock_manager.get_status_text())
 
     def closeEvent(self, event):
+        for worker in tuple(self._active_workers):
+            worker.cancel()
         if self.lock_manager.fd:
             try:
                 self.lock_manager.fd.close()
@@ -324,6 +337,62 @@ class MainWindow(QMainWindow, Ui_StreamData):
                 pass
             self.lock_manager.fd = None
         event.accept()
+
+    def _set_data_buttons_enabled(self, enabled):
+        for button in (
+            self.retrievalButton,
+            self.confirmButton,
+            self.showidButton,
+            self.plotButton,
+            self.downloadButton,
+            self.downloadRawDataButton,
+        ):
+            button.setEnabled(enabled)
+
+    def _start_background(
+        self,
+        state,
+        operation,
+        on_completed,
+        *,
+        query=None,
+        ready=False,
+        store_result=False,
+    ):
+        try:
+            self.controller.begin(state, query)
+        except RuntimeError:
+            return None
+        worker = BackgroundWorker(operation)
+        self._active_workers.add(worker)
+        self._set_data_buttons_enabled(False)
+        worker.signals.progress.connect(self.progressBar.setValue)
+
+        def completed(value):
+            self.controller.complete(
+                value if store_result else None,
+                ready=ready,
+            )
+            self._active_workers.discard(worker)
+            self._set_data_buttons_enabled(True)
+            on_completed(value)
+
+        def failed(error):
+            self.controller.fail(error)
+            self._active_workers.discard(worker)
+            self._set_data_buttons_enabled(True)
+            QMessageBox.warning(self, "Task failed", str(error))
+
+        def cancelled():
+            self.controller.cancel()
+            self._active_workers.discard(worker)
+            self._set_data_buttons_enabled(True)
+
+        worker.signals.completed.connect(completed)
+        worker.signals.failed.connect(failed)
+        worker.signals.cancelled.connect(cancelled)
+        self.thread_pool.start(worker)
+        return worker
 
     def startButton_click(self):
 
@@ -427,14 +496,31 @@ class MainWindow(QMainWindow, Ui_StreamData):
         # remote_path = os.path.join("/home/desktop-user-a/Desktop/SHINE_DATA/AC/LA/",runID,"raw/BIData/")
         self.remote_path = os.path.join("/SHINE_Data/AC/LA/",self.runID,"raw/BIData/")
 
-        # test = search_time_sec(self.remote_path)
-        test = remote_search_time_sec(hostname=self.hostname,username=self.username,remote_path=self.remote_path,password=self.password)
-        format_test = [f"{t[0:2]}:{t[2:4]}:{t[4:6]}" for t in test]
-        print(f'test---->{format_test}')
-        self.comboBox.clear()
-        self.comboBox.addItems(format_test)
+        query = QueryParameters(
+            self.remote_path,
+            self.runID,
+            "",
+            tuple(self.pv_list),
+        )
 
-        self.comboBox.setCurrentIndex(0)  #######add for default select time_sec
+        def completed(test):
+            format_test = [f"{t[0:2]}:{t[2:4]}:{t[4:6]}" for t in test]
+            print(f'test---->{format_test}')
+            self.comboBox.clear()
+            self.comboBox.addItems(format_test)
+            self.comboBox.setCurrentIndex(0)
+
+        self._start_background(
+            TaskState.RETRIEVING,
+            lambda: remote_search_time_sec(
+                hostname=self.hostname,
+                username=self.username,
+                remote_path=self.remote_path,
+                password=self.password,
+            ),
+            completed,
+            query=query,
+        )
 
     def _ensure_alignment_result(self, time_sec):
         key = (
@@ -470,16 +556,39 @@ class MainWindow(QMainWindow, Ui_StreamData):
         )
         return False
 
+    def _run_alignment(self, time_sec, callback):
+        query = QueryParameters(
+            self.remote_path,
+            self.runID,
+            time_sec,
+            tuple(self.pv_list),
+        )
+
+        def completed(result):
+            self.alignment_result = result
+            callback(result)
+
+        return self._start_background(
+            TaskState.ALIGNING,
+            lambda: self._ensure_alignment_result(time_sec),
+            completed,
+            query=query,
+            ready=True,
+            store_result=True,
+        )
+
     def confirmButton_click(self):
         # self.progressBar.setVisible(True)
         text = self.comboBox.currentText()
         time_sec = get_para(text)
-        result = self._ensure_alignment_result(time_sec)
-        indexrange = alignment_summary(result)
-        self.index_spinBox.setMaximum(max(0, result.bunch_ids.size - 1))
-        print(indexrange)
-        self.rangelabel.setText(indexrange)
-        self._require_aligned_bunch_ids(result)
+        def completed(result):
+            indexrange = alignment_summary(result)
+            self.index_spinBox.setMaximum(max(0, result.bunch_ids.size - 1))
+            print(indexrange)
+            self.rangelabel.setText(indexrange)
+            self._require_aligned_bunch_ids(result)
+
+        self._run_alignment(time_sec, completed)
 
     def showidButton_click(self):
         # self.index_spinBox.setValue(0)  ###########设置默认值0
@@ -487,44 +596,40 @@ class MainWindow(QMainWindow, Ui_StreamData):
         self.selectedIDindex=self.index_spinBox.value()
         text = self.comboBox.currentText()
         time_sec = get_para(text)
-        result = self._ensure_alignment_result(time_sec)
-        if not self._require_aligned_bunch_ids(result):
-            return
-        current_bunchID = alignment_bunch_id(result, self.selectedIDindex)
-        self.current_bunchID=str(current_bunchID)
+        def completed(result):
+            if not self._require_aligned_bunch_ids(result):
+                return
+            current_bunchID = alignment_bunch_id(
+                result, self.selectedIDindex
+            )
+            self.current_bunchID = str(current_bunchID)
+            self.select_bunchID_show.setText(self.current_bunchID)
+            print('show bunchID', self.current_bunchID)
 
-        self.select_bunchID_show.setText(self.current_bunchID)
-        print('show bunchID',self.current_bunchID)
+        self._run_alignment(time_sec, completed)
 
     def plotButton_click(self):
 
         text = self.comboBox.currentText()
         time_sec = get_para(text)
         print("plot user select time_sec:", time_sec)
-        result = self._ensure_alignment_result(time_sec)
-        if not self._require_aligned_bunch_ids(result):
-            return
-        self.selectedIDindex = self.index_spinBox.value()
-        current_bunchID = alignment_bunch_id(result, self.selectedIDindex)
-        self.current_bunchID = str(current_bunchID)
+        def completed(result):
+            if not self._require_aligned_bunch_ids(result):
+                return
+            self.selectedIDindex = self.index_spinBox.value()
+            current_bunchID = alignment_bunch_id(
+                result, self.selectedIDindex
+            )
+            self.current_bunchID = str(current_bunchID)
+            self.select_bunchID_show.setText(self.current_bunchID)
+            self.fig = plot_alignment_result(result, self.selectedIDindex)
+            self.canvas = FigureCanvas(self.fig)
+            if self.groupBox.layout():
+                QtWidgets.QWidget().setLayout(self.groupBox.layout())
+            self.gridlayout = QtWidgets.QGridLayout(self.groupBox)
+            self.gridlayout.addWidget(self.canvas)
 
-        self.select_bunchID_show.setText(self.current_bunchID)
-        print('show bunchID after plot', self.current_bunchID)
-        print('show bunchID index after plot', self.selectedIDindex)
-        # self.filename_sorted = sorted(self.filename,key = lambda x: self.pv_list.index(x))
-
-        self.fig = plot_alignment_result(result, self.selectedIDindex)
-
-        # 转换为 FigureCanvas
-        self.canvas = FigureCanvas(self.fig)
-
-
-        if self.groupBox.layout():
-            QtWidgets.QWidget().setLayout(self.groupBox.layout())
-
-        self.gridlayout = QtWidgets.QGridLayout(self.groupBox)
-        # self.ui.gridlayout.addWidget(self.fig)
-        self.gridlayout.addWidget(self.canvas)  # 添加的是 canvas，不是 fig
+        self._run_alignment(time_sec, completed)
 
     def downloadButton_click(self):
         self.progressBar.setVisible(True)
@@ -533,49 +638,53 @@ class MainWindow(QMainWindow, Ui_StreamData):
         ######################edit251010-start##########
         time_sec = get_para(text)
         #print("user select time_sec:", time_sec)
-        result = self._ensure_alignment_result(time_sec)
-        if not self._require_aligned_bunch_ids(result):
-            return
-        directory = QFileDialog.getExistingDirectory(
-            self,
-            "Please choose the directory",
-            os.path.join(os.path.expanduser("~"), "Downloads")
-        )
-        if directory:
+        def alignment_completed(result):
+            if not self._require_aligned_bunch_ids(result):
+                return
+            directory = QFileDialog.getExistingDirectory(
+                self,
+                "Please choose the directory",
+                os.path.join(os.path.expanduser("~"), "Downloads")
+            )
+            if not directory:
+                return
             self.progressBar.setFormat("Data is downloading")
-            self.startButton.setEnabled(False)
-            self.retrievalButton.setEnabled(False)
-            self.downloadButton.setEnabled(False)
             self.progressBar.setValue(10)
 
-            save_path = directory
-            export_format = self.settings.alignment_export_format
-            new_h5_filename = save_alignment_result(
-                result,
-                self.runID,
-                time_sec,
-                save_path,
-                export_format=export_format,
+            def export_completed(new_h5_filename):
+                self.progressBar.setFormat("Finished")
+                self.progressBar.setValue(100)
+                msg = QMessageBox()
+                msg.setWindowTitle("Reminder")
+                skipped_names = [
+                    item.device_id for item in result.skipped_devices
+                ]
+                msg.setText(
+                    f"The data have been stored in {new_h5_filename}\n\n"
+                    f"{len(result.device_ids)} BPMs can be matched.\n\n"
+                    f"The number of overlapping bunchID is "
+                    f"{result.bunch_ids.size}.\n\n"
+                    f"The skipped BPMs names are {skipped_names}"
+                )
+                font = QFont()
+                font.setPointSize(14)
+                msg.setFont(font)
+                msg.exec_()
+
+            self._start_background(
+                TaskState.EXPORTING,
+                lambda: save_alignment_result(
+                    result,
+                    self.runID,
+                    time_sec,
+                    directory,
+                    export_format=self.settings.alignment_export_format,
+                ),
+                export_completed,
+                ready=True,
             )
 
-            #print("Align BPM number and overlap length:", Final_BPM_number, Final_overlap_number)
-            time.sleep(1)
-            self.progressBar.setFormat("Finished")
-            self.startButton.setEnabled(True)
-            self.retrievalButton.setEnabled(True)
-            self.downloadButton.setEnabled(True)
-            self.progressBar.setValue(100)
-
-            msg = QMessageBox()
-            msg.setWindowTitle("Reminder")
-            skipped_names = [item.device_id for item in result.skipped_devices]
-            msg.setText(f"The data have been stored in {new_h5_filename}\n\n{len(result.device_ids)} BPMs can be matched.\n\n"
-                        f"The number of overlapping bunchID is {result.bunch_ids.size}.\n\n"
-                        f"The skipped BPMs names are {skipped_names}")
-            font = QFont()
-            font.setPointSize(14)
-            msg.setFont(font)
-            msg.exec_()
+        self._run_alignment(time_sec, alignment_completed)
 
     def rawDataDownload_click(self):
         self.hostname = self.settings.storage_host
@@ -606,23 +715,30 @@ class MainWindow(QMainWindow, Ui_StreamData):
             if time_sec is None:
                 print('please retrieval time_sec')
 
-            remote_save_timesec_h5_files(hostname=self.hostname, username=self.username, password=self.password,
-                                         remote_path=self.remote_path, local_path=local_path, time_sec=time_sec,
-                                         port=self.settings.storage_port)
-            time.sleep(1)
-            self.progressBar.setFormat("Finished")
-            self.startButton.setEnabled(True)
-            self.retrievalButton.setEnabled(True)
-            self.downloadButton.setEnabled(True)
-            self.progressBar.setValue(100)
+            def completed(_saved):
+                self.progressBar.setFormat("Finished")
+                self.progressBar.setValue(100)
+                msg = QMessageBox()
+                msg.setWindowTitle("Reminder")
+                msg.setText(f"The data have been stored in {local_path}")
+                font = QFont()
+                font.setPointSize(14)
+                msg.setFont(font)
+                msg.exec_()
 
-            msg = QMessageBox()
-            msg.setWindowTitle("Reminder")
-            msg.setText(f"The data have been stored in {local_path}")
-            font = QFont()
-            font.setPointSize(14)
-            msg.setFont(font)
-            msg.exec_()
+            self._start_background(
+                TaskState.DOWNLOADING,
+                lambda: remote_save_timesec_h5_files(
+                    hostname=self.hostname,
+                    username=self.username,
+                    password=self.password,
+                    remote_path=self.remote_path,
+                    local_path=local_path,
+                    time_sec=time_sec,
+                    port=self.settings.storage_port,
+                ),
+                completed,
+            )
 
 if __name__ == '__main__':
 
