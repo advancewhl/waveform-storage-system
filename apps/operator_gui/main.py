@@ -28,13 +28,15 @@ from waveform_storage.gui.controllers import (
     TaskState,
 )
 from waveform_storage.gui.workers import BackgroundWorker
+from waveform_storage.legacy.gui_capture_adapter import (
+    read_legacy_frequency,
+    send_legacy_message,
+)
 
 from zmq_client_dealer import send_start
-from caproto.threading.client import Context, Batch
 from mainWindow import Ui_StreamData
 # from mainWindow_update251105 import Ui_StreamData
-from utils import get_addr_list, get_pv_list
-from caproto.threading.client import Context, Batch
+from caproto.threading.client import Context
 # from h5_data_process import search_time_sec,get_para,main_dataprocess,remote_search_time_sec,remote_find_h5_files
 # from overlap import get_para,main_dataprocess,remote_search_time_sec,remote_find_h5_files,remote_save_timesec_h5_files,save_newfile
 from overlap import (
@@ -411,10 +413,10 @@ class MainWindow(QMainWindow, Ui_StreamData):
         selected_devices = self._selected_capture_devices()
         print(f"selected capture devices: {selected_devices}")
 
-        os.environ['EPICS_CA_ADDR_LIST'] = "192.0.2.1:6310"
-        ctx = Context()
-        fre_pv = ctx.get_pvs("AC-LA-INJ1-TIM:WRN1:MCFQ8")[0]
-        frequency = fre_pv.read().data[0]
+        frequency = read_legacy_frequency(
+            Context,
+            timeout_address="192.0.2.1:6310",
+        )
         print(frequency)
         interval_origin = self.interval_comboBox.currentText()
         print(f'interval_origin:{interval_origin}')
@@ -429,7 +431,8 @@ class MainWindow(QMainWindow, Ui_StreamData):
             # print(message)
 
             try:
-                return_message = send_start(
+                return_message = send_legacy_message(
+                    send_start,
                     server_host=self.settings.zmq_server_host,
                     server_port=self.settings.zmq_server_port,
                     message=message,

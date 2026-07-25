@@ -694,6 +694,10 @@ heuristic、GitHub Actions workflow、Ruff/mypy 候选配置和 console script �
 脚本入口保留，未构建或部署生产包。Ruff、mypy 和外部 secret scanner 未在本机安装或运行；
 本机实际运行结果只包括依赖-free source check 和 secret heuristic。
 
+最终完整性审计还把 `startButton` 的 EPICS 频率读取和 legacy sender 调用移入
+`legacy/gui_capture_adapter.py`；`MainWindow` 只组装依赖、构造原消息并处理 Qt 状态，
+legacy 字符串字符化测试继续通过。
+
 ### 2026-07-25 本地实现检查点
 
 本检查点只改动本地仓库和本地 Conda 环境，未修改生产服务器：
