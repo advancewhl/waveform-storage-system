@@ -52,7 +52,7 @@
 │  ├─ transport/             # SSH、EPICS 和本地 fake ZMQ
 │  └─ legacy/                # 旧行为兼容适配器
 ├─ config/                   # devices.json 单一事实源和兼容 TXT
-├─ tests/                    # 当前实验分支 85 项离线测试
+├─ tests/                    # 当前实验分支 89 项离线测试
 ├─ tools/                    # 注册表、质量和敏感信息检查入口
 ├─ data/
 │  └─ samples/               # 本地 HDF5 样例，默认不提交 Git
@@ -163,6 +163,27 @@ python apps/operator_gui/main.py
 
 GUI 会从顶层 `config/` 读取配置。
 
+### 可扩展实验 GUI
+
+实验入口按束线区域整组选取设备，区域下的 BPM 只读展示，不能单独勾选；界面由设备注册表
+动态生成，可用于后续约 400 台设备的布局和交互验证。它不会替换原 GUI，也不会把候选通信
+协议接入生产。Windows 本机可双击：
+
+```text
+tools\launch_experimental_ui.cmd
+```
+
+也可从仓库根目录执行：
+
+```powershell
+$env:PYTHONPATH = (Resolve-Path src).Path
+& 'D:\miniconda3_repair\envs\waveform-storage\python.exe' `
+  apps\operator_gui\experimental_main.py
+```
+
+实际 Windows Qt 渲染截图位于 `docs/ui-preview/experimental-main-windows.png`；结构化错误
+弹窗截图位于 `docs/ui-preview/experimental-error-dialog.png`。
+
 ### 采集端原型
 
 ```bash
@@ -236,7 +257,7 @@ $env:PYTHONPATH = (Resolve-Path src).Path
 python -m unittest discover -s tests -v
 ```
 
-当前实验分支 85 项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
+当前实验分支 89 项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
 Controller/Worker、严格 TXT、fake EPICS/SSH、CaptureService、本地 fake ZMQ、日志、
 双协议通信分派、协议到 CaptureService 的本地组合闭环、对齐、注册表和 HDF5；不连接
 EPICS、SSH、生产 ZMQ 或生产存储。`main` 的已审计基线仍为 79 项。
@@ -258,7 +279,7 @@ Ruff、mypy 和外部 secret scanner 仅有候选配置，本机未安装或运�
 worker、应用服务和本地 fake ZMQ 基础均已建立；尚未部署，也未完成 Linux GUI 点击流或
 生产链路验证。下一批按以下顺序推进：
 
-1. 取得约 200 台的新设备表，先生成 candidate 注册表和新旧差异报告，不覆盖现有配置；
+1. 取得约 400 台的新设备表，先生成 candidate 注册表和新旧差异报告，不覆盖现有配置；
 2. 用脱敏真实批次比较 legacy 与 v2 的设备选择、ID 数量和耗时；
 3. 确认 strict/coverage、不同 bunchID 时基、X/Y 单位、`/1000` 缩放和 1024 点正式语义；
 4. 在 Linux/PyQt 环境验证七按钮点击流、后台状态、错误提示和安全取消；

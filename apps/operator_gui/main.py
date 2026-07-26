@@ -28,6 +28,10 @@ from waveform_storage.gui.controllers import (
     TaskState,
 )
 from waveform_storage.gui.workers import BackgroundWorker
+from waveform_storage.gui.error_dialogs import (
+    OperationError,
+    show_operation_error,
+)
 from waveform_storage.legacy.gui_capture_adapter import (
     read_legacy_frequency,
     send_legacy_message,
@@ -394,7 +398,17 @@ class MainWindow(QMainWindow, Ui_StreamData):
     ):
         try:
             self.controller.begin(state, query)
-        except RuntimeError:
+        except RuntimeError as error:
+            show_operation_error(
+                self,
+                OperationError.from_exception(
+                    error,
+                    stage="任务调度",
+                    code="TASK_ALREADY_RUNNING",
+                    title="当前操作无法开始",
+                    suggestion="请等待当前任务结束，或先取消当前任务后重试。",
+                ),
+            )
             return None
         worker = BackgroundWorker(operation)
         self._active_workers.add(worker)
@@ -414,7 +428,19 @@ class MainWindow(QMainWindow, Ui_StreamData):
             self.controller.fail(error)
             self._active_workers.discard(worker)
             self._set_data_buttons_enabled(True)
-            QMessageBox.warning(self, "Task failed", str(error))
+            show_operation_error(
+                self,
+                OperationError.from_exception(
+                    error,
+                    stage=state.value,
+                    code=f"{state.value}_FAILED",
+                    title="后台任务失败",
+                    suggestion=(
+                        "请检查错误详情、网络连接和数据配置后重试；"
+                        "如涉及生产任务，请先确认服务端状态。"
+                    ),
+                ),
+            )
 
         def cancelled():
             self.controller.cancel()
@@ -428,57 +454,116 @@ class MainWindow(QMainWindow, Ui_StreamData):
         return worker
 
     def startButton_click(self):
-
         interval_origin = self.interval_comboBox.currentText()
-        print(f'interval_origin:{interval_origin}')
         self.interval = re.sub(r'[^0-9]', '', interval_origin)
-        print(f'interval:{self.interval}')
-        self.lock_manager.lock_duration = int(self.interval)*60
-        if not self.is_locked and self.lock_manager.acquire_lock():
-            self.is_locked = True
-            self.startButton.setEnabled(False)
-            self.startButton.setText("锁定中...")
-            self.timer.start(1000)
-        self.update_state()
+        if not self.interval:
+            show_operation_error(
+                self,
+                OperationError(
+                    title="无法开始采集",
+                    summary="采集时长不是有效的分钟数。",
+                    stage="采集前校验",
+                    code="CAPTURE_INVALID_DURATION",
+                    suggestion="请重新选择10、30或60分钟后再试。",
+                    details=f"duration control value: {interval_origin!r}",
+                ),
+            )
+            return
 
         selected_devices = self._selected_capture_devices()
+        if not selected_devices:
+            show_operation_error(
+                self,
+                OperationError(
+                    title="无法开始采集",
+                    summary="尚未选择任何采集设备。",
+                    stage="采集前校验",
+                    code="CAPTURE_NO_DEVICE",
+                    suggestion="请至少选择一个束线区域后再开始采集。",
+                ),
+            )
+            return
+
+        try:
+            frequency = read_legacy_frequency(
+                Context,
+                timeout_address="192.0.2.1:6310",
+            )
+        except Exception as error:
+            show_operation_error(
+                self,
+                OperationError.from_exception(
+                    error,
+                    stage="读取定时系统频率PV",
+                    code="CAPTURE_FREQUENCY_READ_FAILED",
+                    title="无法开始采集",
+                    suggestion="请检查定时系统PV连接和EPICS网络配置后重试。",
+                ),
+            )
+            return
+        if not frequency:
+            show_operation_error(
+                self,
+                OperationError(
+                    title="无法开始采集",
+                    summary="没有读取到有效的束流频率。",
+                    stage="读取定时系统频率PV",
+                    code="CAPTURE_FREQUENCY_UNAVAILABLE",
+                    suggestion="确认频率PV在线且数值有效后重试。",
+                ),
+            )
+            return
+
+        self.lock_manager.lock_duration = int(self.interval)*60
+        if self.is_locked or not self.lock_manager.acquire_lock():
+            show_operation_error(
+                self,
+                OperationError(
+                    title="采集任务已锁定",
+                    summary="当前锁定期内不能再次启动采集。",
+                    stage="采集任务锁",
+                    code="CAPTURE_LOCKED",
+                    suggestion="请等待锁定倒计时结束，并先确认现有任务状态。",
+                ),
+            )
+            return
+        self.is_locked = True
+        self.startButton.setEnabled(False)
+        self.startButton.setText("锁定中...")
+        self.timer.start(1000)
+        self.update_state()
+
         print(f"selected capture devices: {selected_devices}")
-
-        frequency = read_legacy_frequency(
-            Context,
-            timeout_address="192.0.2.1:6310",
-        )
         print(frequency)
-        interval_origin = self.interval_comboBox.currentText()
-        print(f'interval_origin:{interval_origin}')
-        interval = re.sub(r'[^0-9]','',interval_origin)
-        print(f'interval:{interval}')
-        #
-        # #if frequency==100 or frequency==1000 or frequency==2 or frequency==10:
-        if frequency and selected_devices:
-            ###########################ZMQ stop send message###########
-            print("find frequency and BPMs names")
-            message = f"{frequency},{interval},{selected_devices}"
-            # print(message)
-
-            try:
-                return_message = send_legacy_message(
-                    send_start,
-                    server_host=self.settings.zmq_server_host,
-                    server_port=self.settings.zmq_server_port,
-                    message=message,
+        interval = self.interval
+        message = f"{frequency},{interval},{selected_devices}"
+        try:
+            return_message = send_legacy_message(
+                send_start,
+                server_host=self.settings.zmq_server_host,
+                server_port=self.settings.zmq_server_port,
+                message=message,
+            )
+            if return_message is False or return_message is None:
+                raise RuntimeError(
+                    "legacy transport returned no response; "
+                    "the server-side task state is unknown"
                 )
-                print("response from server:", return_message)
-            except:
-                print('something wrong in connecting serve')
-        else:
-            msg = QMessageBox()
-            msg.setWindowTitle("Reminder")
-            msg.setText("Please set the frequency!")
-            font = QFont()
-            font.setPointSize(12)
-            msg.setFont(font)
-            msg.exec_()
+            print("response from server:", return_message)
+        except Exception as error:
+            show_operation_error(
+                self,
+                OperationError.from_exception(
+                    error,
+                    stage="发送legacy采集请求",
+                    code="CAPTURE_RESPONSE_UNKNOWN",
+                    title="采集请求状态未知",
+                    suggestion=(
+                        "不要立即重复点击。当前锁会继续保留；"
+                        "请先检查服务端是否已经接收任务。"
+                    ),
+                ),
+            )
 
         # os.environ['EPICS_CA_ADDR_LIST'] = "192.0.2.1:6310"
         # ctx = Context()
