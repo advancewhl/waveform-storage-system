@@ -16,7 +16,10 @@ try:
 
     from waveform_storage.config.registry import load_registry
     from waveform_storage.gui.experimental_window import ExperimentalMainWindow
-    from waveform_storage.gui.operator_backend import DemoOperatorBackend
+    from waveform_storage.gui.operator_backend import (
+        DemoOperatorBackend,
+        OperatorMode,
+    )
 except ImportError as exc:  # pragma: no cover - optional desktop dependency
     raise unittest.SkipTest(f"PyQt5 desktop dependency unavailable: {exc}")
 
@@ -121,6 +124,50 @@ class ExperimentalUiSmokeTests(unittest.TestCase):
             self.assertFalse(window._busy)
 
             window.close()
+
+    def test_candidate_registry_renders_383_devices_without_network(self):
+        registry = load_registry(
+            PROJECT_ROOT / "config" / "devices.candidate.json"
+        )
+        backend = DemoOperatorBackend(registry)
+        with patch(
+            "waveform_storage.gui.experimental_window.QMessageBox.information"
+        ):
+            window = ExperimentalMainWindow(registry, backend=backend)
+
+            self.assertEqual(
+                sum(area.device_count for area in window.area_model.areas),
+                383,
+            )
+            self.assertEqual(window.area_model.rowCount(), 26)
+            self.assertEqual(window.windowTitle(), "SHINE Waveform Console")
+            first_status = window.area_model.item(0, 0).child(0, 3).text()
+            self.assertIn("待验证", first_status)
+
+            window.area_model.item(0, 0).setCheckState(Qt.Checked)
+            window.start_button.click()
+            self.wait_for_workers(window)
+            self.assertTrue(backend.last_request_json)
+            window.close()
+
+    def test_candidate_registry_cannot_send_connected_capture(self):
+        registry = load_registry(
+            PROJECT_ROOT / "config" / "devices.candidate.json"
+        )
+        backend = DemoOperatorBackend(registry)
+        backend.mode = OperatorMode.LEGACY
+        window = ExperimentalMainWindow(registry, backend=backend)
+        window.area_model.item(0, 0).setCheckState(Qt.Checked)
+
+        with patch.object(window, "_present_error") as present_error:
+            window.start_button.click()
+
+        present_error.assert_called_once()
+        error = present_error.call_args.args[0]
+        self.assertEqual(error.code, "CAPTURE_DEVICES_NOT_ENABLED")
+        self.assertFalse(backend.last_request_json)
+        self.assertFalse(window._active_workers)
+        window.close()
 
 
 if __name__ == "__main__":

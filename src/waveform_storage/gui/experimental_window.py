@@ -89,9 +89,22 @@ class BeamlineAreaModel(QStandardItemModel):
                 name.setEditable(False)
                 device_count = QStandardItem("—")
                 pv = QStandardItem(device.capture_pv)
+                status_labels = {
+                    "assumed": "端口待验证",
+                    "configured": "已配置",
+                    "verified": "端口已验证",
+                    "failed": "端口失败",
+                }
                 device_status = QStandardItem(
-                    "已配置" if device.acquisition_enabled else "仅注册"
+                    status_labels.get(
+                        device.epics_port_status,
+                        device.epics_port_status,
+                    )
                 )
+                if device.acquisition_enabled:
+                    device_status.setText(
+                        f"{device_status.text()} · 采集启用"
+                    )
                 for item in (device_count, pv, device_status):
                     item.setEditable(False)
                 area_name.appendRow((name, device_count, pv, device_status))
@@ -154,7 +167,7 @@ class ExperimentalMainWindow(QMainWindow):
         self.device_waveform_result = None
         self.device_waveform_key = None
         self.plot_canvas = None
-        self.setWindowTitle("SHINE Waveform · Experimental UI")
+        self.setWindowTitle("SHINE Waveform Console")
         self.resize(1440, 900)
         self.setMinimumSize(1120, 720)
         self._build_ui()
@@ -574,6 +587,32 @@ class ExperimentalMainWindow(QMainWindow):
                 )
             )
             return
+        if self.backend.mode is not OperatorMode.DEMO:
+            registry_devices = {
+                device.id: device for device in self.registry.devices
+            }
+            blocked = tuple(
+                device_id
+                for device_id in devices
+                if not registry_devices[device_id].acquisition_enabled
+            )
+            if blocked:
+                self._present_error(
+                    OperationError(
+                        title="设备尚未启用现场采集",
+                        summary=(
+                            f"所选区域包含 {len(blocked)} 台仅用于候选展示的设备。"
+                        ),
+                        stage="采集前注册表校验",
+                        code="CAPTURE_DEVICES_NOT_ENABLED",
+                        suggestion=(
+                            "先完成端口和业务语义验证，再在受审注册表中逐台启用；"
+                            "不要绕过该状态直接发送。"
+                        ),
+                        details="\n".join(blocked[:50]),
+                    )
+                )
+                return
         duration_seconds = int(self.duration_combo.currentData()) * 60
         if self.backend.mode is not OperatorMode.DEMO:
             reply = QMessageBox.question(

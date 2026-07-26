@@ -58,17 +58,20 @@ class GuiControllerTests(unittest.TestCase):
         ])
 
     def test_mainwindow_has_no_direct_h5py_or_paramiko_import(self):
-        source = (
+        app_dir = (
             Path(__file__).resolve().parents[1]
             / "apps"
             / "operator_gui"
-            / "main.py"
-        ).read_text(encoding="utf-8")
-        self.assertNotIn("import h5py", source)
-        self.assertNotIn("import paramiko", source)
-        self.assertIn("BackgroundWorker", source)
-        self.assertIn("TaskState.ALIGNING", source)
-        self.assertIn("TaskState.EXPORTING", source)
+        )
+        primary = (app_dir / "main.py").read_text(encoding="utf-8")
+        legacy = (app_dir / "legacy_main.py").read_text(encoding="utf-8")
+        for source in (primary, legacy):
+            self.assertNotIn("import h5py", source)
+            self.assertNotIn("import paramiko", source)
+        self.assertIn("experimental_main", primary)
+        self.assertIn("BackgroundWorker", legacy)
+        self.assertIn("TaskState.ALIGNING", legacy)
+        self.assertIn("TaskState.EXPORTING", legacy)
 
 
 class BackgroundWorkerTests(unittest.TestCase):

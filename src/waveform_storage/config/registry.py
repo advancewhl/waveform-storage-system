@@ -6,19 +6,28 @@ import ipaddress
 import json
 import os
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import MISSING, asdict, dataclass, fields
 from pathlib import Path
 from typing import Any, Iterable, Literal, Sequence
 from uuid import uuid4
 
 
 SCHEMA_VERSION = 1
+CANDIDATE_SCHEMA_VERSION = 2
+SUPPORTED_SCHEMA_VERSIONS = frozenset(
+    {SCHEMA_VERSION, CANDIDATE_SCHEMA_VERSION}
+)
 PV_PATTERN = re.compile(
-    r"^AC-LA-(?P<section>[A-Z0-9]+)-BI:"
-    r"(?P<name>[A-Z0-9]+)-E:RESULT_CAPTURE$"
+    r"^(?P<area>[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)-BI:"
+    r"(?P<name>[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*)-E:RESULT_CAPTURE$"
 )
 DEVICE_ID_PATTERN = re.compile(r"^[A-Z0-9_]+$")
 CREDENTIAL_PROFILE_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+$")
+DEVICE_TYPE_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
+EPICS_PORT_STATUSES = frozenset(
+    {"assumed", "configured", "verified", "failed"}
+)
+REVIEW_STATUSES = frozenset({"approved", "needs_review", "rejected"})
 
 
 class RegistryValidationError(ValueError):
@@ -52,6 +61,9 @@ class Device:
     acquisition_enabled: bool
     default_selected: bool
     tags: tuple[str, ...]
+    epics_port_status: str = "configured"
+    review_status: str = "approved"
+    source_ref: str | None = None
 
 
 @dataclass(frozen=True)
@@ -65,7 +77,82 @@ def device_id_from_pv(pv: str) -> str:
     match = PV_PATTERN.fullmatch(pv)
     if not match:
         raise ValueError(f"unsupported capture PV format: {pv!r}")
-    return f"AC_LA_{match.group('section')}_BI_{match.group('name')}"
+    return _canonical_id(
+        f"{match.group('area')}_BI_{match.group('name')}"
+    )
+
+
+def area_id_from_pv(pv: str) -> str:
+    match = PV_PATTERN.fullmatch(pv)
+    if not match:
+        raise ValueError(f"unsupported capture PV format: {pv!r}")
+    return _canonical_id(match.group("area"))
+
+
+def import_candidate_registry(
+    candidate_path: str | os.PathLike[str],
+) -> DeviceRegistry:
+    """Import an audited PV/IP candidate without enabling real acquisition."""
+
+    source = Path(candidate_path)
+    rows = _parse_legacy_json_lines(source)
+    devices: list[Device] = []
+    errors: list[str] = []
+    for order, row in enumerate(rows):
+        pv = row["pv"]
+        match = PV_PATTERN.fullmatch(pv)
+        if not match:
+            errors.append(f"unsupported capture PV format: {pv!r}")
+            continue
+        name = match.group("name")
+        try:
+            device_id = device_id_from_pv(pv)
+            area_id = area_id_from_pv(pv)
+            device_type = _device_type(name)
+        except (ValueError, RegistryValidationError) as exc:
+            errors.append(str(exc))
+            continue
+        devices.append(
+            Device(
+                id=device_id,
+                section=area_id,
+                display_name=f"{match.group('area')}/{name}",
+                device_type=device_type,
+                capture_pv=pv,
+                epics_host=row["ip"],
+                epics_port=int(row["port"]),
+                ssh_host=row["ip"],
+                ssh_port=22,
+                credential_profile="bpm_device_default",
+                remote_data_dir="/home/data",
+                file_pattern="*.txt",
+                expected_points=1024,
+                x_unit=None,
+                y_unit=None,
+                scale_factor=None,
+                order=order,
+                enabled=True,
+                acquisition_enabled=False,
+                default_selected=False,
+                tags=(area_id, device_type, "candidate"),
+                epics_port_status="assumed",
+                review_status="needs_review",
+                source_ref=source.name,
+            )
+        )
+    if errors:
+        raise RegistryValidationError(errors)
+    registry = DeviceRegistry(
+        schema_version=CANDIDATE_SCHEMA_VERSION,
+        description=(
+            "383-device candidate imported from the 2026-07-26 audited "
+            "PV/IP list. EPICS ports are assumptions and acquisition is "
+            "disabled until Linux field verification."
+        ),
+        devices=tuple(devices),
+    )
+    validate_registry(registry)
+    return registry
 
 
 def import_legacy_registry(
@@ -97,7 +184,7 @@ def import_legacy_registry(
             continue
         match = PV_PATTERN.fullmatch(pv)
         assert match is not None
-        section = match.group("section")
+        section = match.group("area").split("-")[-1]
         name = match.group("name")
         device_type = _device_type(name)
         selected = pv in acquisition_by_pv
@@ -152,9 +239,10 @@ def import_legacy_registry(
 
 def validate_registry(registry: DeviceRegistry) -> None:
     errors: list[str] = []
-    if registry.schema_version != SCHEMA_VERSION:
+    if registry.schema_version not in SUPPORTED_SCHEMA_VERSIONS:
         errors.append(
-            f"schema_version must be {SCHEMA_VERSION}, got "
+            "schema_version must be one of "
+            f"{sorted(SUPPORTED_SCHEMA_VERSIONS)}, got "
             f"{registry.schema_version}"
         )
     if not registry.devices:
@@ -166,11 +254,12 @@ def validate_registry(registry: DeviceRegistry) -> None:
         "capture PV",
         (item.capture_pv for item in registry.devices),
     )
-    _check_unique(
-        errors,
-        "EPICS host",
-        (item.epics_host for item in registry.devices),
-    )
+    if registry.schema_version == SCHEMA_VERSION:
+        _check_unique(
+            errors,
+            "EPICS host",
+            (item.epics_host for item in registry.devices),
+        )
     _check_unique(errors, "order", (item.order for item in registry.devices))
 
     expected_orders = list(range(len(registry.devices)))
@@ -193,12 +282,27 @@ def validate_registry(registry: DeviceRegistry) -> None:
                 )
         except ValueError as exc:
             errors.append(f"{prefix}: {exc}")
-        if not item.section or item.section not in item.id.split("_"):
+        if not item.section:
+            errors.append(f"{prefix}: section is empty")
+        elif registry.schema_version == CANDIDATE_SCHEMA_VERSION:
+            try:
+                expected_section = area_id_from_pv(item.capture_pv)
+                if item.section != expected_section:
+                    errors.append(
+                        f"{prefix}: section does not match capture_pv "
+                        f"({expected_section})"
+                    )
+            except ValueError:
+                pass
+        elif item.section not in item.id.split("_"):
             errors.append(f"{prefix}: section is missing or inconsistent")
         if not item.display_name:
             errors.append(f"{prefix}: display_name is empty")
-        if item.device_type not in ("SBPM", "CBPM", "COLDBPM"):
-            errors.append(f"{prefix}: unsupported device_type")
+        if registry.schema_version == SCHEMA_VERSION:
+            if item.device_type not in ("SBPM", "CBPM", "COLDBPM"):
+                errors.append(f"{prefix}: unsupported device_type")
+        elif not DEVICE_TYPE_PATTERN.fullmatch(item.device_type):
+            errors.append(f"{prefix}: invalid device_type")
         for field_name, host in (
             ("epics_host", item.epics_host),
             ("ssh_host", item.ssh_host),
@@ -235,6 +339,14 @@ def validate_registry(registry: DeviceRegistry) -> None:
             )
         if any(not tag for tag in item.tags):
             errors.append(f"{prefix}: tags contains an empty value")
+        if item.epics_port_status not in EPICS_PORT_STATUSES:
+            errors.append(f"{prefix}: invalid epics_port_status")
+        if item.review_status not in REVIEW_STATUSES:
+            errors.append(f"{prefix}: invalid review_status")
+        if item.source_ref is not None and (
+            not isinstance(item.source_ref, str) or not item.source_ref.strip()
+        ):
+            errors.append(f"{prefix}: source_ref must be non-empty or null")
 
     if errors:
         raise RegistryValidationError(errors)
@@ -287,13 +399,19 @@ def load_registry(path: str | os.PathLike[str]) -> DeviceRegistry:
 
     devices: list[Device] = []
     errors: list[str] = []
-    expected_fields = set(Device.__dataclass_fields__)
+    device_fields = fields(Device)
+    expected_fields = {item.name for item in device_fields}
+    required_fields = {
+        item.name
+        for item in device_fields
+        if item.default is MISSING and item.default_factory is MISSING
+    }
     for index, raw in enumerate(raw_devices):
         if not isinstance(raw, dict):
             errors.append(f"devices[{index}] must be an object")
             continue
         unknown = sorted(set(raw) - expected_fields)
-        missing = sorted(expected_fields - set(raw))
+        missing = sorted(required_fields - set(raw))
         if unknown:
             errors.append(
                 f"devices[{index}] unknown fields: {', '.join(unknown)}"
@@ -415,10 +533,17 @@ def _parse_legacy_json_lines(path: Path) -> list[dict[str, str]]:
 
 
 def _device_type(name: str) -> str:
-    for device_type in ("COLDBPM", "CBPM", "SBPM"):
-        if name.startswith(device_type):
-            return device_type
-    raise RegistryValidationError([f"unknown BPM device type: {name}"])
+    match = re.match(r"[A-Za-z]+", name)
+    if match:
+        return match.group(0).upper()
+    raise RegistryValidationError([f"unknown device type: {name}"])
+
+
+def _canonical_id(value: str) -> str:
+    canonical = re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_").upper()
+    if not canonical or not DEVICE_ID_PATTERN.fullmatch(canonical):
+        raise ValueError(f"cannot derive canonical ID from {value!r}")
+    return canonical
 
 
 def _check_unique(

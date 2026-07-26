@@ -8,6 +8,7 @@ from pathlib import Path
 
 from waveform_storage.config.registry import (
     RegistryValidationError,
+    import_candidate_registry,
     import_legacy_registry,
     load_registry,
     render_legacy_json_lines,
@@ -24,6 +25,10 @@ def main() -> int:
     import_parser.add_argument("--all", required=True, dest="all_path")
     import_parser.add_argument("--acquisition", required=True)
     import_parser.add_argument("--output", required=True)
+
+    candidate_parser = subparsers.add_parser("import-candidate")
+    candidate_parser.add_argument("--candidate", required=True)
+    candidate_parser.add_argument("--output", required=True)
 
     validate_parser = subparsers.add_parser("validate")
     validate_parser.add_argument("--registry", required=True)
@@ -48,6 +53,13 @@ def main() -> int:
             save_registry(registry, args.output)
             print(
                 f"wrote {len(registry.devices)} devices to {args.output}"
+            )
+        elif args.command == "import-candidate":
+            registry = import_candidate_registry(args.candidate)
+            save_registry(registry, args.output)
+            print(
+                f"wrote {len(registry.devices)} candidate devices to "
+                f"{args.output}; acquisition remains disabled"
             )
         elif args.command == "validate":
             registry = load_registry(args.registry)

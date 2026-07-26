@@ -61,8 +61,9 @@ git log -1 --oneline --decorate
 .
 ├─ apps/
 │  ├─ operator_gui/
-│  │  ├─ main.py                 # Qt 视图编排、依赖组装、legacy 锁
-│  │  ├─ mainWindow.ui/.py       # Qt Designer 资源
+│  │  ├─ main.py                 # 383台注册表驱动统一入口
+│  │  ├─ legacy_main.py          # 原Designer GUI、legacy锁与回滚基线
+│  │  ├─ mainWindow.ui/.py       # legacy Qt Designer 资源
 │  │  └─ overlap/utils/zmq_*     # 兼容 facade
 │  └─ acquisition_agent/
 │     └─ main_file_transport_h5df.py  # legacy 兼容启动入口
@@ -83,7 +84,7 @@ git log -1 --oneline --decorate
 │  ├─ BPMS_TO_STORE.txt
 │  ├─ duration_seconds.txt
 │  └─ variants/
-├─ tests/                        # 当前实验分支 95 项离线测试
+├─ tests/                        # 当前实验分支99项离线测试
 ├─ tools/                        # 注册表与本地质量入口
 ├─ .github/workflows/            # 尚未远端运行
 ├─ docs/
@@ -260,15 +261,14 @@ IP：192.0.2.2
 apps/operator_gui/main.py
 ```
 
-当前特点：
+当前统一入口特点：
 
-- `mainWindow.ui/mainWindow.py` 中静态写死约 38 个 BPM 按钮；
-- `pv_list_ALL.txt` 已有 47 台，配置和按钮已经不完全一致；
-- `main.py` 中另有 12 台默认选中 BPM 常量；
-- 点击按钮后遍历固定 `gridLayout` 收集设备；
-- 网络、SSH、下载、HDF5、对齐和绘图都在 GUI 主线程；
-- 确认、绘图、导出会重复执行 `main_dataprocess()`；
-- matplotlib 默认把全部设备名放在横坐标，无法直接适配 200 台。
+- 默认读取 `config/devices.candidate.json`，展示26个区域和383台设备；
+- 默认使用demo后端，不打开EPICS、SSH或ZMQ；
+- 区域树、搜索、后台任务、对齐、两种绘图、导出、下载和错误中心已串联；
+- `legacy` 和 `candidate_v2` 仍需显式选择，且后者必须使用独立endpoint；
+- 原静态38按钮、固定`gridLayout`和legacy锁实现完整保留在`legacy_main.py`，
+  不再是默认入口。
 
 ### 7.2 采集端
 
@@ -429,7 +429,7 @@ tags:
 
 对应问题：WF-019、WF-020、WF-005。
 
-当前状态：部分完成。当前实验分支已有 95 项离线测试，新增覆盖协议 v2、Demo 操作后台、
+当前状态：部分完成。当前实验分支已有99项离线测试，新增覆盖协议v2、Demo操作后台、
 实验 GUI 全按钮冒烟和单设备波形绘图；原行为基线、Settings、对齐、注册表、HDF5、
 Controller/Worker、严格 TXT、采集服务、本地 fake ZMQ、日志和 app facade 边界继续通过。
 本地质量门禁与 GitHub Actions workflow 已建立，但远端 CI、Ruff、mypy、外部 secret
@@ -780,9 +780,9 @@ ZMQ/EPICS/HDF5 工具实现移入 `waveform_storage.legacy`。
 关键结论：
 
 - candidate_v2 仍是隔离实验，不得指向生产 ZMQ 地址；
-- 95 项离线测试通过，不代表 Linux GUI 或现场链路通过；
+- 99项离线测试通过，不代表Linux GUI或现场链路通过；
 - 新候选包含 383 个唯一 PV、377 个唯一 IP，端口暂统一为 6310；
-- 仅 121 条兼容当前注册表 schema，其余 262 条需先确认命名域、大小写和设备类型；
+- schema v2已结构化容纳全部383条，但业务语义和端口仍需现场确认；
 - 正式 `config/devices.json` 与三个兼容清单没有被候选产物覆盖。
 
 ## 15. 建议用户在新窗口发送的提示
@@ -799,8 +799,20 @@ ZMQ/EPICS/HDF5 工具实现移入 `waveform_storage.legacy`。
 先检查 git status 和最近提交，不要覆盖、还原或清理已有修改，不要修改 waveform 生产服务器。
 当前目标是在整体功能不变的前提下支持约 200 台 BPM、优化数据对齐并改进 GUI。
 
-先在 waveform-storage Conda 环境运行完整质量门禁；当前实验分支为 95 项离线测试。
-随后从本文“当前接续任务”和 2026-07-26 当前分支总结继续。优先复核 383 条 PV 候选中的
-262 条注册表 schema 差异，并准备 Linux GUI、真实 CA 读取和小批现场验证；不要重复已完成
-的七阶段重构。
+先在 waveform-storage Conda 环境运行完整质量门禁；当前实验分支为99项离线测试。
+随后从本文“当前接续任务”和2026-07-26当前分支总结继续。优先在Linux验证383台统一入口，
+再进行真实CA只读检查和小批现场验证；不要重复已完成的七阶段重构。
 ```
+
+## 16. 2026-07-26 383台第一版整合
+
+- schema v2 候选注册表为 `config/devices.candidate.json`：383台、377个唯一IP、26个区域；
+- 多命名域、`ColdBPM`原始大小写、扩展设备类型及ADM/MRM共用IP均可结构化保存；
+- 所有候选端口状态为 `assumed`，真实采集默认禁用；
+- `apps/operator_gui/main.py` 已切换为统一注册表驱动入口，默认使用383台和demo后端；
+- 原 Designer GUI 保留在 `apps/operator_gui/legacy_main.py`，用于回归和回滚；
+- 99项离线测试、注册表/legacy一致性、源码质量、secret heuristic和`git diff --check`
+  全部通过；
+- Windows真实Qt平台主入口截图为
+  `docs/ui-preview/integrated-383-registry-v1.png`；
+- 尚未完成Linux真实桌面点击流、现场EPICS读取、端口确认、生产ZMQ接入和真实采集。

@@ -33,6 +33,20 @@ from experimental_backend import ConnectedOperatorBackend
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    default_registry = (
+        PROJECT_ROOT / "config" / "devices.candidate.json"
+        if (PROJECT_ROOT / "config" / "devices.candidate.json").exists()
+        else PROJECT_ROOT / "config" / "devices.json"
+    )
+    parser.add_argument(
+        "--registry",
+        type=Path,
+        default=default_registry,
+        help=(
+            "Device registry to load. The integrated branch defaults to the "
+            "383-device candidate when present."
+        ),
+    )
     parser.add_argument(
         "--screenshot",
         type=Path,
@@ -64,7 +78,10 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     app = QApplication(sys.argv)
-    registry = load_registry(PROJECT_ROOT / "config" / "devices.json")
+    registry_path = args.registry
+    if not registry_path.is_absolute():
+        registry_path = PROJECT_ROOT / registry_path
+    registry = load_registry(registry_path)
     mode = OperatorMode(args.mode)
     if mode is OperatorMode.DEMO:
         backend = DemoOperatorBackend(registry)
@@ -78,6 +95,7 @@ def main() -> int:
         backend=backend,
         journal_path=PROJECT_ROOT / "logs" / "operator-ui.jsonl",
     )
+    window.setProperty("registryPath", str(registry_path))
     window.show()
     if args.screenshot_error:
         dialog = OperationErrorDialog(

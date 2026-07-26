@@ -9,6 +9,7 @@ from waveform_storage.config.registry import (
     Device,
     DeviceRegistry,
     RegistryValidationError,
+    import_candidate_registry,
     import_legacy_registry,
     load_registry,
     render_legacy_json_lines,
@@ -168,6 +169,35 @@ class CurrentProjectRegistryTests(unittest.TestCase):
                 .rstrip("\r\n")
                 + "\n"
             ),
+        )
+
+    def test_candidate_registry_contains_all_audited_devices_safely(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (
+            root
+            / "outputs"
+            / "pv_list_2026-07-26"
+            / "pv_list_ALL_2026-07-26_candidate.txt"
+        )
+        registry = load_registry(root / "config" / "devices.candidate.json")
+        imported = import_candidate_registry(source)
+
+        self.assertEqual(registry, imported)
+        self.assertEqual(registry.schema_version, 2)
+        self.assertEqual(len(registry.devices), 383)
+        self.assertEqual(len({item.id for item in registry.devices}), 383)
+        self.assertEqual(len({item.epics_host for item in registry.devices}), 377)
+        self.assertTrue(all(item.enabled for item in registry.devices))
+        self.assertFalse(any(item.acquisition_enabled for item in registry.devices))
+        self.assertTrue(
+            all(item.epics_port_status == "assumed" for item in registry.devices)
+        )
+        self.assertTrue(
+            all(item.review_status == "needs_review" for item in registry.devices)
+        )
+        self.assertEqual(
+            render_legacy_json_lines(registry, "all"),
+            source.read_text(encoding="utf-8"),
         )
 
 

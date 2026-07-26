@@ -36,7 +36,11 @@ def build_beamline_areas(registry: DeviceRegistry) -> tuple[BeamlineArea, ...]:
     return tuple(
         BeamlineArea(
             area_id=section,
-            display_name=section,
+            display_name=(
+                devices[0].display_name.rsplit("/", 1)[0]
+                if "/" in devices[0].display_name
+                else section
+            ),
             device_ids=tuple(device.id for device in devices),
             capture_pvs=tuple(device.capture_pv for device in devices),
         )

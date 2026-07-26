@@ -54,7 +54,7 @@
 │  ├─ transport/             # SSH、EPICS 和本地 fake ZMQ
 │  └─ legacy/                # 旧行为兼容适配器
 ├─ config/                   # devices.json 单一事实源和兼容 TXT
-├─ tests/                    # 当前实验分支 95 项离线测试
+├─ tests/                    # 当前实验分支99项离线测试
 ├─ tools/                    # 注册表、质量和敏感信息检查入口
 ├─ data/
 │  └─ samples/               # 本地 HDF5 样例，默认不提交 Git
@@ -75,7 +75,8 @@
 
 | 文件 | 作用 |
 |---|---|
-| `apps/operator_gui/main.py` | Qt 视图编排、依赖组装、按钮状态和 legacy 锁兼容 |
+| `apps/operator_gui/main.py` | 当前统一 GUI 入口；默认加载 383 台候选注册表并使用离线 demo 后端 |
+| `apps/operator_gui/legacy_main.py` | 迁移期间保留的原 Designer GUI 和 legacy 锁兼容入口 |
 | `apps/operator_gui/mainWindow.ui` | Qt Designer 界面源文件 |
 | `apps/operator_gui/mainWindow.py` | 由 UI 生成的 Python 界面类 |
 | `apps/operator_gui/overlap.py` | 新检索服务与旧函数名之间的兼容 facade |
@@ -121,6 +122,7 @@
 | 文件 | 用途 |
 |---|---|
 | `config/devices.json` | 设备单一事实源；当前包含 47 台、其中 12 台启用采集 |
+| `config/devices.candidate.json` | schema v2 的 383 台候选注册表；全部展示，真实采集默认禁用 |
 | `config/pv_list_ALL.txt` | GUI 用于设备标准顺序的全量 PV 清单 |
 | `config/SWITCH_PV_IP.txt` | 原 GUI/触发工具使用的 12 台设备清单 |
 | `config/acquisition_pv_list.txt` | 当前采集端读取的 PV/IP 清单 |
@@ -132,9 +134,11 @@
 `config/devices.json` 是新增或修改设备时应维护的文件。两个旧 JSON-lines 清单仍供现有 GUI/采集原型读取，
 由 `tools/device_registry.py` 校验和生成；详见 [设备注册表](docs/设备注册表.md)。
 
-2026-07-26 候选清单没有覆盖上述正式配置。它包含 383 个唯一 PV、377 个唯一设备 IP，
-端口暂统一为 6310；其中 121 条兼容现有注册表 schema，另有 262 条因命名域、大小写或设备
-类型限制不能直接导入 `devices.json`。调试时应先在 waveform 服务器按 IP 做 `ping`，
+2026-07-26 候选清单没有覆盖上述正式配置。schema v2 已将 383 个唯一 PV、377 个唯一设备
+IP 全部无损导入 `config/devices.candidate.json`，支持多命名域、大小写敏感 PV、扩展设备
+类型和共用 IP。所有候选端口暂为 6310，状态为 `assumed`，并且
+`acquisition_enabled=false`；这表示可以用于 GUI 和离线全链路，但不能直接触发现场采集。
+调试时应先在 waveform 服务器按 IP 做 `ping`，
 需要验证 EPICS PV 时再使用 CA 客户端；6310 不通后才逐台核实是否应使用 5064。完整口径见
 [当前分支工作总结](docs/当前分支工作总结_2026-07-26.md)。
 
@@ -158,7 +162,8 @@ python -m pip install -e . --no-deps
 python -c "import waveform_storage"
 ```
 
-当前阶段不新增 console script，原 GUI 与采集脚本入口保持不变。
+当前阶段不新增 console script。统一 GUI 入口已经迁移到注册表驱动窗口，原 GUI 暂保留在
+`apps/operator_gui/legacy_main.py` 作为回归和回滚基线。
 
 ## 运行
 
@@ -170,9 +175,14 @@ python -c "import waveform_storage"
 python apps/operator_gui/main.py
 ```
 
-GUI 会从顶层 `config/` 读取配置。
+该命令默认使用 `config/devices.candidate.json` 和 `demo` 后端，显示 26 个区域、383 台设备，
+不会打开 EPICS、SSH 或 ZMQ。要回看原 Designer GUI，可显式运行：
 
-### 可扩展实验 GUI
+```bash
+python apps/operator_gui/legacy_main.py
+```
+
+### 注册表驱动 GUI
 
 实验入口按束线区域整组选取设备，区域下的 BPM 只读展示，不能单独勾选；界面由设备注册表
 动态生成，可用于后续约 400 台设备的布局和交互验证。采集、检索、对齐、bunchID、绘图、
@@ -180,8 +190,8 @@ GUI 会从顶层 `config/` 读取配置。
 绘图区提供“束线分布”和“单设备波形”两种模式：前者固定一个 bunchID 比较多个 BPM，
 后者选择一台 BPM，以实际 bunchID 为横坐标显示完整 X/Y 波形。
 
-默认 `demo` 模式使用确定性离线数据，不打开 EPICS、SSH 或 ZMQ 连接。它不会替换原 GUI，
-也不会把候选通信协议接入生产。Windows 本机可双击：
+默认 `demo` 模式使用确定性离线数据，不打开 EPICS、SSH 或 ZMQ 连接。当前实验分支已把它
+接到正式 `main.py` 入口，但没有把候选通信协议接入生产。Windows 本机仍可双击：
 
 ```text
 tools\launch_experimental_ui.cmd
@@ -199,7 +209,8 @@ $env:PYTHONPATH = (Resolve-Path src).Path
 独立的 `WAVEFORM_CANDIDATE_ZMQ_ENDPOINT`，不会默认复用生产地址。两种连接模式发送采集
 前都会二次确认，且失败时不自动回退重发。
 
-最新 Windows Qt 渲染截图位于 `docs/ui-preview/experimental-main-windows-v2.png`，
+383 台统一入口截图位于 `docs/ui-preview/integrated-383-registry-v1.png`；
+此前实验截图位于 `docs/ui-preview/experimental-main-windows-v2.png`，
 单设备波形截图位于 `docs/ui-preview/experimental-device-waveform-nature-style.png`；
 结构化错误弹窗截图位于 `docs/ui-preview/experimental-error-dialog.png`。
 
@@ -278,7 +289,7 @@ $env:PYTHONPATH = (Resolve-Path src).Path
 python -m unittest discover -s tests -v
 ```
 
-当前实验分支 95 项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
+当前实验分支99项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
 Controller/Worker、严格 TXT、fake EPICS/SSH、CaptureService、本地 fake ZMQ、日志、
 双协议通信分派、协议 v2 到 CaptureService 的本地组合闭环、Demo 全按钮后台、两类绘图、
 对齐、注册表和 HDF5；不连接 EPICS、SSH、生产 ZMQ 或生产存储。`main` 的已审计基线仍为

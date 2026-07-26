@@ -63,6 +63,20 @@ class BeamlineAreaSelectionTests(unittest.TestCase):
             400,
         )
 
+    def test_candidate_registry_groups_all_383_devices(self):
+        candidate = load_registry(
+            PROJECT_ROOT / "config" / "devices.candidate.json"
+        )
+
+        areas = build_beamline_areas(candidate)
+
+        self.assertEqual(len(areas), 26)
+        self.assertEqual(sum(area.device_count for area in areas), 383)
+        self.assertIn("AC_UN_FEL1", {area.area_id for area in areas})
+        self.assertIn("MRM", {area.area_id for area in areas})
+        fel1 = next(area for area in areas if area.area_id == "AC_UN_FEL1")
+        self.assertEqual(fel1.display_name, "AC-UN-FEL1")
+
 
 if __name__ == "__main__":
     unittest.main()

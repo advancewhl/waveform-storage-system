@@ -12,7 +12,7 @@ from waveform_storage.processing.alignment import DeviceSeries, SkippedDevice
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-MAIN_PATH = PROJECT_ROOT / "apps" / "operator_gui" / "main.py"
+MAIN_PATH = PROJECT_ROOT / "apps" / "operator_gui" / "legacy_main.py"
 OVERLAP_PATH = PROJECT_ROOT / "apps" / "operator_gui" / "overlap.py"
 
 
