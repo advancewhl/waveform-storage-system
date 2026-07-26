@@ -21,6 +21,7 @@ class CapturePlan:
     frequency_hz: float
     duration_seconds: int
     device_ids: tuple[str, ...]
+    area_ids: tuple[str, ...] = ()
 
     def __post_init__(self):
         if not self.request_id:
@@ -41,6 +42,7 @@ class CapturePlan:
             frequency_hz=float(request.frequency_hz),
             duration_seconds=request.duration_seconds,
             device_ids=tuple(request.devices),
+            area_ids=tuple(request.area_ids),
         )
 
 
@@ -126,7 +128,7 @@ class CaptureService:
         request: ProtocolCaptureRequest,
         resolver,
     ):
-        """Run a validated v1 request through the application service.
+        """Run a validated v2 request through the application service.
 
         ``resolver`` converts the device IDs in the plan into the EPICS PV and
         download request collections required by the deployment adapter.

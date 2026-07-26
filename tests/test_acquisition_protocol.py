@@ -13,6 +13,7 @@ from waveform_storage.acquisition.protocol import (
     decode_response,
     encode_request,
     encode_response,
+    validate_area_device_snapshot,
     validate_status_transition,
 )
 
@@ -25,6 +26,7 @@ class CaptureRequestTests(unittest.TestCase):
             command="start_capture",
             frequency_hz=100.0,
             duration_seconds=600,
+            area_ids=("INJECTOR",),
             devices=(
                 "AC_LA_INJ1_BI_SBPM08",
                 "AC_LA_INJ1_BI_SBPM10",
@@ -36,7 +38,7 @@ class CaptureRequestTests(unittest.TestCase):
 
     def test_request_rejects_unknown_or_missing_fields(self):
         payload = {
-            "version": 1,
+            "version": PROTOCOL_VERSION,
             "request_id": str(uuid4()),
             "command": "start_capture",
             "frequency_hz": 100,
@@ -45,7 +47,7 @@ class CaptureRequestTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(
             ProtocolValidationError,
-            "missing fields: devices; unknown fields: unexpected",
+            "missing fields: area_ids, devices; unknown fields: unexpected",
         ):
             decode_request(json.dumps(payload))
 
@@ -55,11 +57,12 @@ class CaptureRequestTests(unittest.TestCase):
             "devices contains duplicates",
         ):
             CaptureRequest(
-                version=1,
+                version=PROTOCOL_VERSION,
                 request_id=str(uuid4()),
                 command="start_capture",
                 frequency_hz=100,
                 duration_seconds=600,
+                area_ids=("INJECTOR",),
                 devices=("BPM_A", "BPM_A"),
             )
         with self.assertRaisesRegex(
@@ -67,19 +70,62 @@ class CaptureRequestTests(unittest.TestCase):
             "duration_seconds",
         ):
             CaptureRequest(
-                version=1,
+                version=PROTOCOL_VERSION,
                 request_id=str(uuid4()),
                 command="start_capture",
                 frequency_hz=100,
                 duration_seconds=0,
+                area_ids=("INJECTOR",),
                 devices=("BPM_A",),
+            )
+
+    def test_request_rejects_missing_or_duplicate_areas(self):
+        with self.assertRaisesRegex(ProtocolValidationError, "must not be empty"):
+            CaptureRequest(
+                PROTOCOL_VERSION,
+                str(uuid4()),
+                "start_capture",
+                100,
+                600,
+                (),
+                ("BPM_A",),
+            )
+
+    def test_server_rejects_partial_area_device_snapshot(self):
+        request = CaptureRequest(
+            PROTOCOL_VERSION,
+            str(uuid4()),
+            "start_capture",
+            100,
+            600,
+            ("INJECTOR",),
+            ("BPM_A",),
+        )
+        with self.assertRaisesRegex(
+            ProtocolValidationError,
+            "exactly match",
+        ):
+            validate_area_device_snapshot(
+                request,
+                {"INJECTOR": ("BPM_A", "BPM_B")},
+            )
+        validate_area_device_snapshot(request, {"INJECTOR": ("BPM_A",)})
+        with self.assertRaisesRegex(ProtocolValidationError, "area_ids contains"):
+            CaptureRequest(
+                PROTOCOL_VERSION,
+                str(uuid4()),
+                "start_capture",
+                100,
+                600,
+                ("INJECTOR", "INJECTOR"),
+                ("BPM_A",),
             )
 
 
 class CaptureResponseTests(unittest.TestCase):
     def test_response_round_trip_preserves_task_identity(self):
         response = CaptureResponse(
-            version=1,
+            version=PROTOCOL_VERSION,
             request_id=str(uuid4()),
             accepted=True,
             status="running",
@@ -94,7 +140,7 @@ class CaptureResponseTests(unittest.TestCase):
                 "requires error_code",
             ):
                 CaptureResponse(
-                    version=1,
+                    version=PROTOCOL_VERSION,
                     request_id=str(uuid4()),
                     accepted=status != "rejected",
                     status=status,

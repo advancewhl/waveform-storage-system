@@ -2,11 +2,12 @@
 
 > 用途：在新的 Codex 任务窗口中继续本项目时，先完整阅读本文。  
 > 项目目录：`D:\study_file\postgraduate\x射线自由电子激光\波形存储系统`  
-> 更新日期：2026-07-25  
-> 当前 Git 分支：`main`  
-> 已审计代码基线：`f438a94 refactor: isolate remaining app legacy facades`
+> 更新日期：2026-07-26
+> 当前 Git 分支：`codex/communication-v2-experiment`
+> 本轮收口前基线：`0a5cdc7 feat: checkpoint scalable experimental operator UI`
 > 当前工作区：不得依赖本文硬编码判断；每次以 `git status` 为准并保留未知修改
 > 完成审计：`docs/结构重构完成审计_2026-07-25.md`
+> 当前分支总结：`docs/当前分支工作总结_2026-07-26.md`
 > 历史专项记录：`docs/本轮工作交接_2026-07-25.md`
 
 当前事实的优先级是：实时 Git/文件检查 → 本文 → 完成审计 → 问题清单。`本轮工作交接`
@@ -82,7 +83,7 @@ git log -1 --oneline --decorate
 │  ├─ BPMS_TO_STORE.txt
 │  ├─ duration_seconds.txt
 │  └─ variants/
-├─ tests/                        # 79 项离线测试
+├─ tests/                        # 当前实验分支 95 项离线测试
 ├─ tools/                        # 注册表与本地质量入口
 ├─ .github/workflows/            # 尚未远端运行
 ├─ docs/
@@ -428,10 +429,11 @@ tags:
 
 对应问题：WF-019、WF-020、WF-005。
 
-当前状态：部分完成。已有 79 项离线测试覆盖原行为基线、Settings、对齐、注册表、
-HDF5 v2/legacy、旧 GUI 导出、GUI Controller/Worker、严格 TXT、采集服务、本地 fake
-ZMQ、日志和 app facade 边界。本地质量门禁与 GitHub Actions workflow 已建立，但远端
-CI、Ruff、mypy、外部 secret scanner、Linux GUI 和现场链路仍未实际验证。
+当前状态：部分完成。当前实验分支已有 95 项离线测试，新增覆盖协议 v2、Demo 操作后台、
+实验 GUI 全按钮冒烟和单设备波形绘图；原行为基线、Settings、对齐、注册表、HDF5、
+Controller/Worker、严格 TXT、采集服务、本地 fake ZMQ、日志和 app facade 边界继续通过。
+本地质量门禁与 GitHub Actions workflow 已建立，但远端 CI、Ruff、mypy、外部 secret
+scanner、Linux GUI 和现场链路仍未实际验证。
 
 至少测试：
 
@@ -457,18 +459,20 @@ CI、Ruff、mypy、外部 secret scanner、Linux GUI 和现场链路仍未实际
 
 对应问题：WF-001、WF-002、WF-009、WF-010、WF-013。
 
-当前状态：已新增仅用于本地/fake 测试的 v1 候选协议和任务状态转换，尚未接入现有 GUI、
-采集原型或生产 `saveApp`。现有 legacy 消息保持不变。
+当前状态：实验协议已升级到 v2，增加原子 `area_ids` 和服务端可信注册表展开校验；已接入
+实验 GUI 的显式 `candidate_v2` 模式和本地/fake 闭环，但尚未接入生产 `saveApp`。现有
+legacy 消息保持不变，候选模式使用独立 endpoint 且失败时不回退重发。
 
 建议协议：
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "request_id": "uuid",
   "command": "start_capture",
   "frequency_hz": 100,
   "duration_seconds": 600,
+  "area_ids": ["INJ1"],
   "devices": ["AC_LA_INJ1_BI_SBPM08"]
 }
 ```
@@ -554,8 +558,9 @@ AlignmentResult
 
 对应问题：WF-008、WF-016、WF-025。
 
-当前状态：后台 worker、Controller 状态和注册表驱动的现有按钮规格已经建立；完整动态设备
-模型、真实进度、服务端任务状态和 Linux GUI 点击流仍未完成。
+当前状态：实验 GUI 已建立注册表驱动的整区选择、统一后台接口、全按钮后台任务、任务记录、
+结构化错误弹窗和两种绘图模式；离线测试覆盖 200/400 台规模。生产服务端任务状态、真实
+进度、安全取消、正式约 400 台注册表和 Linux GUI 点击流仍未完成。
 
 不要继续为每台 BPM 手工增加按钮。
 
@@ -767,7 +772,20 @@ ZMQ/EPICS/HDF5 工具实现移入 `waveform_storage.legacy`。
 5. 使用现有设备注册表 schema 和工具生成 candidate，不直接覆盖三个兼容 TXT；
 6. 用户确认差异报告后，再更新正式注册表并生成兼容文件。
 
-## 14. 建议用户在新窗口发送的提示
+## 14. 2026-07-26 实验分支收口
+
+当前分支的代码、PV 候选产物、验证口径和未验证边界统一记录在
+`docs/当前分支工作总结_2026-07-26.md`。后续接续时以该文档和实时 Git 状态为准。
+
+关键结论：
+
+- candidate_v2 仍是隔离实验，不得指向生产 ZMQ 地址；
+- 95 项离线测试通过，不代表 Linux GUI 或现场链路通过；
+- 新候选包含 383 个唯一 PV、377 个唯一 IP，端口暂统一为 6310；
+- 仅 121 条兼容当前注册表 schema，其余 262 条需先确认命名域、大小写和设备类型；
+- 正式 `config/devices.json` 与三个兼容清单没有被候选产物覆盖。
+
+## 15. 建议用户在新窗口发送的提示
 
 ```text
 继续维护 D:\study_file\postgraduate\x射线自由电子激光\波形存储系统。
@@ -781,7 +799,8 @@ ZMQ/EPICS/HDF5 工具实现移入 `waveform_storage.legacy`。
 先检查 git status 和最近提交，不要覆盖、还原或清理已有修改，不要修改 waveform 生产服务器。
 当前目标是在整体功能不变的前提下支持约 200 台 BPM、优化数据对齐并改进 GUI。
 
-先在 waveform-storage Conda 环境运行完整质量门禁；当前审计基线为 79 项离线测试。
-随后从本文“当前接续任务”继续。正式约 200 台 PV 表未到位时，优先准备脱敏真实 fixture、
-业务语义确认、Linux GUI 验证或完全离线的组合 fake 闭环，不要重复已完成的七阶段重构。
+先在 waveform-storage Conda 环境运行完整质量门禁；当前实验分支为 95 项离线测试。
+随后从本文“当前接续任务”和 2026-07-26 当前分支总结继续。优先复核 383 条 PV 候选中的
+262 条注册表 schema 差异，并准备 Linux GUI、真实 CA 读取和小批现场验证；不要重复已完成
+的七阶段重构。
 ```

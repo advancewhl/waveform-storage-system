@@ -8,6 +8,7 @@ from uuid import uuid4
 import zmq
 
 from waveform_storage.acquisition.protocol import (
+    PROTOCOL_VERSION,
     CaptureRequest,
     decode_response,
 )
@@ -46,11 +47,12 @@ class FakeZmqLoopTests(unittest.TestCase):
 
     def capture_request(self):
         return CaptureRequest(
-            1,
+            PROTOCOL_VERSION,
             str(uuid4()),
             "start_capture",
             100,
             1,
+            ("AREA_A",),
             ("BPM_A", "BPM_B"),
         )
 

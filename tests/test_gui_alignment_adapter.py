@@ -9,6 +9,7 @@ from unittest.mock import patch
 import matplotlib.pyplot as plt
 import numpy as np
 
+from waveform_storage.gui.plotting import plot_device_waveform
 from waveform_storage.io.hdf5_io import (
     read_alignment_v2,
     read_legacy_merged_hdf5,
@@ -113,6 +114,35 @@ class AlignmentResultAdapterTests(unittest.TestCase):
             x_line = fig.axes[0].lines[0]
             self.assertEqual(list(x_line.get_xdata()), ["BPM_A"])
             self.assertEqual(list(x_line.get_ydata()), [0])
+        finally:
+            plt.close(fig)
+
+    def test_single_device_plot_uses_bunch_id_as_x_axis(self):
+        result = align_devices(
+            [
+                DeviceSeries(
+                    "BPM_A",
+                    [38_212_018_001_007, 38_212_018_501_007],
+                    [10, 11],
+                    [20, 21],
+                )
+            ]
+        )
+        fig = plot_device_waveform(result, "BPM_A")
+        try:
+            axis = fig.axes[0]
+            self.assertEqual(
+                [int(value) for value in axis.lines[0].get_xdata()],
+                result.bunch_ids.tolist(),
+            )
+            self.assertEqual(axis.get_xlabel().split("·")[0].strip(), "BunchID")
+            self.assertEqual(
+                [text.get_text() for text in axis.get_legend().get_texts()],
+                ["X position", "Y position"],
+            )
+            self.assertEqual(axis.get_legend().get_title().get_text(), "")
+            self.assertTrue(all(spine.get_visible() for spine in axis.spines.values()))
+            self.assertGreaterEqual(axis.spines["left"].get_linewidth(), 1.0)
         finally:
             plt.close(fig)
 

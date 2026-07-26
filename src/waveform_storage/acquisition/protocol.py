@@ -1,4 +1,4 @@
-"""Candidate version-1 acquisition protocol for local development.
+"""Candidate version-2 acquisition protocol for local development.
 
 This module is deliberately not wired to the production ``saveApp`` service.
 Its purpose is to make validation, encoding, task identity, and state
@@ -13,11 +13,11 @@ import math
 import re
 from dataclasses import asdict, dataclass
 from numbers import Integral, Real
-from typing import Literal
+from typing import Literal, Mapping, Sequence
 from uuid import UUID
 
 
-PROTOCOL_VERSION = 1
+PROTOCOL_VERSION = 2
 START_CAPTURE = "start_capture"
 DEVICE_ID_PATTERN = re.compile(r"^[A-Z0-9_]+$")
 
@@ -36,6 +36,7 @@ _REQUEST_FIELDS = {
     "command",
     "frequency_hz",
     "duration_seconds",
+    "area_ids",
     "devices",
 }
 _RESPONSE_FIELDS = {
@@ -67,6 +68,7 @@ class CaptureRequest:
     command: Literal["start_capture"]
     frequency_hz: float
     duration_seconds: int
+    area_ids: tuple[str, ...]
     devices: tuple[str, ...]
 
     def __post_init__(self) -> None:
@@ -95,8 +97,22 @@ class CaptureRequest:
             )
         if not self.devices:
             raise ProtocolValidationError("devices must not be empty")
+        if not self.area_ids:
+            raise ProtocolValidationError("area_ids must not be empty")
+        if len(set(self.area_ids)) != len(self.area_ids):
+            raise ProtocolValidationError("area_ids contains duplicates")
         if len(set(self.devices)) != len(self.devices):
             raise ProtocolValidationError("devices contains duplicates")
+        invalid_areas = [
+            item
+            for item in self.area_ids
+            if not isinstance(item, str)
+            or not DEVICE_ID_PATTERN.fullmatch(item)
+        ]
+        if invalid_areas:
+            raise ProtocolValidationError(
+                f"area_ids contains invalid IDs: {invalid_areas!r}"
+            )
         invalid = [
             item
             for item in self.devices
@@ -148,6 +164,7 @@ class CaptureResponse:
 
 def encode_request(request: CaptureRequest) -> str:
     payload = asdict(request)
+    payload["area_ids"] = list(request.area_ids)
     payload["devices"] = list(request.devices)
     return _encode(payload)
 
@@ -156,14 +173,18 @@ def decode_request(message: str | bytes) -> CaptureRequest:
     payload = _decode_object(message)
     _require_exact_fields(payload, _REQUEST_FIELDS)
     devices = payload["devices"]
+    area_ids = payload["area_ids"]
     if not isinstance(devices, list):
         raise ProtocolValidationError("devices must be a JSON array")
+    if not isinstance(area_ids, list):
+        raise ProtocolValidationError("area_ids must be a JSON array")
     return CaptureRequest(
         version=payload["version"],
         request_id=payload["request_id"],
         command=payload["command"],
         frequency_hz=payload["frequency_hz"],
         duration_seconds=payload["duration_seconds"],
+        area_ids=tuple(area_ids),
         devices=tuple(devices),
     )
 
@@ -187,6 +208,32 @@ def validate_status_transition(
     if current not in _ALLOWED_TRANSITIONS[previous]:
         raise ProtocolValidationError(
             f"invalid task transition: {previous} -> {current}"
+        )
+
+
+def validate_area_device_snapshot(
+    request: CaptureRequest,
+    area_devices: Mapping[str, Sequence[str]],
+) -> None:
+    """Reject partial-area or stale client snapshots at the server boundary.
+
+    ``area_devices`` must come from the receiving service's trusted,
+    version-controlled registry rather than from the request.
+    """
+
+    unknown = [area_id for area_id in request.area_ids if area_id not in area_devices]
+    if unknown:
+        raise ProtocolValidationError(
+            f"area_ids are absent from the server registry: {unknown!r}"
+        )
+    expected = tuple(
+        device_id
+        for area_id in request.area_ids
+        for device_id in area_devices[area_id]
+    )
+    if request.devices != expected:
+        raise ProtocolValidationError(
+            "devices must exactly match the server expansion of area_ids"
         )
 
 

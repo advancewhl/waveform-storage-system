@@ -16,11 +16,19 @@ if str(SRC_DIR) not in sys.path:
 from PyQt5.QtWidgets import QApplication
 
 from waveform_storage.config.registry import load_registry
+from waveform_storage.config.settings import AppSettings
 from waveform_storage.gui.error_dialogs import (
     OperationError,
     OperationErrorDialog,
 )
 from waveform_storage.gui.experimental_window import ExperimentalMainWindow
+from waveform_storage.gui.operator_backend import (
+    DemoOperatorBackend,
+    OperatorMode,
+)
+from waveform_storage.gui.plotting import plot_device_waveform
+
+from experimental_backend import ConnectedOperatorBackend
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,9 +39,24 @@ def parse_args() -> argparse.Namespace:
         help="Render one screenshot and exit (works with QT_QPA_PLATFORM=offscreen).",
     )
     parser.add_argument(
+        "--screenshot-view",
+        choices=("capture", "distribution", "device"),
+        default="capture",
+        help="Select the demo page prepared before --screenshot is captured.",
+    )
+    parser.add_argument(
         "--screenshot-error",
         type=Path,
         help="Render the structured error dialog and exit.",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=tuple(item.value for item in OperatorMode),
+        default=OperatorMode.DEMO.value,
+        help=(
+            "demo is offline and safe; legacy and candidate_v2 are explicit "
+            "connected modes"
+        ),
     )
     return parser.parse_args()
 
@@ -42,7 +65,19 @@ def main() -> int:
     args = parse_args()
     app = QApplication(sys.argv)
     registry = load_registry(PROJECT_ROOT / "config" / "devices.json")
-    window = ExperimentalMainWindow(registry)
+    mode = OperatorMode(args.mode)
+    if mode is OperatorMode.DEMO:
+        backend = DemoOperatorBackend(registry)
+    else:
+        backend = ConnectedOperatorBackend(
+            AppSettings.from_env(project_root=PROJECT_ROOT),
+            mode=mode,
+        )
+    window = ExperimentalMainWindow(
+        registry,
+        backend=backend,
+        journal_path=PROJECT_ROOT / "logs" / "operator-ui.jsonl",
+    )
     window.show()
     if args.screenshot_error:
         dialog = OperationErrorDialog(
@@ -70,6 +105,41 @@ def main() -> int:
             )
         return 0
     if args.screenshot:
+        if args.screenshot_view != "capture":
+            if mode is not OperatorMode.DEMO:
+                raise ValueError("history screenshots require --mode demo")
+            selected_date = window._selected_date()
+            time_sec = backend.retrieve_times(selected_date)[-1]
+            window.history_time.clear()
+            window.history_time.addItem(
+                f"{time_sec[0:2]}:{time_sec[2:4]}:{time_sec[4:6]}",
+                time_sec,
+            )
+            result = backend.align(
+                selected_date,
+                time_sec,
+                window._query_devices(),
+            )
+            window.load_alignment_result(result, window._query_devices())
+            window._show_page(1)
+            window.history_nav.setChecked(True)
+            if args.screenshot_view == "device":
+                window.plot_mode.setCurrentIndex(1)
+                device_id = window.plot_device.currentData()
+                device_result = backend.align(
+                    selected_date,
+                    time_sec,
+                    (device_id,),
+                )
+                window.device_waveform_result = device_result
+                window.device_waveform_key = (
+                    selected_date.isoformat(),
+                    time_sec,
+                    device_id,
+                )
+                window._install_figure(
+                    plot_device_waveform(device_result, device_id)
+                )
         app.processEvents()
         args.screenshot.parent.mkdir(parents=True, exist_ok=True)
         if not window.grab().save(str(args.screenshot)):

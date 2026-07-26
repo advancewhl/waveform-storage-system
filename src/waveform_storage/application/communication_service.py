@@ -1,6 +1,6 @@
 """Dual-protocol capture communication boundary.
 
-The legacy path preserves the deployed GUI string exactly. Candidate v1 uses
+The legacy path preserves the deployed GUI string exactly. Candidate v2 uses
 the validated JSON request/response types. Selecting a transport is explicit;
 there is no automatic fallback that could duplicate a capture after timeout.
 """
@@ -22,7 +22,7 @@ from waveform_storage.transport.zmq_transport import (
 
 class CaptureProtocolMode(str, Enum):
     LEGACY = "legacy"
-    CANDIDATE_V1 = "candidate_v1"
+    CANDIDATE_V2 = "candidate_v2"
 
 
 class CommunicationConfigurationError(ValueError):
@@ -41,7 +41,7 @@ class CaptureDispatchResult:
 
 
 class CaptureCommunicationService:
-    """Dispatch one canonical v1 request through an explicit protocol mode."""
+    """Dispatch one canonical v2 request through an explicit protocol mode."""
 
     def __init__(
         self,
@@ -103,7 +103,7 @@ class CaptureCommunicationService:
     ) -> CaptureDispatchResult:
         if self._candidate_sender is None:
             raise CommunicationConfigurationError(
-                "candidate v1 sender is not configured"
+                "candidate v2 sender is not configured"
             )
         response = self._candidate_sender(request)
         if response.request_id != request.request_id:
@@ -112,7 +112,7 @@ class CaptureCommunicationService:
             )
         return CaptureDispatchResult(
             response.request_id,
-            CaptureProtocolMode.CANDIDATE_V1,
+            CaptureProtocolMode.CANDIDATE_V2,
             response.accepted,
             response.status,
             response.message,

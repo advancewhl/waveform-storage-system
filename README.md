@@ -2,7 +2,9 @@
 
 面向 SHINE 加速器 BPM 波形的采集、检索、bunchID 对齐、绘图与 HDF5 导出项目。
 
-这是第一次整理后的基线版本。原项目由一个独立采集脚本和一个 ZIP 源码包组成，本次仅完成目录归档、主线识别、配置路径整理、敏感凭据移出源码和 Git 初始化准备。现场 EPICS、ZMQ、SSH 链路尚未在本版本中完成端到端验证。
+`main` 保留已审计的结构重构基线；当前 `codex/communication-v2-experiment` 分支在不替换
+生产链路的前提下，增加候选通信协议、可扩展实验 GUI、统一操作后台和新 PV 清单审计。
+现场 EPICS、生产 ZMQ、SSH 和存储链路仍未完成端到端验证。
 
 ## 当前能力
 
@@ -26,8 +28,8 @@
 
 已知最主要的阻断点：
 
-1. GUI 使用 ZMQ `DEALER`，采集端使用 `PULL`，协议尚未统一。
-2. GUI 发送复合消息，采集端只接受整数频率。
+1. legacy GUI 使用 ZMQ `DEALER`，仓库内 legacy 采集原型使用 `PULL`，两者仍不能直接配对。
+2. 候选协议 v2 只接入实验 GUI 与本地/fake 闭环，尚未部署到生产 `saveApp`。
 3. 生产服务器存在监听 5000 端口的外部 `saveApp` 服务端，但其源码、启动方式和响应协议
    尚未进入当前仓库或得到完整确认。
 4. 代码依赖 Linux `fcntl`，Windows 只适合阅读、整理和运行不涉及锁的静态检查。
@@ -52,7 +54,7 @@
 │  ├─ transport/             # SSH、EPICS 和本地 fake ZMQ
 │  └─ legacy/                # 旧行为兼容适配器
 ├─ config/                   # devices.json 单一事实源和兼容 TXT
-├─ tests/                    # 当前实验分支 89 项离线测试
+├─ tests/                    # 当前实验分支 95 项离线测试
 ├─ tools/                    # 注册表、质量和敏感信息检查入口
 ├─ data/
 │  └─ samples/               # 本地 HDF5 样例，默认不提交 Git
@@ -125,9 +127,16 @@
 | `config/duration_seconds.txt` | 采集端一次任务的总时长，当前为 600 秒 |
 | `config/BPMS_TO_STORE.txt` | 原默认设备草稿；格式有问题，当前主线未读取 |
 | `config/variants/` | 历史配置变体，不应直接作为正式配置使用 |
+| `outputs/pv_list_2026-07-26/` | 从电子学设备表生成的 383 条 PV/IP/6310 候选清单及审计工作簿 |
 
 `config/devices.json` 是新增或修改设备时应维护的文件。两个旧 JSON-lines 清单仍供现有 GUI/采集原型读取，
 由 `tools/device_registry.py` 校验和生成；详见 [设备注册表](docs/设备注册表.md)。
+
+2026-07-26 候选清单没有覆盖上述正式配置。它包含 383 个唯一 PV、377 个唯一设备 IP，
+端口暂统一为 6310；其中 121 条兼容现有注册表 schema，另有 262 条因命名域、大小写或设备
+类型限制不能直接导入 `devices.json`。调试时应先在 waveform 服务器按 IP 做 `ping`，
+需要验证 EPICS PV 时再使用 CA 客户端；6310 不通后才逐台核实是否应使用 5064。完整口径见
+[当前分支工作总结](docs/当前分支工作总结_2026-07-26.md)。
 
 ## 开发环境
 
@@ -166,8 +175,13 @@ GUI 会从顶层 `config/` 读取配置。
 ### 可扩展实验 GUI
 
 实验入口按束线区域整组选取设备，区域下的 BPM 只读展示，不能单独勾选；界面由设备注册表
-动态生成，可用于后续约 400 台设备的布局和交互验证。它不会替换原 GUI，也不会把候选通信
-协议接入生产。Windows 本机可双击：
+动态生成，可用于后续约 400 台设备的布局和交互验证。采集、检索、对齐、bunchID、绘图、
+对齐导出、原始数据下载、任务记录和结构化错误弹窗均已接入统一后台接口。
+绘图区提供“束线分布”和“单设备波形”两种模式：前者固定一个 bunchID 比较多个 BPM，
+后者选择一台 BPM，以实际 bunchID 为横坐标显示完整 X/Y 波形。
+
+默认 `demo` 模式使用确定性离线数据，不打开 EPICS、SSH 或 ZMQ 连接。它不会替换原 GUI，
+也不会把候选通信协议接入生产。Windows 本机可双击：
 
 ```text
 tools\launch_experimental_ui.cmd
@@ -178,11 +192,16 @@ tools\launch_experimental_ui.cmd
 ```powershell
 $env:PYTHONPATH = (Resolve-Path src).Path
 & 'D:\miniconda3_repair\envs\waveform-storage\python.exe' `
-  apps\operator_gui\experimental_main.py
+  apps\operator_gui\experimental_main.py --mode demo
 ```
 
-实际 Windows Qt 渲染截图位于 `docs/ui-preview/experimental-main-windows.png`；结构化错误
-弹窗截图位于 `docs/ui-preview/experimental-error-dialog.png`。
+只有明确需要现场兼容路径时才使用 `--mode legacy`；`--mode candidate_v2` 还必须显式设置
+独立的 `WAVEFORM_CANDIDATE_ZMQ_ENDPOINT`，不会默认复用生产地址。两种连接模式发送采集
+前都会二次确认，且失败时不自动回退重发。
+
+最新 Windows Qt 渲染截图位于 `docs/ui-preview/experimental-main-windows-v2.png`，
+单设备波形截图位于 `docs/ui-preview/experimental-device-waveform-nature-style.png`；
+结构化错误弹窗截图位于 `docs/ui-preview/experimental-error-dialog.png`。
 
 ### 采集端原型
 
@@ -235,6 +254,7 @@ coverage 模式存在缺失单元时只能写 v2，旧格式适配器会明确�
 ## 文档
 
 - [Codex 项目交接与改进规划](docs/CODEX_HANDOFF.md)：新任务窗口继续工作时首先阅读。
+- [2026-07-26 当前分支工作总结](docs/当前分支工作总结_2026-07-26.md)：实验协议、GUI、PV 候选清单、验证结果和未验证边界。
 - [结构重构完成审计](docs/结构重构完成审计_2026-07-25.md)：七阶段提交、最终离线证据、兼容结论和未验证边界。
 - [问题清单与改进路线](docs/问题清单与改进路线.md)：当前问题状态、风险和后续验收标准。
 - [2026-07-25 本轮工作交接](docs/本轮工作交接_2026-07-25.md)：早期设备注册表和对齐接入阶段的历史快照，不代表当前工作区。
@@ -242,7 +262,8 @@ coverage 模式存在缺失单元时只能写 v2，旧格式适配器会明确�
 - [线上运行基线调查](docs/线上运行基线调查.md)：生产服务的只读事实、风险和待补证据。
 - [数据对齐 v2 设计基线](docs/数据对齐v2设计.md)：纯函数、覆盖共识和接入边界。
 - [设备注册表](docs/设备注册表.md)：47/200 台设备配置、校验和旧格式生成方法。
-- [采集协议 v1 候选](docs/采集协议v1候选.md)：仅用于本地/fake 测试的版本化消息和状态模型。
+- [采集协议 v2 候选](docs/采集协议v2候选.md)：增加原子束线区域字段、显式模式和服务端一致性要求；仅用于实验 GUI 与本地/fake 测试。
+- [采集协议 v1 候选](docs/采集协议v1候选.md)：历史候选基线，不代表当前实验协议。
 - [通信升级调查目录](docs/通信升级调查/README.md)：生产服务、ZMQ、任务、文件和回滚事实的统一查询模板。
 - [项目功能与文件说明](docs/项目功能与文件说明.md)：原始项目逐文件静态分析。
 
@@ -257,10 +278,11 @@ $env:PYTHONPATH = (Resolve-Path src).Path
 python -m unittest discover -s tests -v
 ```
 
-当前实验分支 89 项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
+当前实验分支 95 项离线测试覆盖原行为基线、Settings、SSH/绘图拆分、RetrievalService、GUI
 Controller/Worker、严格 TXT、fake EPICS/SSH、CaptureService、本地 fake ZMQ、日志、
-双协议通信分派、协议到 CaptureService 的本地组合闭环、对齐、注册表和 HDF5；不连接
-EPICS、SSH、生产 ZMQ 或生产存储。`main` 的已审计基线仍为 79 项。
+双协议通信分派、协议 v2 到 CaptureService 的本地组合闭环、Demo 全按钮后台、两类绘图、
+对齐、注册表和 HDF5；不连接 EPICS、SSH、生产 ZMQ 或生产存储。`main` 的已审计基线仍为
+79 项。
 
 完整本地质量门禁使用当前环境中已有工具：
 
@@ -279,7 +301,8 @@ Ruff、mypy 和外部 secret scanner 仅有候选配置，本机未安装或运�
 worker、应用服务和本地 fake ZMQ 基础均已建立；尚未部署，也未完成 Linux GUI 点击流或
 生产链路验证。下一批按以下顺序推进：
 
-1. 取得约 400 台的新设备表，先生成 candidate 注册表和新旧差异报告，不覆盖现有配置；
+1. 复核 383 条 PV 候选中的 262 条 schema 差异，确认 `AC-UN`、ADM/MRM、`ColdBPM`
+   大小写和 CBAM 等类型应如何进入正式注册表；确认前不覆盖现有配置；
 2. 用脱敏真实批次比较 legacy 与 v2 的设备选择、ID 数量和耗时；
 3. 确认 strict/coverage、不同 bunchID 时基、X/Y 单位、`/1000` 缩放和 1024 点正式语义；
 4. 在 Linux/PyQt 环境验证七按钮点击流、后台状态、错误提示和安全取消；

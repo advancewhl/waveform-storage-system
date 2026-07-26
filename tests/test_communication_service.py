@@ -36,6 +36,7 @@ class CommunicationServiceTests(unittest.TestCase):
             "start_capture",
             100,
             duration_seconds,
+            ("AREA_A",),
             ("BPM_A", "BPM_B"),
         )
 
@@ -77,7 +78,7 @@ class CommunicationServiceTests(unittest.TestCase):
 
         result = CaptureCommunicationService(
             candidate_sender=sender
-        ).dispatch(request, "candidate_v1")
+        ).dispatch(request, "candidate_v2")
         self.assertEqual(result.request_id, request.request_id)
         self.assertEqual(result.status, "running")
 
@@ -93,12 +94,13 @@ class CommunicationServiceTests(unittest.TestCase):
             )
         )
         with self.assertRaises(CommunicationConfigurationError):
-            service.dispatch(request, "candidate_v1")
+            service.dispatch(request, "candidate_v2")
 
     def test_protocol_request_maps_to_application_plan(self):
         request = self.request()
         plan = CapturePlan.from_protocol(request)
         self.assertEqual(plan.request_id, request.request_id)
+        self.assertEqual(plan.area_ids, request.area_ids)
         self.assertEqual(plan.device_ids, request.devices)
         self.assertEqual(plan.duration_seconds, 600)
 
@@ -155,7 +157,7 @@ class CommunicationServiceTests(unittest.TestCase):
             )
             result = CaptureCommunicationService(
                 candidate_sender=transport.request
-            ).dispatch(request, "candidate_v1")
+            ).dispatch(request, "candidate_v2")
         finally:
             thread.join(timeout=2)
             server.close()

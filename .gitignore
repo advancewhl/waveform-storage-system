@@ -23,6 +23,7 @@ Thumbs.db
 
 # Logs and runtime state
 *.log
+/logs/
 *.lock
 *.pid
 lock_status.json
