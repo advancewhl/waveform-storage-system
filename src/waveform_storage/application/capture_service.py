@@ -84,10 +84,44 @@ class CaptureService:
             item.device_id: item
             for item in self._epics.trigger(device_pvs)
         }
+        triggered_ids = {
+            device_id
+            for device_id, result in trigger_by_device.items()
+            if result.success
+        }
+        if not triggered_ids:
+            completed = tuple(
+                DeviceCaptureResult(
+                    device_id,
+                    False,
+                    error=(
+                        trigger_by_device[device_id].error
+                        if device_id in trigger_by_device
+                        else "not triggered"
+                    ),
+                )
+                for device_id in request.device_ids
+            )
+            log_context(
+                logging.getLogger("waveform_storage.capture"),
+                request_id=request.request_id,
+                task_id=request.request_id,
+                stage="capture",
+                device=None,
+                duration=round(time.monotonic() - started, 6),
+                status="failed",
+                error_type="NoDeviceTriggered",
+            ).info("capture candidate completed without a connected device")
+            return completed
         self._waiter(request.duration_seconds)
+        eligible_downloads = [
+            item
+            for item in download_requests
+            if getattr(item, "device_id", item) in triggered_ids
+        ]
         downloads = {
             item.device_id: item
-            for item in self._downloader.download_many(download_requests)
+            for item in self._downloader.download_many(eligible_downloads)
         }
         results = []
         for device_id in request.device_ids:

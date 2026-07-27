@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+from fnmatch import fnmatch
 from pathlib import Path
+import time
 
 
 @dataclass(frozen=True)
@@ -13,6 +15,9 @@ class DeviceDownload:
     host: str
     remote_dir: str
     destination: Path
+    file_pattern: str = "*.txt"
+    not_before_epoch: float = 0
+    settle_seconds: float = 2
 
 
 @dataclass(frozen=True)
@@ -24,27 +29,40 @@ class DownloadResult:
 
 
 class DeviceSshGateway:
-    def __init__(self, connector, file_selector, *, max_workers=17):
+    def __init__(
+        self,
+        connector,
+        file_selector=None,
+        *,
+        max_workers=17,
+        waiter=time.sleep,
+    ):
         if max_workers < 1:
             raise ValueError("max_workers must be positive")
         self._connector = connector
         self._file_selector = file_selector
         self._max_workers = max_workers
+        self._waiter = waiter
 
     def download_one(self, request):
         client = None
         sftp = None
         try:
-            client = self._connector(request.host)
+            client = self._connector(request)
             sftp = client.open_sftp()
-            filename = self._file_selector(
-                request.device_id,
-                list(sftp.listdir(request.remote_dir)),
-            )
+            if self._file_selector is None:
+                filename = self._select_completed_file(sftp, request)
+            else:
+                filename = self._file_selector(
+                    request.device_id,
+                    list(sftp.listdir(request.remote_dir)),
+                )
             if not filename:
                 raise FileNotFoundError("no completed matching file")
             request.destination.parent.mkdir(parents=True, exist_ok=True)
             remote_path = f"{request.remote_dir.rstrip('/')}/{filename}"
+            if self._file_selector is None:
+                self._require_stable_file(sftp, remote_path, request)
             sftp.get(remote_path, str(request.destination))
             return DownloadResult(
                 request.device_id,
@@ -58,6 +76,37 @@ class DeviceSshGateway:
                 sftp.close()
             if client is not None:
                 client.close()
+
+    @staticmethod
+    def _select_completed_file(sftp, request):
+        candidates = []
+        for item in sftp.listdir_attr(request.remote_dir):
+            filename = item.filename
+            if not fnmatch(filename, request.file_pattern):
+                continue
+            if filename.endswith((".part", ".partial", ".tmp", ".swp")):
+                continue
+            if float(item.st_mtime) < request.not_before_epoch:
+                continue
+            if int(item.st_size) <= 0:
+                continue
+            candidates.append((float(item.st_mtime), filename))
+        if not candidates:
+            return None
+        return max(candidates)[1]
+
+    def _require_stable_file(self, sftp, remote_path, request):
+        first = sftp.stat(remote_path)
+        if request.settle_seconds > 0:
+            self._waiter(request.settle_seconds)
+        second = sftp.stat(remote_path)
+        if int(first.st_size) <= 0:
+            raise RuntimeError("remote file is empty")
+        if (
+            int(first.st_size) != int(second.st_size)
+            or float(first.st_mtime) != float(second.st_mtime)
+        ):
+            raise RuntimeError("remote file is still changing")
 
     def download_many(self, requests):
         results = []

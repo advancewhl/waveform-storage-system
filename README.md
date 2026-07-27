@@ -29,7 +29,8 @@
 已知最主要的阻断点：
 
 1. legacy GUI 使用 ZMQ `DEALER`，仓库内 legacy 采集原型使用 `PULL`，两者仍不能直接配对。
-2. 候选协议 v2 只接入实验 GUI 与本地/fake 闭环，尚未部署到生产 `saveApp`。
+2. 候选协议 v2 已具备独立的异步采集服务、持久任务状态和部署模板，但尚未在 waveform
+   服务器完成单台现场灰度；它不会替换生产 `saveApp`。
 3. 生产服务器存在监听 5000 端口的外部 `saveApp` 服务端，但其源码、启动方式和响应协议
    尚未进入当前仓库或得到完整确认。
 4. 代码依赖 Linux `fcntl`，Windows 只适合阅读、整理和运行不涉及锁的静态检查。
@@ -230,6 +231,23 @@ python apps/acquisition_agent/main_file_transport_h5df.py
 - GUI 与采集端的消息协议。
 
 在协议统一前，不要把 GUI 与采集端当作已经联通的生产系统。
+
+### Candidate v2 独立采集服务
+
+新服务使用独立端点，默认绑定 `tcp://127.0.0.1:5001`，不会占用 legacy 5000。启动前
+必须提供只包含已批准设备的注册表和已核验的 SSH `known_hosts`：
+
+```bash
+python apps/acquisition_server/main.py --check
+python apps/acquisition_server/main.py
+python tools/acquisition_v2_client.py health
+```
+
+服务异步受理请求、单任务互斥、按 `request_id` 幂等、原子持久化状态、重启时将未完成
+任务标记失败，并支持 health/status 和显式安全取消。完整部署和单台灰度步骤见
+[Candidate v2 服务部署与灰度验证](docs/candidate_v2服务部署与灰度验证.md)。
+本轮实现范围、验证证据、风险和后续接续入口见
+[新服务端补齐工作交接](docs/新服务端补齐工作交接_2026-07-26.md)。
 
 ## 数据格式
 

@@ -62,7 +62,11 @@ class EpicsGatewayTests(unittest.TestCase):
             def write(self, pv, value):
                 pass
 
-        results = EpicsGateway(Context, Batch).trigger(
+        results = EpicsGateway(
+            Context,
+            Batch,
+            pulse_seconds=0,
+        ).trigger(
             [("A", "BAD"), ("B", "GOOD")]
         )
         self.assertEqual(
@@ -102,6 +106,57 @@ class DeviceSshGatewayTests(unittest.TestCase):
         self.assertTrue(result.success)
         self.assertIn(("\/data/done.txt".replace("\\", ""), "local.txt"), events)
         self.assertEqual(events[-2:], ["sftp-close", "client-close"])
+
+    def test_default_selector_requires_new_stable_completed_file(self):
+        events = []
+
+        class Attr:
+            def __init__(self, filename, modified, size):
+                self.filename = filename
+                self.st_mtime = modified
+                self.st_size = size
+
+        class Sftp:
+            def listdir_attr(self, remote_dir):
+                return [
+                    Attr("old.txt", 90, 10),
+                    Attr("new.part", 110, 10),
+                    Attr("new.txt", 110, 20),
+                ]
+
+            def stat(self, remote_path):
+                return Attr(Path(remote_path).name, 110, 20)
+
+            def get(self, remote, local):
+                events.append((remote, local))
+
+            def close(self):
+                events.append("sftp-close")
+
+        class Client:
+            def open_sftp(self):
+                return Sftp()
+
+            def close(self):
+                events.append("client-close")
+
+        gateway = DeviceSshGateway(
+            lambda host: Client(),
+            max_workers=1,
+            waiter=lambda _seconds: None,
+        )
+        request = DeviceDownload(
+            "BPM_A",
+            "host",
+            "/data",
+            Path("local.txt"),
+            not_before_epoch=100,
+            settle_seconds=1,
+        )
+        result = gateway.download_one(request)
+
+        self.assertTrue(result.success)
+        self.assertEqual(events[0], ("/data/new.txt", "local.txt"))
 
 
 class CaptureServiceTests(unittest.TestCase):

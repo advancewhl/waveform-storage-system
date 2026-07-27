@@ -8,11 +8,16 @@ from uuid import UUID
 import zmq
 
 from waveform_storage.acquisition.protocol import (
+    CANCEL,
+    GET_STATUS,
+    HEALTH,
     CaptureResponse,
+    ControlRequest,
     PROTOCOL_VERSION,
     ProtocolValidationError,
     decode_request,
     decode_response,
+    encode_control_request,
     encode_request,
     encode_response,
 )
@@ -29,12 +34,39 @@ class ZmqTransport:
         self.timeout_ms = timeout_ms
 
     def request(self, capture_request):
+        return self._exchange(encode_request(capture_request))
+
+    def get_status(self, request_id):
+        request = ControlRequest(
+            PROTOCOL_VERSION,
+            request_id,
+            GET_STATUS,
+        )
+        return self._exchange(encode_control_request(request))
+
+    def health(self, request_id):
+        request = ControlRequest(
+            PROTOCOL_VERSION,
+            request_id,
+            HEALTH,
+        )
+        return self._exchange(encode_control_request(request))
+
+    def cancel(self, request_id):
+        request = ControlRequest(
+            PROTOCOL_VERSION,
+            request_id,
+            CANCEL,
+        )
+        return self._exchange(encode_control_request(request))
+
+    def _exchange(self, message):
         socket = self.context.socket(zmq.REQ)
         socket.setsockopt(zmq.LINGER, 0)
         socket.setsockopt(zmq.RCVTIMEO, self.timeout_ms)
         try:
             socket.connect(self.endpoint)
-            socket.send_string(encode_request(capture_request))
+            socket.send_string(message)
             try:
                 message = socket.recv()
             except zmq.Again as exc:

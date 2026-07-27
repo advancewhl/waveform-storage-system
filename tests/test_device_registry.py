@@ -14,6 +14,7 @@ from waveform_storage.config.registry import (
     load_registry,
     render_legacy_json_lines,
     save_registry,
+    select_acquisition_registry,
     validate_registry,
 )
 
@@ -48,6 +49,26 @@ def make_device(index: int, *, selected: bool = False) -> Device:
 
 
 class RegistryValidationTests(unittest.TestCase):
+    def test_deployment_subset_only_accepts_acquisition_enabled_devices(self):
+        registry = DeviceRegistry(
+            schema_version=1,
+            devices=(make_device(0, selected=True), make_device(1)),
+        )
+        selected = select_acquisition_registry(
+            registry,
+            ("AC_LA_TEST_BI_SBPM001",),
+        )
+        self.assertEqual(len(selected.devices), 1)
+        self.assertEqual(selected.devices[0].order, 0)
+        with self.assertRaisesRegex(
+            RegistryValidationError,
+            "not acquisition-enabled",
+        ):
+            select_acquisition_registry(
+                registry,
+                ("AC_LA_TEST_BI_SBPM002",),
+            )
+
     def test_accepts_200_unique_devices(self):
         registry = DeviceRegistry(
             schema_version=1,

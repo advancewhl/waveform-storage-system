@@ -13,6 +13,7 @@ from waveform_storage.config.registry import (
     load_registry,
     render_legacy_json_lines,
     save_registry,
+    select_acquisition_registry,
     write_legacy_json_lines,
 )
 
@@ -32,6 +33,16 @@ def main() -> int:
 
     validate_parser = subparsers.add_parser("validate")
     validate_parser.add_argument("--registry", required=True)
+
+    select_parser = subparsers.add_parser("select-deployment")
+    select_parser.add_argument("--registry", required=True)
+    select_parser.add_argument(
+        "--device",
+        action="append",
+        required=True,
+        dest="devices",
+    )
+    select_parser.add_argument("--output", required=True)
 
     generate_parser = subparsers.add_parser("generate")
     generate_parser.add_argument("--registry", required=True)
@@ -69,6 +80,18 @@ def main() -> int:
             print(
                 f"valid registry: {len(registry.devices)} devices, "
                 f"{acquisition_count} acquisition-enabled"
+            )
+        elif args.command == "select-deployment":
+            registry = load_registry(args.registry)
+            deployment = select_acquisition_registry(
+                registry,
+                args.devices,
+            )
+            save_registry(deployment, args.output)
+            print(
+                f"wrote deployment registry with "
+                f"{len(deployment.devices)} approved device(s) "
+                f"to {args.output}"
             )
         elif args.command == "generate":
             registry = load_registry(args.registry)

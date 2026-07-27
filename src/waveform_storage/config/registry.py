@@ -6,7 +6,7 @@ import ipaddress
 import json
 import os
 import re
-from dataclasses import MISSING, asdict, dataclass, fields
+from dataclasses import MISSING, asdict, dataclass, fields, replace
 from pathlib import Path
 from typing import Any, Iterable, Literal, Sequence
 from uuid import uuid4
@@ -377,6 +377,60 @@ def save_registry(
         if temporary.exists():
             temporary.unlink()
     return destination
+
+
+def select_acquisition_registry(
+    registry: DeviceRegistry,
+    device_ids: Sequence[str],
+) -> DeviceRegistry:
+    """Create a deployment registry containing only approved device IDs."""
+
+    requested = tuple(device_ids)
+    if not requested or len(set(requested)) != len(requested):
+        raise RegistryValidationError(
+            ["deployment device IDs must be non-empty and unique"]
+        )
+    by_id = {item.id: item for item in registry.devices}
+    unknown = [item for item in requested if item not in by_id]
+    if unknown:
+        raise RegistryValidationError(
+            [f"deployment device IDs are absent from registry: {unknown!r}"]
+        )
+    blocked = [
+        item
+        for item in requested
+        if not by_id[item].enabled
+        or not by_id[item].acquisition_enabled
+    ]
+    if blocked:
+        raise RegistryValidationError(
+            [
+                "deployment devices are not acquisition-enabled: "
+                f"{blocked!r}"
+            ]
+        )
+    selected_set = set(requested)
+    selected = tuple(
+        replace(
+            item,
+            order=index,
+            default_selected=True,
+        )
+        for index, item in enumerate(
+            item
+            for item in registry.devices
+            if item.id in selected_set
+        )
+    )
+    deployment = DeviceRegistry(
+        schema_version=registry.schema_version,
+        devices=selected,
+        description=(
+            f"Deployment subset of {registry.description or 'device registry'}"
+        ),
+    )
+    validate_registry(deployment)
+    return deployment
 
 
 def load_registry(path: str | os.PathLike[str]) -> DeviceRegistry:

@@ -9,6 +9,7 @@ from .registry import (
     load_registry,
     render_legacy_json_lines,
     save_registry,
+    select_acquisition_registry,
     validate_registry,
 )
 from .settings import AppSettings, SettingsError
@@ -22,6 +23,7 @@ __all__ = [
     "load_registry",
     "render_legacy_json_lines",
     "save_registry",
+    "select_acquisition_registry",
     "validate_registry",
     "AppSettings",
     "SettingsError",

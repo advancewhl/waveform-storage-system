@@ -12,9 +12,11 @@ from waveform_storage.io.hdf5_io import (
     read_alignment_v2,
     read_legacy_merged_hdf5,
     read_single_device_hdf5,
+    write_single_device_hdf5,
     write_alignment_v2,
     write_legacy_merged_hdf5,
 )
+from waveform_storage.io.txt_parser import ParsedWaveform
 from waveform_storage.processing.alignment import (
     AlignmentParameters,
     DeviceSeries,
@@ -26,6 +28,31 @@ BASE = 38_212_018_001_007
 
 
 class SingleDeviceHdf5Tests(unittest.TestCase):
+    def test_atomic_writer_preserves_verified_raw_schema(self):
+        waveform = ParsedWaveform(
+            x=np.asarray([10, -20], dtype=np.int64),
+            y=np.asarray([30, 0], dtype=np.int64),
+            bunch_ids=np.asarray([2**40, 2**40 + 1], dtype=np.uint64),
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "nested" / "raw.h5"
+            written = write_single_device_hdf5(
+                path,
+                "BPM_A",
+                waveform,
+                metadata={"request_id": "request"},
+            )
+            loaded = read_single_device_hdf5(written)
+            with h5py.File(path, "r") as h5:
+                self.assertEqual(h5["BunchIDData"].dtype, np.uint64)
+                self.assertEqual(h5["Data"].dtype, np.int64)
+                self.assertEqual(h5.attrs["Data_0"], "bpm_x")
+            leftovers = tuple(path.parent.glob("*.part"))
+
+        self.assertEqual(loaded.device_id, "BPM_A")
+        self.assertEqual(loaded.bunch_ids.tolist(), [2**40, 2**40 + 1])
+        self.assertEqual(leftovers, ())
+
     def test_reads_verified_production_shape(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "raw.h5"

@@ -5,12 +5,16 @@ import unittest
 from uuid import uuid4
 
 from waveform_storage.acquisition.protocol import (
+    GET_STATUS,
     PROTOCOL_VERSION,
     CaptureRequest,
     CaptureResponse,
+    ControlRequest,
     ProtocolValidationError,
     decode_request,
     decode_response,
+    decode_service_request,
+    encode_control_request,
     encode_request,
     encode_response,
     validate_area_device_snapshot,
@@ -19,6 +23,24 @@ from waveform_storage.acquisition.protocol import (
 
 
 class CaptureRequestTests(unittest.TestCase):
+    def test_control_request_round_trip_is_strict(self):
+        request = ControlRequest(
+            PROTOCOL_VERSION,
+            str(uuid4()),
+            GET_STATUS,
+        )
+        self.assertEqual(
+            decode_service_request(encode_control_request(request)),
+            request,
+        )
+        payload = json.loads(encode_control_request(request))
+        payload["extra"] = True
+        with self.assertRaisesRegex(
+            ProtocolValidationError,
+            "unknown fields: extra",
+        ):
+            decode_service_request(json.dumps(payload))
+
     def test_request_round_trip_is_versioned_and_stable(self):
         request = CaptureRequest(
             version=PROTOCOL_VERSION,

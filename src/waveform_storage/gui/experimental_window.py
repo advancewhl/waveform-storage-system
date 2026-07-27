@@ -588,28 +588,37 @@ class ExperimentalMainWindow(QMainWindow):
             )
             return
         if self.backend.mode is not OperatorMode.DEMO:
-            registry_devices = {
-                device.id: device for device in self.registry.devices
+            approved_by_area = {
+                area_id: tuple(
+                    device.id
+                    for device in self.registry.devices
+                    if device.section == area_id
+                    and device.enabled
+                    and device.acquisition_enabled
+                )
+                for area_id in area_ids
             }
-            blocked = tuple(
-                device_id
-                for device_id in devices
-                if not registry_devices[device_id].acquisition_enabled
+            area_ids = tuple(
+                area_id
+                for area_id in area_ids
+                if approved_by_area[area_id]
             )
-            if blocked:
+            devices = tuple(
+                device_id
+                for area_id in area_ids
+                for device_id in approved_by_area[area_id]
+            )
+            if not devices:
                 self._present_error(
                     OperationError(
                         title="设备尚未启用现场采集",
-                        summary=(
-                            f"所选区域包含 {len(blocked)} 台仅用于候选展示的设备。"
-                        ),
+                        summary="所选区域没有已批准用于采集的设备。",
                         stage="采集前注册表校验",
                         code="CAPTURE_DEVICES_NOT_ENABLED",
                         suggestion=(
                             "先完成端口和业务语义验证，再在受审注册表中逐台启用；"
                             "不要绕过该状态直接发送。"
                         ),
-                        details="\n".join(blocked[:50]),
                     )
                 )
                 return

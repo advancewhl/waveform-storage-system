@@ -20,6 +20,7 @@ from waveform_storage.processing.alignment import (
     DeviceSeries,
     SkippedDevice,
 )
+from waveform_storage.io.txt_parser import ParsedWaveform
 
 
 SCHEMA_NAME = "site-user-waveform-alignment"
@@ -37,6 +38,51 @@ class AlignmentFile:
     result: AlignmentResult
     metadata: dict[str, Any]
     created_utc: str
+
+
+def write_single_device_hdf5(
+    path: str | os.PathLike[str],
+    device_id: str,
+    waveform: ParsedWaveform,
+    *,
+    metadata: Mapping[str, Any] | None = None,
+) -> Path:
+    """Atomically write one captured BPM using the verified raw schema."""
+
+    if not isinstance(device_id, str) or not device_id:
+        raise Hdf5SchemaError("device_id must be a non-empty string")
+    bunch_ids = np.asarray(waveform.bunch_ids)
+    x = np.asarray(waveform.x)
+    y = np.asarray(waveform.y)
+    if bunch_ids.ndim != 1 or x.ndim != 1 or y.ndim != 1:
+        raise Hdf5SchemaError("single-device arrays must be one-dimensional")
+    if not (bunch_ids.size == x.size == y.size):
+        raise Hdf5SchemaError("single-device arrays must have equal lengths")
+    if not np.issubdtype(bunch_ids.dtype, np.integer):
+        raise Hdf5SchemaError("single-device bunch IDs must be integers")
+    if not np.issubdtype(x.dtype, np.integer) or not np.issubdtype(
+        y.dtype, np.integer
+    ):
+        raise Hdf5SchemaError("single-device X/Y values must be integers")
+
+    destination = Path(path)
+    metadata_json = _json_dumps(dict(metadata or {}))
+
+    def writer(h5: h5py.File) -> None:
+        h5.attrs["Device"] = device_id
+        h5.attrs["Data_0"] = "bpm_x"
+        h5.attrs["Data_1"] = "bpm_y"
+        h5.attrs["capture_metadata_json"] = metadata_json
+        h5.create_dataset(
+            "BunchIDData",
+            data=bunch_ids.astype(np.uint64, copy=False).reshape(1, -1),
+            dtype=np.uint64,
+        )
+        data = np.vstack((x, y)).astype(np.int64, copy=False)
+        h5.create_dataset("Data", data=data, dtype=np.int64)
+
+    _atomic_hdf5_write(destination, writer)
+    return destination
 
 
 def read_single_device_hdf5(path: str | os.PathLike[str]) -> DeviceSeries:

@@ -1,10 +1,4 @@
-"""Candidate version-2 acquisition protocol for local development.
-
-This module is deliberately not wired to the production ``saveApp`` service.
-Its purpose is to make validation, encoding, task identity, and state
-transitions testable before the production socket and response semantics are
-confirmed.
-"""
+"""Version-2 acquisition protocol shared by the candidate client and server."""
 
 from __future__ import annotations
 
@@ -19,6 +13,9 @@ from uuid import UUID
 
 PROTOCOL_VERSION = 2
 START_CAPTURE = "start_capture"
+GET_STATUS = "get_status"
+HEALTH = "health"
+CANCEL = "cancel"
 DEVICE_ID_PATTERN = re.compile(r"^[A-Z0-9_]+$")
 
 TaskStatus = Literal[
@@ -38,6 +35,11 @@ _REQUEST_FIELDS = {
     "duration_seconds",
     "area_ids",
     "devices",
+}
+_CONTROL_REQUEST_FIELDS = {
+    "version",
+    "request_id",
+    "command",
 }
 _RESPONSE_FIELDS = {
     "version",
@@ -126,6 +128,23 @@ class CaptureRequest:
 
 
 @dataclass(frozen=True)
+class ControlRequest:
+    """A health probe or a status query for ``request_id``."""
+
+    version: int
+    request_id: str
+    command: Literal["get_status", "health", "cancel"]
+
+    def __post_init__(self) -> None:
+        _validate_version(self.version)
+        _validate_request_id(self.request_id)
+        if self.command not in {GET_STATUS, HEALTH, CANCEL}:
+            raise ProtocolValidationError(
+                f"unsupported command: {self.command!r}"
+            )
+
+
+@dataclass(frozen=True)
 class CaptureResponse:
     version: int
     request_id: str
@@ -187,6 +206,44 @@ def decode_request(message: str | bytes) -> CaptureRequest:
         area_ids=tuple(area_ids),
         devices=tuple(devices),
     )
+
+
+def encode_control_request(request: ControlRequest) -> str:
+    return _encode(asdict(request))
+
+
+def decode_service_request(
+    message: str | bytes,
+) -> CaptureRequest | ControlRequest:
+    """Decode any request understood by the deployable v2 service."""
+
+    payload = _decode_object(message)
+    command = payload.get("command")
+    if command == START_CAPTURE:
+        _require_exact_fields(payload, _REQUEST_FIELDS)
+        devices = payload["devices"]
+        area_ids = payload["area_ids"]
+        if not isinstance(devices, list):
+            raise ProtocolValidationError("devices must be a JSON array")
+        if not isinstance(area_ids, list):
+            raise ProtocolValidationError("area_ids must be a JSON array")
+        return CaptureRequest(
+            version=payload["version"],
+            request_id=payload["request_id"],
+            command=payload["command"],
+            frequency_hz=payload["frequency_hz"],
+            duration_seconds=payload["duration_seconds"],
+            area_ids=tuple(area_ids),
+            devices=tuple(devices),
+        )
+    if command in {GET_STATUS, HEALTH, CANCEL}:
+        _require_exact_fields(payload, _CONTROL_REQUEST_FIELDS)
+        return ControlRequest(
+            version=payload["version"],
+            request_id=payload["request_id"],
+            command=payload["command"],
+        )
+    raise ProtocolValidationError(f"unsupported command: {command!r}")
 
 
 def encode_response(response: CaptureResponse) -> str:
