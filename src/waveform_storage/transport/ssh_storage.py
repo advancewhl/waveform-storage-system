@@ -91,6 +91,38 @@ def save_time_files(
         ssh.close()
 
 
+def save_files(
+    hostname,
+    username,
+    password,
+    file_device_pairs,
+    local_path,
+    port=22,
+):
+    """Download the exact catalog-approved paths without a remote directory scan."""
+
+    pairs = list(file_device_pairs)
+    if not pairs:
+        return []
+    destination = Path(local_path)
+    destination.mkdir(parents=True, exist_ok=True)
+    ssh = _connect(hostname, username, password, port)
+    sftp = None
+    try:
+        sftp = ssh.open_sftp()
+        saved = []
+        for remote_file, _device_id in pairs:
+            filename = Path(remote_file).name
+            local_file = destination / filename
+            sftp.get(remote_file, str(local_file))
+            saved.append(str(local_file))
+        return saved
+    finally:
+        if sftp is not None:
+            sftp.close()
+        ssh.close()
+
+
 def download_device_series(
     file_device_pairs, *, reader=read_single_device_hdf5, settings=None
 ):

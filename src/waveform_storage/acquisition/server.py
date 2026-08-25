@@ -20,14 +20,18 @@ from waveform_storage.acquisition.protocol import (
     CANCEL,
     GET_STATUS,
     HEALTH,
+    FIND_WAVEFORM_FILES,
+    LIST_CAPTURE_TIMES,
     PROTOCOL_VERSION,
     CaptureRequest,
     CaptureResponse,
     ControlRequest,
+    MetadataQueryRequest,
+    MetadataQueryResponse,
     ProtocolValidationError,
     decode_service_request,
     encode_request,
-    encode_response,
+    encode_service_response,
     validate_area_device_snapshot,
     validate_status_transition,
 )
@@ -282,11 +286,13 @@ class PersistentTaskExecutor:
         *,
         canceller: Callable[[], None] | None = None,
         prepare: Callable[[], None] | None = None,
+        metadata=None,
     ) -> None:
         self.store = store
         self._runner = runner
         self._canceller = canceller
         self._prepare = prepare
+        self._metadata = metadata
         self._executor = ThreadPoolExecutor(
             max_workers=1,
             thread_name_prefix="waveform-capture",
@@ -319,6 +325,8 @@ class PersistentTaskExecutor:
                     "SERVICE_BUSY",
                 )
                 self.store.create(request, response)
+                if self._metadata is not None:
+                    self._metadata.record_created(request, response)
                 self._log(response, "capture rejected while service is busy")
                 return response
 
@@ -332,6 +340,8 @@ class PersistentTaskExecutor:
             if self._prepare is not None:
                 self._prepare()
             self.store.create(request, accepted)
+            if self._metadata is not None:
+                self._metadata.record_created(request, accepted)
             self._active_request_id = request.request_id
             self._executor.submit(self._execute, request)
             self._log(accepted, "capture accepted")
@@ -346,6 +356,8 @@ class PersistentTaskExecutor:
             "capture is running",
         )
         self.store.set_response(running)
+        if self._metadata is not None:
+            self._metadata.record_status(request, running)
         self._log(running, "capture started")
         results = ()
         try:
@@ -387,6 +399,12 @@ class PersistentTaskExecutor:
             )
         try:
             self.store.set_response(response, device_results=results)
+            if self._metadata is not None:
+                self._metadata.record_status(
+                    request,
+                    response,
+                    device_results=results,
+                )
             self._log(response, "capture reached terminal state")
         finally:
             with self._lock:
@@ -454,14 +472,19 @@ class CandidateAcquisitionServer:
         tasks: PersistentTaskExecutor,
         *,
         context=None,
+        metadata=None,
     ) -> None:
         self.endpoint = endpoint
         self.policy = policy
         self.tasks = tasks
+        self.metadata = metadata
         self.context = context or zmq.Context.instance()
         self._socket = None
 
-    def handle_message(self, message: str | bytes) -> CaptureResponse:
+    def handle_message(
+        self,
+        message: str | bytes,
+    ) -> CaptureResponse | MetadataQueryResponse:
         try:
             request = decode_service_request(message)
         except ProtocolValidationError as exc:
@@ -492,6 +515,9 @@ class CandidateAcquisitionServer:
             if request.command == CANCEL:
                 return self.tasks.cancel(request.request_id)
 
+        if isinstance(request, MetadataQueryRequest):
+            return self._handle_metadata_query(request)
+
         try:
             self.policy.validate(request)
         except ProtocolValidationError as exc:
@@ -501,6 +527,76 @@ class CandidateAcquisitionServer:
                 "REGISTRY_VALIDATION_FAILED",
             )
         return self.tasks.submit(request)
+
+    def _handle_metadata_query(
+        self,
+        request: MetadataQueryRequest,
+    ) -> MetadataQueryResponse:
+        if self.metadata is None:
+            return MetadataQueryResponse(
+                PROTOCOL_VERSION,
+                request.request_id,
+                False,
+                "MongoDB metadata catalog is unavailable",
+                {},
+                "METADATA_UNAVAILABLE",
+            )
+        try:
+            if request.command == LIST_CAPTURE_TIMES:
+                times = self.metadata.list_capture_times(
+                    request.storage_date_local
+                )
+                return MetadataQueryResponse(
+                    PROTOCOL_VERSION,
+                    request.request_id,
+                    True,
+                    f"found {len(times)} capture time(s)",
+                    {"times": list(times)},
+                )
+            unknown = [
+                device_id
+                for device_id in request.devices
+                if device_id not in self.policy.devices
+            ]
+            if unknown:
+                return MetadataQueryResponse(
+                    PROTOCOL_VERSION,
+                    request.request_id,
+                    False,
+                    f"unknown devices: {unknown!r}",
+                    {},
+                    "UNKNOWN_DEVICE",
+                )
+            records = self.metadata.find_waveform_files(
+                storage_date_local=request.storage_date_local,
+                time_sec=request.time_sec,
+                device_ids=request.devices,
+            )
+            files = [
+                {
+                    "request_id": str(record["request_id"]),
+                    "device_id": str(record["device_id"]),
+                    "path": str(record["file"]["path"]),
+                    "storage_id": str(record["file"]["storage_id"]),
+                }
+                for record in records
+            ]
+            return MetadataQueryResponse(
+                PROTOCOL_VERSION,
+                request.request_id,
+                True,
+                f"found {len(files)} waveform file(s)",
+                {"files": files},
+            )
+        except Exception as exc:
+            return MetadataQueryResponse(
+                PROTOCOL_VERSION,
+                request.request_id,
+                False,
+                str(exc) or type(exc).__name__,
+                {},
+                "METADATA_QUERY_FAILED",
+            )
 
     def serve_forever(self, stop_event: threading.Event) -> None:
         socket = self.context.socket(zmq.REP)
@@ -515,7 +611,7 @@ class CandidateAcquisitionServer:
                 if socket not in events:
                     continue
                 response = self.handle_message(socket.recv())
-                socket.send_string(encode_response(response))
+                socket.send_string(encode_service_response(response))
         finally:
             poller.unregister(socket)
             socket.close()

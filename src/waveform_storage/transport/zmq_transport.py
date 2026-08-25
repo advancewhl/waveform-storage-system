@@ -9,15 +9,20 @@ import zmq
 
 from waveform_storage.acquisition.protocol import (
     CANCEL,
+    FIND_WAVEFORM_FILES,
     GET_STATUS,
     HEALTH,
+    LIST_CAPTURE_TIMES,
     CaptureResponse,
     ControlRequest,
+    MetadataQueryRequest,
     PROTOCOL_VERSION,
     ProtocolValidationError,
     decode_request,
+    decode_metadata_query_response,
     decode_response,
     encode_control_request,
+    encode_metadata_query_request,
     encode_request,
     encode_response,
 )
@@ -60,7 +65,42 @@ class ZmqTransport:
         )
         return self._exchange(encode_control_request(request))
 
+    def list_capture_times(self, request_id, storage_date_local):
+        request = MetadataQueryRequest(
+            PROTOCOL_VERSION,
+            request_id,
+            LIST_CAPTURE_TIMES,
+            storage_date_local,
+        )
+        return self._exchange_metadata(encode_metadata_query_request(request))
+
+    def find_waveform_files(
+        self,
+        request_id,
+        storage_date_local,
+        time_sec,
+        device_ids,
+    ):
+        request = MetadataQueryRequest(
+            PROTOCOL_VERSION,
+            request_id,
+            FIND_WAVEFORM_FILES,
+            storage_date_local,
+            time_sec,
+            tuple(device_ids),
+        )
+        return self._exchange_metadata(encode_metadata_query_request(request))
+
     def _exchange(self, message):
+        return self._exchange_with_decoder(message, decode_response)
+
+    def _exchange_metadata(self, message):
+        return self._exchange_with_decoder(
+            message,
+            decode_metadata_query_response,
+        )
+
+    def _exchange_with_decoder(self, message, decoder):
         socket = self.context.socket(zmq.REQ)
         socket.setsockopt(zmq.LINGER, 0)
         socket.setsockopt(zmq.RCVTIMEO, self.timeout_ms)
@@ -73,7 +113,7 @@ class ZmqTransport:
                 raise ZmqTimeout(
                     f"candidate endpoint timed out after {self.timeout_ms} ms"
                 ) from exc
-            return decode_response(message)
+            return decoder(message)
         finally:
             socket.close()
 

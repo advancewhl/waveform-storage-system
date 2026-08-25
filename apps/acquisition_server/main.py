@@ -28,6 +28,9 @@ from waveform_storage.acquisition.server import (
     RegistryPolicy,
 )
 from waveform_storage.logging_config import configure_logging, log_context
+from waveform_storage.metadata.mongo_repository import MongoMetadataRepository
+from waveform_storage.metadata.service import CaptureMetadataService
+from waveform_storage.metadata.settings import MongoSettings
 
 
 def parse_args() -> argparse.Namespace:
@@ -50,6 +53,7 @@ def main() -> int:
         project_root=PROJECT_ROOT
     )
     registry = load_server_registry(settings)
+    mongo_settings = MongoSettings.from_env(os.environ)
     settings.task_state_dir.mkdir(
         parents=True, exist_ok=True, mode=0o700
     )
@@ -69,6 +73,7 @@ def main() -> int:
         "waveform_acquisition_devices": sum(
             item.acquisition_enabled for item in registry.devices
         ),
+        "waveform_mongodb": mongo_settings.public_values(),
     }
     log_context(
         logger,
@@ -86,6 +91,35 @@ def main() -> int:
     signal.signal(signal.SIGINT, request_stop)
     signal.signal(signal.SIGTERM, request_stop)
 
+    metadata_repository = None
+    metadata = None
+    if mongo_settings.enabled:
+        try:
+            metadata_repository = MongoMetadataRepository.connect(mongo_settings)
+            metadata_repository.ping()
+            metadata = CaptureMetadataService(
+                metadata_repository,
+                registry,
+                settings.registry_path,
+            )
+            metadata.initialize()
+            log_context(
+                logger,
+                status="connected",
+                **context,
+            ).info("MongoDB metadata catalog is ready")
+        except Exception:
+            if metadata_repository is not None:
+                metadata_repository.close()
+                metadata_repository = None
+            if mongo_settings.required:
+                raise
+            log_context(
+                logger,
+                status="degraded",
+                **context,
+            ).exception("MongoDB metadata catalog is unavailable")
+
     store = JsonTaskStore(settings.task_state_dir)
     runner = ProductionCaptureRunner(settings, registry, stop_event)
     tasks = PersistentTaskExecutor(
@@ -93,6 +127,7 @@ def main() -> int:
         runner,
         canceller=runner.cancel,
         prepare=runner.prepare,
+        metadata=metadata,
     )
     server = CandidateAcquisitionServer(
         settings.endpoint,
@@ -102,6 +137,7 @@ def main() -> int:
             max_devices=settings.max_capture_devices,
         ),
         tasks,
+        metadata=metadata,
     )
     log_context(
         logger,
@@ -113,6 +149,8 @@ def main() -> int:
     finally:
         stop_event.set()
         server.close()
+        if metadata_repository is not None:
+            metadata_repository.close()
         log_context(
             logger,
             status="stopped",

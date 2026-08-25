@@ -13,12 +13,16 @@ import paramiko
 from waveform_storage.acquisition.protocol import (
     GET_STATUS,
     HEALTH,
+    FIND_WAVEFORM_FILES,
+    LIST_CAPTURE_TIMES,
     PROTOCOL_VERSION,
     CaptureRequest,
     CaptureResponse,
     ControlRequest,
+    MetadataQueryRequest,
     decode_response,
     encode_control_request,
+    encode_metadata_query_request,
     encode_request,
 )
 from waveform_storage.acquisition.runtime import (
@@ -278,6 +282,64 @@ class PersistentServerTests(unittest.TestCase):
         self.assertTrue(reply.accepted)
         completed = self.wait_for_status(request.request_id, "cancelled")
         self.assertEqual(completed.status, "cancelled")
+
+    def test_metadata_queries_are_served_without_directory_scans(self):
+        class Catalog:
+            def list_capture_times(self, storage_date_local):
+                self.date = storage_date_local
+                return ("120721",)
+
+            def find_waveform_files(self, **query):
+                self.query = query
+                return (
+                    {
+                        "request_id": "capture-1",
+                        "device_id": "AC_LA_TEST_BI_SBPM01",
+                        "file": {
+                            "path": (
+                                "/data/RAW-120721-"
+                                "AC_LA_TEST_BI_SBPM01-S00000.h5"
+                            ),
+                            "storage_id": "shine_data_primary",
+                        },
+                    },
+                )
+
+        catalog = Catalog()
+        server = CandidateAcquisitionServer(
+            "inproc://metadata",
+            RegistryPolicy(make_registry()),
+            self.tasks,
+            metadata=catalog,
+        )
+        times = server.handle_message(
+            encode_metadata_query_request(
+                MetadataQueryRequest(
+                    PROTOCOL_VERSION,
+                    str(uuid4()),
+                    LIST_CAPTURE_TIMES,
+                    "2026-08-25",
+                )
+            )
+        )
+        files = server.handle_message(
+            encode_metadata_query_request(
+                MetadataQueryRequest(
+                    PROTOCOL_VERSION,
+                    str(uuid4()),
+                    FIND_WAVEFORM_FILES,
+                    "2026-08-25",
+                    "120721",
+                    ("AC_LA_TEST_BI_SBPM01",),
+                )
+            )
+        )
+        self.assertEqual(times.payload["times"], ["120721"])
+        self.assertEqual(
+            files.payload["files"][0]["device_id"],
+            "AC_LA_TEST_BI_SBPM01",
+        )
+        self.assertEqual(catalog.query["time_sec"], "120721")
 
 
 class RestartRecoveryTests(unittest.TestCase):

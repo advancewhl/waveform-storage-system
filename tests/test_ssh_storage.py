@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import unittest
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 from waveform_storage.transport import ssh_storage
@@ -15,6 +17,37 @@ class FakeStream:
 
 
 class SshStorageTests(unittest.TestCase):
+    def test_exact_catalog_paths_are_downloaded_without_find(self):
+        transfers = []
+        sftp = type("Sftp", (), {})()
+        sftp.get = lambda remote, local: transfers.append((remote, local))
+        sftp.close = lambda: None
+        client = type("Client", (), {})()
+        client.set_missing_host_key_policy = lambda policy: None
+        client.connect = lambda *args, **kwargs: None
+        client.open_sftp = lambda: sftp
+        client.closed = False
+        client.close = lambda: setattr(client, "closed", True)
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            ssh_storage.paramiko,
+            "SSHClient",
+            return_value=client,
+        ):
+            saved = ssh_storage.save_files(
+                "host",
+                "user",
+                None,
+                (("/catalog/exact-a.h5", "BPM_A"),),
+                directory,
+            )
+            expected_local = str(Path(directory) / "exact-a.h5")
+        self.assertEqual(
+            transfers,
+            [("/catalog/exact-a.h5", expected_local)],
+        )
+        self.assertEqual(saved, [expected_local])
+        self.assertTrue(client.closed)
+
     def test_file_discovery_keeps_path_and_device_paired_and_closes(self):
         client = type("Client", (), {})()
         client.set_missing_host_key_policy = lambda policy: None

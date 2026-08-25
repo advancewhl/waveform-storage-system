@@ -6,6 +6,7 @@ import json
 import math
 import re
 from dataclasses import asdict, dataclass
+from datetime import date
 from numbers import Integral, Real
 from typing import Literal, Mapping, Sequence
 from uuid import UUID
@@ -16,7 +17,11 @@ START_CAPTURE = "start_capture"
 GET_STATUS = "get_status"
 HEALTH = "health"
 CANCEL = "cancel"
+LIST_CAPTURE_TIMES = "list_capture_times"
+FIND_WAVEFORM_FILES = "find_waveform_files"
 DEVICE_ID_PATTERN = re.compile(r"^[A-Z0-9_]+$")
+LOCAL_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+TIME_FIELD_PATTERN = re.compile(r"^\d{6}$")
 
 TaskStatus = Literal[
     "accepted",
@@ -41,6 +46,20 @@ _CONTROL_REQUEST_FIELDS = {
     "request_id",
     "command",
 }
+_LIST_CAPTURE_TIMES_FIELDS = {
+    "version",
+    "request_id",
+    "command",
+    "storage_date_local",
+}
+_FIND_WAVEFORM_FILES_FIELDS = {
+    "version",
+    "request_id",
+    "command",
+    "storage_date_local",
+    "time_sec",
+    "devices",
+}
 _RESPONSE_FIELDS = {
     "version",
     "request_id",
@@ -48,6 +67,14 @@ _RESPONSE_FIELDS = {
     "status",
     "message",
     "error_code",
+}
+_METADATA_RESPONSE_FIELDS = {
+    "version",
+    "request_id",
+    "accepted",
+    "message",
+    "error_code",
+    "payload",
 }
 _ALLOWED_TRANSITIONS: dict[TaskStatus, frozenset[TaskStatus]] = {
     "accepted": frozenset({"running", "failed", "cancelled"}),
@@ -145,6 +172,60 @@ class ControlRequest:
 
 
 @dataclass(frozen=True)
+class MetadataQueryRequest:
+    version: int
+    request_id: str
+    command: Literal["list_capture_times", "find_waveform_files"]
+    storage_date_local: str
+    time_sec: str | None = None
+    devices: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        _validate_version(self.version)
+        _validate_request_id(self.request_id)
+        if self.command not in {LIST_CAPTURE_TIMES, FIND_WAVEFORM_FILES}:
+            raise ProtocolValidationError(
+                f"unsupported metadata query command: {self.command!r}"
+            )
+        if not isinstance(self.storage_date_local, str) or not LOCAL_DATE_PATTERN.fullmatch(
+            self.storage_date_local
+        ):
+            raise ProtocolValidationError(
+                "storage_date_local must use YYYY-MM-DD"
+            )
+        try:
+            date.fromisoformat(self.storage_date_local)
+        except ValueError as exc:
+            raise ProtocolValidationError(
+                "storage_date_local is not a valid calendar date"
+            ) from exc
+        if self.command == LIST_CAPTURE_TIMES:
+            if self.time_sec is not None or self.devices:
+                raise ProtocolValidationError(
+                    "list_capture_times does not accept time_sec or devices"
+                )
+            return
+        if not isinstance(self.time_sec, str) or not TIME_FIELD_PATTERN.fullmatch(
+            self.time_sec
+        ):
+            raise ProtocolValidationError("time_sec must contain six digits")
+        if not self.devices:
+            raise ProtocolValidationError("devices must not be empty")
+        if len(set(self.devices)) != len(self.devices):
+            raise ProtocolValidationError("devices contains duplicates")
+        invalid = [
+            item
+            for item in self.devices
+            if not isinstance(item, str)
+            or not DEVICE_ID_PATTERN.fullmatch(item)
+        ]
+        if invalid:
+            raise ProtocolValidationError(
+                f"devices contains invalid IDs: {invalid!r}"
+            )
+
+
+@dataclass(frozen=True)
 class CaptureResponse:
     version: int
     request_id: str
@@ -181,6 +262,34 @@ class CaptureResponse:
             )
 
 
+@dataclass(frozen=True)
+class MetadataQueryResponse:
+    version: int
+    request_id: str
+    accepted: bool
+    message: str
+    payload: Mapping[str, object]
+    error_code: str | None = None
+
+    def __post_init__(self) -> None:
+        _validate_version(self.version)
+        _validate_request_id(self.request_id)
+        if not isinstance(self.accepted, bool):
+            raise ProtocolValidationError("accepted must be boolean")
+        if not isinstance(self.message, str):
+            raise ProtocolValidationError("message must be a string")
+        if not isinstance(self.payload, Mapping):
+            raise ProtocolValidationError("payload must be an object")
+        if self.accepted and self.error_code is not None:
+            raise ProtocolValidationError(
+                "accepted metadata responses must not contain error_code"
+            )
+        if not self.accepted and not self.error_code:
+            raise ProtocolValidationError(
+                "rejected metadata responses require error_code"
+            )
+
+
 def encode_request(request: CaptureRequest) -> str:
     payload = asdict(request)
     payload["area_ids"] = list(request.area_ids)
@@ -212,9 +321,19 @@ def encode_control_request(request: ControlRequest) -> str:
     return _encode(asdict(request))
 
 
+def encode_metadata_query_request(request: MetadataQueryRequest) -> str:
+    payload = asdict(request)
+    if request.command == LIST_CAPTURE_TIMES:
+        payload.pop("time_sec")
+        payload.pop("devices")
+    else:
+        payload["devices"] = list(request.devices)
+    return _encode(payload)
+
+
 def decode_service_request(
     message: str | bytes,
-) -> CaptureRequest | ControlRequest:
+) -> CaptureRequest | ControlRequest | MetadataQueryRequest:
     """Decode any request understood by the deployable v2 service."""
 
     payload = _decode_object(message)
@@ -243,6 +362,27 @@ def decode_service_request(
             request_id=payload["request_id"],
             command=payload["command"],
         )
+    if command == LIST_CAPTURE_TIMES:
+        _require_exact_fields(payload, _LIST_CAPTURE_TIMES_FIELDS)
+        return MetadataQueryRequest(
+            version=payload["version"],
+            request_id=payload["request_id"],
+            command=payload["command"],
+            storage_date_local=payload["storage_date_local"],
+        )
+    if command == FIND_WAVEFORM_FILES:
+        _require_exact_fields(payload, _FIND_WAVEFORM_FILES_FIELDS)
+        devices = payload["devices"]
+        if not isinstance(devices, list):
+            raise ProtocolValidationError("devices must be a JSON array")
+        return MetadataQueryRequest(
+            version=payload["version"],
+            request_id=payload["request_id"],
+            command=payload["command"],
+            storage_date_local=payload["storage_date_local"],
+            time_sec=payload["time_sec"],
+            devices=tuple(devices),
+        )
     raise ProtocolValidationError(f"unsupported command: {command!r}")
 
 
@@ -254,6 +394,28 @@ def decode_response(message: str | bytes) -> CaptureResponse:
     payload = _decode_object(message)
     _require_exact_fields(payload, _RESPONSE_FIELDS)
     return CaptureResponse(**payload)
+
+
+def encode_metadata_query_response(response: MetadataQueryResponse) -> str:
+    payload = asdict(response)
+    payload["payload"] = dict(response.payload)
+    return _encode(payload)
+
+
+def decode_metadata_query_response(
+    message: str | bytes,
+) -> MetadataQueryResponse:
+    payload = _decode_object(message)
+    _require_exact_fields(payload, _METADATA_RESPONSE_FIELDS)
+    return MetadataQueryResponse(**payload)
+
+
+def encode_service_response(
+    response: CaptureResponse | MetadataQueryResponse,
+) -> str:
+    if isinstance(response, MetadataQueryResponse):
+        return encode_metadata_query_response(response)
+    return encode_response(response)
 
 
 def validate_status_transition(

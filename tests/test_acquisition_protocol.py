@@ -6,15 +6,22 @@ from uuid import uuid4
 
 from waveform_storage.acquisition.protocol import (
     GET_STATUS,
+    FIND_WAVEFORM_FILES,
+    LIST_CAPTURE_TIMES,
     PROTOCOL_VERSION,
     CaptureRequest,
     CaptureResponse,
     ControlRequest,
+    MetadataQueryRequest,
+    MetadataQueryResponse,
     ProtocolValidationError,
     decode_request,
     decode_response,
+    decode_metadata_query_response,
     decode_service_request,
     encode_control_request,
+    encode_metadata_query_request,
+    encode_metadata_query_response,
     encode_request,
     encode_response,
     validate_area_device_snapshot,
@@ -23,6 +30,40 @@ from waveform_storage.acquisition.protocol import (
 
 
 class CaptureRequestTests(unittest.TestCase):
+    def test_metadata_query_round_trip_is_strict(self):
+        request_id = str(uuid4())
+        times = MetadataQueryRequest(
+            PROTOCOL_VERSION,
+            request_id,
+            LIST_CAPTURE_TIMES,
+            "2026-08-25",
+        )
+        self.assertEqual(
+            decode_service_request(encode_metadata_query_request(times)),
+            times,
+        )
+        files = MetadataQueryRequest(
+            PROTOCOL_VERSION,
+            request_id,
+            FIND_WAVEFORM_FILES,
+            "2026-08-25",
+            "120721",
+            ("BPM_A",),
+        )
+        self.assertEqual(
+            decode_service_request(encode_metadata_query_request(files)),
+            files,
+        )
+        with self.assertRaisesRegex(ProtocolValidationError, "six digits"):
+            MetadataQueryRequest(
+                PROTOCOL_VERSION,
+                request_id,
+                FIND_WAVEFORM_FILES,
+                "2026-08-25",
+                "12:07:21",
+                ("BPM_A",),
+            )
+
     def test_control_request_round_trip_is_strict(self):
         request = ControlRequest(
             PROTOCOL_VERSION,
@@ -145,6 +186,21 @@ class CaptureRequestTests(unittest.TestCase):
 
 
 class CaptureResponseTests(unittest.TestCase):
+    def test_metadata_response_round_trip_preserves_payload(self):
+        response = MetadataQueryResponse(
+            PROTOCOL_VERSION,
+            str(uuid4()),
+            True,
+            "ok",
+            {"times": ["120721"]},
+        )
+        self.assertEqual(
+            decode_metadata_query_response(
+                encode_metadata_query_response(response)
+            ),
+            response,
+        )
+
     def test_response_round_trip_preserves_task_identity(self):
         response = CaptureResponse(
             version=PROTOCOL_VERSION,
