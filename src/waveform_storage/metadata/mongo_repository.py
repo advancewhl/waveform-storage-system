@@ -72,6 +72,10 @@ class MongoMetadataRepository:
         )
         index_information = getattr(self.files, "index_information", lambda: {})()
         legacy = index_information.get("file_request_device_unique")
+        self.files.update_many(
+            {"capture_sequence": {"$exists": False}},
+            {"$set": {"capture_sequence": 0}},
+        )
         if legacy is not None and legacy.get("key") == [
             ("request_id", 1), ("device_id", 1)
         ]:

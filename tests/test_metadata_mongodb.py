@@ -85,7 +85,7 @@ class MetadataModelTests(unittest.TestCase):
 
     def test_waveform_record_contains_path_without_waveform_arrays(self):
         document = waveform().to_document()
-        self.assertEqual(document["_id"], "request-1:BPM_A:S00000")
+        self.assertEqual(document["_id"], "request-1:BPM_A")
         self.assertEqual(document["capture_sequence"], 0)
         self.assertEqual(document["file"]["storage_id"], "shine_data_primary")
         self.assertEqual(document["datasets"]["Data"]["shape"], [2, 1024])
@@ -370,6 +370,7 @@ class FakeCollection:
         self.dropped_indexes = []
         self.replacements = []
         self.updates = []
+        self.update_many_calls = []
         self.query_result = FakeCursor()
         self.distinct_result = []
 
@@ -387,6 +388,10 @@ class FakeCollection:
 
     def update_one(self, query, update):
         self.updates.append((query, update))
+        return FakeResult()
+
+    def update_many(self, query, update):
+        self.update_many_calls.append((query, update))
         return FakeResult()
 
     def find(self, _query):
@@ -441,6 +446,15 @@ class MongoRepositoryContractTests(unittest.TestCase):
         self.assertEqual(
             repository.files.dropped_indexes,
             ["file_request_device_unique"],
+        )
+        self.assertEqual(
+            repository.files.update_many_calls,
+            [
+                (
+                    {"capture_sequence": {"$exists": False}},
+                    {"$set": {"capture_sequence": 0}},
+                )
+            ],
         )
 
     def test_status_update_pushes_history_and_ping_uses_admin_command(self):

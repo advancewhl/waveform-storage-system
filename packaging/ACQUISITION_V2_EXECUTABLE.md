@@ -18,6 +18,10 @@ HDF5, cryptography, MongoDB client, EPICS and ZMQ runtime libraries.
 `BUILD-INFO` records the source revision and compatibility baseline used for
 the archive.
 
+Rebuild after every source commit that changes acquisition or metadata code.
+Do not deploy an archive whose `BUILD-INFO` revision differs from the final
+reviewed commit.
+
 The executable removes the server's Python/Conda requirement. It does not
 embed MongoDB, credentials, verified SSH host keys, HDF5 data, or service
 configuration.

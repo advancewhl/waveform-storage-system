@@ -80,8 +80,10 @@ python tools/backfill_mongodb.py ../20251112
 MongoDB 保存的是 GUI 可以访问的服务端路径。
 
 重复采集模式下，同一 request/device 会产生多个文件。`waveform_files` 使用
-`request_id + device_id + capture_sequence` 唯一索引，文档 `_id` 末尾为 `Sxxxxx`；历史
-回填也从文件名保存序列号。服务启动时会将旧的 request/device 唯一索引替换为序列索引。
+`request_id + device_id + capture_sequence` 唯一索引；首周期沿用旧版
+`request_id:device_id` 文档 `_id`，后续周期的 `_id` 末尾为 `Sxxxxx`。历史回填也从文件名
+保存序列号。服务启动时先把旧文档原地补为 `capture_sequence=0`，再将旧的
+request/device 唯一索引替换为序列索引，保证首周期升级前后仍可幂等覆盖。
 
 `tools/verify_mongodb_history.py` 用真实 MongoDB、临时 candidate v2 ZMQ 服务和本地 HDF5
 验证查询与对齐链路。`tools/run_local_history_gui.py` 仅用于开发机 GUI 联调：它通过

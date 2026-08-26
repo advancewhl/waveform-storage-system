@@ -232,6 +232,8 @@ class WaveformFileMetadata:
 
     @property
     def record_id(self) -> str:
+        if self.capture_sequence == 0:
+            return f"{self.request_id}:{self.device_id}"
         return f"{self.request_id}:{self.device_id}:S{self.capture_sequence:05d}"
 
     def to_document(self) -> dict[str, Any]:
