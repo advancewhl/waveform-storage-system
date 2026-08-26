@@ -141,6 +141,14 @@ class ExperimentalUiSmokeTests(unittest.TestCase):
             )
             self.assertEqual(window.area_model.rowCount(), 26)
             self.assertEqual(window.windowTitle(), "SHINE Waveform Console")
+            self.assertEqual(
+                [
+                    window.duration_combo.itemData(index)
+                    for index in range(window.duration_combo.count())
+                ],
+                [1, 10, 30, 60],
+            )
+            self.assertEqual(window.duration_combo.currentData(), 10)
             first_status = window.area_model.item(0, 0).child(0, 3).text()
             self.assertIn("待验证", first_status)
 
