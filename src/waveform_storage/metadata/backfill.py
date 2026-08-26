@@ -146,6 +146,7 @@ def import_historical_directory(
                 x_unit=device.x_unit,
                 y_unit=device.y_unit,
                 scale_factor=device.scale_factor,
+                capture_sequence=int(match.group("sequence")),
             )
         )
 

@@ -170,6 +170,9 @@ class JsonTaskStore:
                         else None
                     ),
                     "error": item.error,
+                    "output_paths": [str(path) for path in item.output_paths],
+                    "attempted_cycles": item.attempted_cycles,
+                    "successful_cycles": item.successful_cycles,
                 }
                 for item in device_results
             ]

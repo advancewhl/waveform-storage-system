@@ -18,6 +18,7 @@ from waveform_storage.acquisition.task import CaptureCancelled
 from waveform_storage.application.capture_service import (
     CapturePlan,
     CaptureService,
+    DeviceCaptureResult,
 )
 from waveform_storage.config.registry import DeviceRegistry, load_registry
 from waveform_storage.io.hdf5_io import write_single_device_hdf5
@@ -267,8 +268,6 @@ class ProductionCaptureRunner:
         self.devices = {item.id: item for item in registry.devices}
 
     def __call__(self, request: CaptureRequest):
-        started_epoch = time.time()
-        started = datetime.fromtimestamp(started_epoch)
         plan = CapturePlan.from_protocol(request)
         selected = [self.devices[item] for item in plan.device_ids]
         self._configure_epics(selected)
@@ -286,62 +285,117 @@ class ProductionCaptureRunner:
                 len(selected),
             ),
         )
-        destinations = self._download_requests(
-            selected,
-            request.request_id,
-            started_epoch,
-        )
         expected_points = {
             item.id: item.expected_points for item in selected
         }
-        device_by_path = {
-            item.destination: item.device_id for item in destinations
-        }
-        output_dir = (
-            self.settings.local_data_root
-            / started.strftime("%Y%m%d")
-            / "raw"
-            / "BIData"
-        )
-        time_field = started.strftime("%H%M%S")
+        interval = capture_interval_seconds(plan.frequency_hz)
+        deadline = time.monotonic() + plan.duration_seconds
+        per_device = {item.id: [] for item in selected}
+        sequence = 0
 
-        def parser(path):
-            device_id = device_by_path[Path(path)]
-            return parse_waveform_txt(
-                path,
-                expected_points=expected_points[device_id],
+        while sequence == 0 or time.monotonic() < deadline:
+            cycle_started_monotonic = time.monotonic()
+            cycle_started = datetime.now().astimezone()
+            cycle_epoch = cycle_started.timestamp()
+            destinations = self._download_requests(
+                selected,
+                request.request_id,
+                cycle_epoch,
+                sequence,
             )
+            device_by_path = {
+                item.destination: item.device_id for item in destinations
+            }
 
-        def writer(device_id, waveform, capture_plan):
-            destination = (
-                output_dir
-                / f"RAW-{time_field}-{device_id}-S00000.h5"
-            )
-            return write_single_device_hdf5(
-                destination,
-                device_id,
-                waveform,
-                metadata={
-                    "protocol_version": 2,
-                    "request_id": capture_plan.request_id,
-                    "frequency_hz": capture_plan.frequency_hz,
-                    "duration_seconds": capture_plan.duration_seconds,
-                    "captured_at": started.isoformat(),
-                },
-            )
+            def parser(path):
+                device_id = device_by_path[Path(path)]
+                return parse_waveform_txt(
+                    path,
+                    expected_points=expected_points[device_id],
+                )
 
-        service = CaptureService(
-            epics,
-            downloader,
-            parser,
-            writer,
-            waiter=self._wait_interruptibly,
-        )
-        return service.capture(
-            plan,
-            [(item.id, item.capture_pv) for item in selected],
-            destinations,
-        )
+            def writer(device_id, waveform, _capture_plan):
+                output_dir = (
+                    self.settings.local_data_root
+                    / cycle_started.strftime("%Y%m%d")
+                    / "raw"
+                    / "BIData"
+                )
+                destination = output_dir / (
+                    f"RAW-{cycle_started:%H%M%S}-{device_id}-S{sequence:05d}.h5"
+                )
+                return write_single_device_hdf5(
+                    destination,
+                    device_id,
+                    waveform,
+                    metadata={
+                        "protocol_version": 2,
+                        "request_id": plan.request_id,
+                        "frequency_hz": plan.frequency_hz,
+                        "duration_seconds": plan.duration_seconds,
+                        "capture_sequence": sequence,
+                        "captured_at": cycle_started.isoformat(),
+                    },
+                )
+
+            remaining = max(0.0, deadline - time.monotonic())
+            cycle_plan = CapturePlan(
+                plan.request_id,
+                plan.frequency_hz,
+                max(1, int(min(interval, remaining) or 1)),
+                plan.device_ids,
+                plan.area_ids,
+            )
+            service = CaptureService(
+                epics,
+                downloader,
+                parser,
+                writer,
+                waiter=lambda seconds: self._wait_interruptibly(
+                    min(float(seconds), max(0.0, deadline - time.monotonic()))
+                ),
+            )
+            cycle_results = service.capture(
+                cycle_plan,
+                [(item.id, item.capture_pv) for item in selected],
+                destinations,
+            )
+            for result in cycle_results:
+                per_device[result.device_id].append(result)
+            sequence += 1
+            cycle_not_before = cycle_started_monotonic + interval
+            if time.monotonic() < min(deadline, cycle_not_before):
+                self._wait_interruptibly(
+                    min(deadline, cycle_not_before) - time.monotonic()
+                )
+            if time.monotonic() >= deadline:
+                break
+
+        aggregated = []
+        for device_id in plan.device_ids:
+            cycles = per_device[device_id]
+            paths = tuple(
+                item.output_path
+                for item in cycles
+                if item.success and item.output_path is not None
+            )
+            errors = [
+                item.error or "unknown cycle failure"
+                for item in cycles
+                if not item.success
+            ]
+            aggregated.append(
+                DeviceCaptureResult(
+                    device_id,
+                    not errors,
+                    paths[-1] if paths else None,
+                    "; ".join(errors) if errors else None,
+                    paths,
+                    len(cycles),
+                    len(paths),
+                )
+            )
+        return tuple(aggregated)
 
     def _configure_epics(self, selected) -> None:
         addresses = sorted(
@@ -355,8 +409,9 @@ class ProductionCaptureRunner:
         selected,
         request_id: str,
         started_epoch: float,
+        sequence: int = 0,
     ) -> list[DeviceDownload]:
-        staging = self.settings.staging_root / request_id
+        staging = self.settings.staging_root / request_id / f"S{sequence:05d}"
         return [
             DeviceDownload(
                 item.id,
@@ -401,7 +456,7 @@ class ProductionCaptureRunner:
         )
         return client
 
-    def _wait_interruptibly(self, duration_seconds: int) -> None:
+    def _wait_interruptibly(self, duration_seconds: float) -> None:
         deadline = time.monotonic() + duration_seconds
         while time.monotonic() < deadline:
             if self.stop_event.is_set() or self.cancel_event.is_set():
@@ -417,6 +472,27 @@ class ProductionCaptureRunner:
         """Reset per-task cancellation before a request is accepted."""
 
         self.cancel_event.clear()
+
+
+_CAPTURE_INTERVAL_SECONDS = {
+    1000.0: 2,
+    100.0: 12,
+    50.0: 22,
+    2.0: 512,
+}
+
+
+def capture_interval_seconds(frequency_hz: float) -> int:
+    """Return the legacy-derived delay between trigger and retrieval."""
+
+    value = float(frequency_hz)
+    try:
+        return _CAPTURE_INTERVAL_SECONDS[value]
+    except KeyError as exc:
+        supported = ", ".join(f"{item:g}" for item in _CAPTURE_INTERVAL_SECONDS)
+        raise ServerSettingsError(
+            f"unsupported capture frequency {value:g} Hz; supported: {supported} Hz"
+        ) from exc
 
 
 def load_server_registry(

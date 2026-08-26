@@ -79,6 +79,10 @@ python tools/backfill_mongodb.py ../20251112
 若扫描路径与存储 SSH 账户看到的路径不同，必须显式提供 `--catalog-directory`，确保
 MongoDB 保存的是 GUI 可以访问的服务端路径。
 
+重复采集模式下，同一 request/device 会产生多个文件。`waveform_files` 使用
+`request_id + device_id + capture_sequence` 唯一索引，文档 `_id` 末尾为 `Sxxxxx`；历史
+回填也从文件名保存序列号。服务启动时会将旧的 request/device 唯一索引替换为序列索引。
+
 `tools/verify_mongodb_history.py` 用真实 MongoDB、临时 candidate v2 ZMQ 服务和本地 HDF5
 验证查询与对齐链路。`tools/run_local_history_gui.py` 仅用于开发机 GUI 联调：它通过
 candidate v2 查询 MongoDB，但显式绕过存储 SSH，直接读取 MongoDB 返回的本地路径。

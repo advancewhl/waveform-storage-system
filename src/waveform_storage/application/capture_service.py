@@ -57,6 +57,17 @@ class DeviceCaptureResult:
     success: bool
     output_path: Path | None = None
     error: str | None = None
+    output_paths: tuple[Path, ...] = ()
+    attempted_cycles: int = 1
+    successful_cycles: int = 0
+
+    def __post_init__(self) -> None:
+        paths = tuple(Path(item) for item in self.output_paths)
+        if not paths and self.output_path is not None:
+            paths = (Path(self.output_path),)
+        object.__setattr__(self, "output_paths", paths)
+        if self.success and self.successful_cycles == 0 and paths:
+            object.__setattr__(self, "successful_cycles", len(paths))
 
 
 class CaptureService:

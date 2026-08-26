@@ -189,6 +189,26 @@ python tools/acquisition_v2_client.py cancel <request_id> --yes
 
 取消在安全边界生效，不会强行中断正在进行的 SSH 文件传输。
 
+工作站无法访问定时 PV 时，可在已确认实际机器频率后显式设置：
+
+```bash
+export WAVEFORM_CAPTURE_FREQUENCY_HZ=100
+```
+
+该变量只覆盖 GUI 读取定时 PV 的步骤，不改变服务端支持频率和等待规则。单台真实请求也可
+直接从运维客户端发送；`--yes` 是必需的防误触确认：
+
+```bash
+python tools/acquisition_v2_client.py start \
+  --frequency-hz 100 \
+  --duration-seconds 60 \
+  --area AC_LA_INJ1 \
+  --device AC_LA_INJ1_BI_SBPM08 \
+  --yes
+```
+
+记录客户端输出的 `request_id`，并用 `status` 查询。不要在状态未知时换 UUID 重发。
+
 ## 10. 单台验收
 
 依次确认：
@@ -198,7 +218,7 @@ python tools/acquisition_v2_client.py cancel <request_id> --yes
 3. 设备远程目录出现触发之后的新 TXT；
 4. TXT 在稳定检查后下载到 staging；
 5. HDF5 生成到 `/SHINE_Data/AC/LA/YYYYMMDD/raw/BIData/`；
-6. 文件名包含实际时刻和设备 ID；
+6. 文件名包含实际时刻、设备 ID 和从 `S00000` 开始递增的周期序列；
 7. `BunchIDData` 为 `uint64 (1,N)`；
 8. `Data` 为 `int64 (2,N)`；
 9. `Device/Data_0/Data_1` 属性正确；

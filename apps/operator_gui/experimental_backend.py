@@ -75,10 +75,25 @@ class ConnectedOperatorBackend:
         device_ids: tuple[str, ...],
         duration_seconds: int,
     ):
-        frequency = read_legacy_frequency(
-            Context,
-            timeout_address="192.0.2.1:6310",
-        )
+        configured_frequency = os.environ.get(
+            "WAVEFORM_CAPTURE_FREQUENCY_HZ", ""
+        ).strip()
+        if configured_frequency:
+            try:
+                frequency = float(configured_frequency)
+            except ValueError as exc:
+                raise RuntimeError(
+                    "WAVEFORM_CAPTURE_FREQUENCY_HZ must be numeric"
+                ) from exc
+            if frequency <= 0:
+                raise RuntimeError(
+                    "WAVEFORM_CAPTURE_FREQUENCY_HZ must be positive"
+                )
+        else:
+            frequency = read_legacy_frequency(
+                Context,
+                timeout_address="192.0.2.1:6310",
+            )
         if not frequency:
             raise RuntimeError("timing-system frequency PV is unavailable")
         request = CaptureRequest(

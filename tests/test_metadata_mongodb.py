@@ -85,7 +85,8 @@ class MetadataModelTests(unittest.TestCase):
 
     def test_waveform_record_contains_path_without_waveform_arrays(self):
         document = waveform().to_document()
-        self.assertEqual(document["_id"], "request-1:BPM_A")
+        self.assertEqual(document["_id"], "request-1:BPM_A:S00000")
+        self.assertEqual(document["capture_sequence"], 0)
         self.assertEqual(document["file"]["storage_id"], "shine_data_primary")
         self.assertEqual(document["datasets"]["Data"]["shape"], [2, 1024])
         self.assertNotIn("waveform", document)
@@ -232,6 +233,72 @@ class MemoryRepositoryTests(unittest.TestCase):
         )
         self.assertIn(service.registry_id, repository.registries)
 
+    def test_capture_metadata_service_records_every_capture_cycle(self):
+        registry_path = PROJECT_ROOT / "config" / "devices.json"
+        registry = load_registry(registry_path)
+        device = registry.devices[0]
+        repository = InMemoryMetadataRepository()
+        service = CaptureMetadataService(repository, registry, registry_path)
+        request = CaptureRequest(
+            PROTOCOL_VERSION,
+            str(uuid4()),
+            "start_capture",
+            100,
+            30,
+            (device.section,),
+            (device.id,),
+        )
+        accepted = CaptureResponse(
+            PROTOCOL_VERSION,
+            request.request_id,
+            True,
+            "accepted",
+            "accepted",
+        )
+        succeeded = CaptureResponse(
+            PROTOCOL_VERSION,
+            request.request_id,
+            True,
+            "succeeded",
+            "succeeded",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            paths = []
+            for sequence, time_sec in enumerate(("120721", "120733")):
+                path = Path(directory) / (
+                    f"RAW-{time_sec}-{device.id}-S{sequence:05d}.h5"
+                )
+                with h5py.File(path, "w") as h5:
+                    h5.create_dataset("BunchIDData", data=np.asarray([[1, 2]]))
+                    h5.create_dataset("Data", data=np.asarray([[1, 2], [3, 4]]))
+                paths.append(path)
+            service.record_created(request, accepted)
+            service.record_status(
+                request,
+                succeeded,
+                device_results=(
+                    DeviceCaptureResult(
+                        device.id,
+                        True,
+                        paths[-1],
+                        output_paths=tuple(paths),
+                        attempted_cycles=2,
+                        successful_cycles=2,
+                    ),
+                ),
+            )
+
+        self.assertEqual(len(repository.files), 2)
+        self.assertEqual(
+            sorted(item["capture_sequence"] for item in repository.files.values()),
+            [0, 1],
+        )
+        local_date = next(iter(repository.files.values()))["storage_date_local"]
+        self.assertEqual(
+            service.list_capture_times(local_date),
+            ("120721", "120733"),
+        )
+
     def test_historical_directory_import_is_validated_and_idempotent(self):
         registry = load_registry(PROJECT_ROOT / "config" / "devices.json")
         device = registry.devices[0]
@@ -299,6 +366,8 @@ class FakeCursor(list):
 class FakeCollection:
     def __init__(self):
         self.indexes = []
+        self.existing_indexes = {}
+        self.dropped_indexes = []
         self.replacements = []
         self.updates = []
         self.query_result = FakeCursor()
@@ -306,6 +375,12 @@ class FakeCollection:
 
     def create_index(self, keys, **options):
         self.indexes.append((keys, options))
+
+    def index_information(self):
+        return self.existing_indexes
+
+    def drop_index(self, name):
+        self.dropped_indexes.append(name)
 
     def replace_one(self, query, document, *, upsert):
         self.replacements.append((query, document, upsert))
@@ -350,7 +425,22 @@ class MongoRepositoryContractTests(unittest.TestCase):
         }
         self.assertEqual(
             unique_names,
-            {"file_request_device_unique", "file_storage_path_unique"},
+            {"file_request_device_sequence_unique", "file_storage_path_unique"},
+        )
+
+    def test_legacy_file_uniqueness_index_is_replaced(self):
+        database = FakeDatabase()
+        repository = MongoMetadataRepository(database)
+        repository.files.existing_indexes["file_request_device_unique"] = {
+            "key": [("request_id", 1), ("device_id", 1)],
+            "unique": True,
+        }
+
+        repository.ensure_indexes()
+
+        self.assertEqual(
+            repository.files.dropped_indexes,
+            ["file_request_device_unique"],
         )
 
     def test_status_update_pushes_history_and_ping_uses_admin_command(self):

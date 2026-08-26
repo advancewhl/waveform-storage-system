@@ -196,6 +196,7 @@ class WaveformFileMetadata:
     scale_factor: float | None = None
     created_at: datetime = field(default_factory=utc_now)
     error: Mapping[str, Any] | None = None
+    capture_sequence: int = 0
 
     def __post_init__(self) -> None:
         for name in (
@@ -226,10 +227,12 @@ class WaveformFileMetadata:
             raise MetadataValidationError("dataset shapes must not contain negative values")
         if self.scale_factor is not None and self.scale_factor <= 0:
             raise MetadataValidationError("scale_factor must be positive or null")
+        if self.capture_sequence < 0:
+            raise MetadataValidationError("capture_sequence must not be negative")
 
     @property
     def record_id(self) -> str:
-        return f"{self.request_id}:{self.device_id}"
+        return f"{self.request_id}:{self.device_id}:S{self.capture_sequence:05d}"
 
     def to_document(self) -> dict[str, Any]:
         return {
@@ -238,6 +241,7 @@ class WaveformFileMetadata:
             "request_id": self.request_id,
             "device_id": self.device_id,
             "capture_pv": self.capture_pv,
+            "capture_sequence": self.capture_sequence,
             "status": self.status,
             "captured_at": self.captured_at,
             "storage_date_local": self.storage_date_local,

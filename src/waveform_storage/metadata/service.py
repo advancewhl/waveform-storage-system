@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import re
 from datetime import datetime, timezone
@@ -22,7 +23,7 @@ from waveform_storage.metadata.models import (
 )
 
 
-_TIME_FIELD = re.compile(r"^RAW-(?P<time>\d{6})-")
+_TIME_FIELD = re.compile(r"^RAW-(?P<time>\d{6})-.+-S(?P<sequence>\d{5})\.h5$")
 
 
 class CaptureMetadataService:
@@ -182,62 +183,97 @@ class CaptureMetadataService:
             request.request_id,
             datetime.now(timezone.utc),
         )
-        local_date = captured_at.astimezone(self.local_timezone).date().isoformat()
         for result in device_results:
-            if not result.success or result.output_path is None:
-                continue
-            path = Path(result.output_path)
             device = self.devices.get(result.device_id)
             if device is None:
                 self.logger.error("metadata skipped unknown device %s", result.device_id)
                 continue
-            try:
-                with h5py.File(path, "r") as h5:
-                    bunch = h5["BunchIDData"]
-                    data = h5["Data"]
-                    bunch_shape = tuple(int(value) for value in bunch.shape)
-                    data_shape = tuple(int(value) for value in data.shape)
-                    bunch_dtype = str(bunch.dtype)
-                    data_dtype = str(data.dtype)
-                    sample_count = int(data.shape[-1])
-                match = _TIME_FIELD.match(path.name)
-                time_sec = (
-                    match.group("time")
-                    if match is not None
-                    else captured_at.astimezone(self.local_timezone).strftime("%H%M%S")
+            paths = tuple(getattr(result, "output_paths", ()))
+            if not paths and result.output_path is not None:
+                paths = (result.output_path,)
+            for raw_path in paths:
+                path = Path(raw_path)
+                try:
+                    with h5py.File(path, "r") as h5:
+                        bunch = h5["BunchIDData"]
+                        data = h5["Data"]
+                        bunch_shape = tuple(int(value) for value in bunch.shape)
+                        data_shape = tuple(int(value) for value in data.shape)
+                        bunch_dtype = str(bunch.dtype)
+                        data_dtype = str(data.dtype)
+                        sample_count = int(data.shape[-1])
+                        file_captured_at = self._file_captured_at(
+                            h5.attrs.get("capture_metadata_json"),
+                            captured_at,
+                        )
+                    match = _TIME_FIELD.match(path.name)
+                    time_sec = (
+                        match.group("time")
+                        if match is not None
+                        else file_captured_at.astimezone(
+                            self.local_timezone
+                        ).strftime("%H%M%S")
+                    )
+                    local_date = file_captured_at.astimezone(
+                        self.local_timezone
+                    ).date().isoformat()
+                    sequence = (
+                        int(match.group("sequence")) if match is not None else 0
+                    )
+                    record = WaveformFileMetadata(
+                        request.request_id,
+                        result.device_id,
+                        device.capture_pv,
+                        file_captured_at,
+                        local_date,
+                        time_sec,
+                        self.timezone_name,
+                        self.storage_id,
+                        str(path),
+                        sample_count,
+                        bunch_shape,
+                        data_shape,
+                        path.stat().st_size,
+                        bunch_id_dtype=bunch_dtype,
+                        data_dtype=data_dtype,
+                        x_unit=device.x_unit,
+                        y_unit=device.y_unit,
+                        scale_factor=device.scale_factor,
+                        capture_sequence=sequence,
+                    )
+                except Exception as exc:
+                    self.logger.error(
+                        "failed to inspect HDF5 metadata for %s: %s",
+                        result.device_id,
+                        exc,
+                    )
+                    continue
+                self._best_effort(
+                    "upsert waveform file",
+                    self.repository.upsert_waveform_file,
+                    record,
                 )
-                record = WaveformFileMetadata(
-                    request.request_id,
-                    result.device_id,
-                    device.capture_pv,
-                    captured_at,
-                    local_date,
-                    time_sec,
-                    self.timezone_name,
-                    self.storage_id,
-                    str(path),
-                    sample_count,
-                    bunch_shape,
-                    data_shape,
-                    path.stat().st_size,
-                    bunch_id_dtype=bunch_dtype,
-                    data_dtype=data_dtype,
-                    x_unit=device.x_unit,
-                    y_unit=device.y_unit,
-                    scale_factor=device.scale_factor,
-                )
-            except Exception as exc:
-                self.logger.error(
-                    "failed to inspect HDF5 metadata for %s: %s",
-                    result.device_id,
-                    exc,
-                )
-                continue
-            self._best_effort(
-                "upsert waveform file",
-                self.repository.upsert_waveform_file,
-                record,
-            )
+
+    @staticmethod
+    def _file_captured_at(raw_metadata: object, fallback: datetime) -> datetime:
+        try:
+            if isinstance(raw_metadata, bytes):
+                raw_metadata = raw_metadata.decode("utf-8")
+            if not isinstance(raw_metadata, str) or not raw_metadata:
+                return fallback
+            metadata = json.loads(raw_metadata)
+            value = datetime.fromisoformat(str(metadata["captured_at"]))
+        except (
+            KeyError,
+            TypeError,
+            ValueError,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+        ):
+            return fallback
+        if value.tzinfo is None:
+            return fallback
+        return value
 
     def _registry_id(self) -> str:
         digest = hashlib.sha256(self.registry_path.read_bytes()).hexdigest()

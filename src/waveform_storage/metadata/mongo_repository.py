@@ -70,10 +70,16 @@ class MongoMetadataRepository:
             [("area_ids", 1), ("created_at", -1)],
             name="task_area_created",
         )
+        index_information = getattr(self.files, "index_information", lambda: {})()
+        legacy = index_information.get("file_request_device_unique")
+        if legacy is not None and legacy.get("key") == [
+            ("request_id", 1), ("device_id", 1)
+        ]:
+            self.files.drop_index("file_request_device_unique")
         self.files.create_index(
-            [("request_id", 1), ("device_id", 1)],
+            [("request_id", 1), ("device_id", 1), ("capture_sequence", 1)],
             unique=True,
-            name="file_request_device_unique",
+            name="file_request_device_sequence_unique",
         )
         self.files.create_index(
             [("device_id", 1), ("captured_at", -1)],

@@ -6,6 +6,8 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import paramiko
@@ -27,7 +29,9 @@ from waveform_storage.acquisition.protocol import (
 )
 from waveform_storage.acquisition.runtime import (
     AcquisitionServerSettings,
+    ProductionCaptureRunner,
     ServerSettingsError,
+    capture_interval_seconds,
     load_server_registry,
 )
 from waveform_storage.acquisition.task import CaptureCancelled
@@ -176,6 +180,11 @@ class PersistentServerTests(unittest.TestCase):
             ["accepted", "running", "succeeded"],
         )
         self.assertTrue(record["device_results"][0]["success"])
+        self.assertEqual(record["device_results"][0]["successful_cycles"], 1)
+        self.assertEqual(
+            record["device_results"][0]["output_paths"],
+            [str(self.root / "result.h5")],
+        )
 
     def test_busy_conflict_registry_and_control_requests_are_explicit(self):
         first = capture_request()
@@ -372,6 +381,91 @@ class RestartRecoveryTests(unittest.TestCase):
 
 
 class ServerSettingsTests(unittest.TestCase):
+    def test_capture_intervals_match_legacy_field_rules(self):
+        self.assertEqual(
+            {
+                frequency: capture_interval_seconds(frequency)
+                for frequency in (1000, 100, 50, 2)
+            },
+            {1000: 2, 100: 12, 50: 22, 2: 512},
+        )
+        with self.assertRaisesRegex(ServerSettingsError, "supported"):
+            capture_interval_seconds(10)
+        self.assertTrue(callable(ProductionCaptureRunner._connect_device))
+        self.assertTrue(callable(ProductionCaptureRunner.cancel))
+
+    def test_runner_repeats_cycles_and_aggregates_all_paths(self):
+        class Clock:
+            value = 0.0
+
+            def monotonic(self):
+                return self.value
+
+            def advance(self, seconds):
+                self.value += max(0.0, seconds)
+
+        class FakeCaptureService:
+            def __init__(self, *_args, **_kwargs):
+                pass
+
+            def capture(self, _plan, _device_pvs, download_requests):
+                sequence = download_requests[0].destination.parent.name
+                return (
+                    DeviceCaptureResult(
+                        "AC_LA_TEST_BI_SBPM01",
+                        True,
+                        Path("/data") / f"{sequence}.h5",
+                    ),
+                )
+
+        clock = Clock()
+        registry = make_registry()
+        runner = ProductionCaptureRunner.__new__(ProductionCaptureRunner)
+        runner.settings = SimpleNamespace(
+            epics_connect_timeout_seconds=1.0,
+            epics_pulse_seconds=0.1,
+            ssh_max_workers=1,
+            staging_root=Path("/staging"),
+            local_data_root=Path("/data"),
+            remote_file_settle_seconds=0.0,
+        )
+        runner.registry = registry
+        runner.stop_event = threading.Event()
+        runner.cancel_event = threading.Event()
+        runner.devices = {item.id: item for item in registry.devices}
+        runner._wait_interruptibly = clock.advance
+        request = CaptureRequest(
+            PROTOCOL_VERSION,
+            str(uuid4()),
+            "start_capture",
+            1000,
+            5,
+            ("TEST",),
+            ("AC_LA_TEST_BI_SBPM01",),
+        )
+
+        with (
+            patch(
+                "waveform_storage.acquisition.runtime.time.monotonic",
+                side_effect=clock.monotonic,
+            ),
+            patch("waveform_storage.acquisition.runtime.EpicsGateway"),
+            patch("waveform_storage.acquisition.runtime.DeviceSshGateway"),
+            patch(
+                "waveform_storage.acquisition.runtime.CaptureService",
+                FakeCaptureService,
+            ),
+        ):
+            result = runner(request)[0]
+
+        self.assertTrue(result.success)
+        self.assertEqual(result.attempted_cycles, 3)
+        self.assertEqual(result.successful_cycles, 3)
+        self.assertEqual(
+            [path.name for path in result.output_paths],
+            ["S00000.h5", "S00001.h5", "S00002.h5"],
+        )
+
     def test_requires_known_hosts_and_keeps_secrets_private(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

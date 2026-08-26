@@ -241,10 +241,17 @@ python apps/acquisition_agent/main_file_transport_h5df.py
 python apps/acquisition_server/main.py --check
 python apps/acquisition_server/main.py
 python tools/acquisition_v2_client.py health
+
+# 仅在已批准的单台灰度窗口内发送真实采集请求
+python tools/acquisition_v2_client.py start \
+  --frequency-hz 100 --duration-seconds 60 \
+  --area AC_LA_INJ1 --device AC_LA_INJ1_BI_SBPM08 --yes
 ```
 
 服务异步受理请求、单任务互斥、按 `request_id` 幂等、原子持久化状态、重启时将未完成
-任务标记失败，并支持 health/status 和显式安全取消。完整部署和单台灰度步骤见
+任务标记失败，并支持 health/status/start 和显式安全取消。采集任务按 legacy 已知的
+1000/100/50/2 Hz 等待规则在总时长内重复触发，每周期生成独立的 `Sxxxxx` HDF5；这些
+频率规则仍须逐项现场确认。完整部署和单台灰度步骤见
 [Candidate v2 服务部署与灰度验证](docs/candidate_v2服务部署与灰度验证.md)。
 本轮实现范围、验证证据、风险和后续接续入口见
 [新服务端补齐工作交接](docs/新服务端补齐工作交接_2026-07-26.md)。

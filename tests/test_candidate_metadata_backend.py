@@ -19,6 +19,10 @@ if str(OPERATOR_DIR) not in sys.path:
     sys.path.insert(0, str(OPERATOR_DIR))
 
 from experimental_backend import ConnectedOperatorBackend
+from waveform_storage.acquisition.protocol import (
+    CaptureResponse,
+    PROTOCOL_VERSION,
+)
 from waveform_storage.config.settings import AppSettings
 from waveform_storage.gui.operator_backend import OperatorMode
 
@@ -37,6 +41,35 @@ class CandidateMetadataBackendTests(unittest.TestCase):
 
     def tearDown(self):
         self.environment.stop()
+
+    @patch("experimental_backend.ZmqTransport")
+    @patch("experimental_backend.read_legacy_frequency")
+    def test_capture_frequency_override_avoids_local_timing_pv(
+        self, read_frequency, transport_type
+    ):
+        def respond(request):
+            self.assertEqual(request.frequency_hz, 100.0)
+            return CaptureResponse(
+                PROTOCOL_VERSION,
+                request.request_id,
+                True,
+                "accepted",
+                "ok",
+            )
+
+        transport_type.return_value.request.side_effect = respond
+        with patch.dict(
+            os.environ,
+            {"WAVEFORM_CAPTURE_FREQUENCY_HZ": "100"},
+        ):
+            result = self.backend.start_capture(
+                ("INJ1",),
+                ("AC_LA_INJ1_BI_SBPM08",),
+                600,
+            )
+
+        self.assertTrue(result.accepted)
+        read_frequency.assert_not_called()
 
     @patch("experimental_backend.ZmqTransport")
     def test_gui_time_query_uses_candidate_service_metadata(self, transport_type):
