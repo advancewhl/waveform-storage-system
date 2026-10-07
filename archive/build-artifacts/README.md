@@ -39,3 +39,5 @@
 | `server-candidates/20261005/waveform-server-retry-20261005-0a9866da327e.tar.gz` | 59107230 | 有 |
 | `server-candidates/20261005/waveform-server-retry-20261005-2f3038f9c6a7.tar.gz` | 59107487 | 有 |
 | `server-candidates/20261005/waveform-server-retry-20261005-a357f2c3efe5.tar.gz` | 59106765 | 有 |
+
+频谱分析的中间源码包 `waveform-operator-formal-d0c190be8d87.tar.gz` 与校验文件保存在 `spectrum-preview/20261007/`。当前本机预览及验证说明见 `docs/spectrum-analysis-validation.md`，原桌面交付入口仍按既有记录使用。

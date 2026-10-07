@@ -58,6 +58,11 @@ def parse_args() -> argparse.Namespace:
         "--screenshot", type=Path,
         help="Save a UI preview and exit without sending any capture request.",
     )
+    parser.add_argument("--page", choices=("capture", "history", "spectrum"), default="capture")
+    parser.add_argument("--spectrum-input", type=Path, help="打开本地数据并执行频谱分析")
+    parser.add_argument("--spectrum-source", choices=("archiver", "hdf5"), default="hdf5")
+    parser.add_argument("--spectrum-sample-rate-hz", type=float)
+    parser.add_argument("--spectrum-profile", choices=("low_v1", "low_v2", "high_band"))
     return parser.parse_args()
 
 
@@ -83,13 +88,27 @@ def main() -> int:
         ),
     )
     window.show()
+    window._show_page(("capture", "history", "spectrum").index(args.page))
+    if args.spectrum_input is not None:
+        panel = window.spectrum_panel
+        panel.source_combo.setCurrentIndex(1 if args.spectrum_source == "archiver" else 0)
+        panel.path_edit.setText(str(args.spectrum_input))
+        if args.spectrum_profile is not None:
+            panel.profile_combo.setCurrentIndex(panel.profile_combo.findData(args.spectrum_profile))
+        if args.spectrum_sample_rate_hz is not None:
+            panel.sample_rate.setValue(args.spectrum_sample_rate_hz)
+        window._show_page(2)
+        panel.start_analysis()
     if args.screenshot is not None:
         app.processEvents()
         deadline = time.monotonic() + 30
-        while window._active_workers and time.monotonic() < deadline:
+        while (window._active_workers or window.spectrum_panel.job_id) and time.monotonic() < deadline:
             app.processEvents()
             time.sleep(0.01)
         app.processEvents()
+        if window.spectrum_panel.job_id:
+            window.spectrum_panel.cancel_analysis()
+            raise RuntimeError("frequency analysis did not finish before the screenshot deadline")
         args.screenshot.parent.mkdir(parents=True, exist_ok=True)
         if not window.grab().save(str(args.screenshot)):
             raise RuntimeError(f"failed to save screenshot: {args.screenshot}")

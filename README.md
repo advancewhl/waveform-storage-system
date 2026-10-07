@@ -8,6 +8,8 @@
 - [工作目录地图](docs/WORKSPACE.md)
 - [前端交付与版本索引](交付/README_先看.md)
 - [独立日志前端说明](docs/日志前端使用说明.md)
+- [频谱分析使用说明](docs/spectrum-analysis-usage.md)
+- [统一频谱分析架构](docs/spectrum-analysis-design.md)
 - [中间构建包归档索引](archive/build-artifacts/README.md)
 - [本次整理记录](docs/工作目录整理_2026-10-07.md)
 
@@ -24,7 +26,8 @@
 | `deploy/` | 服务部署配置与 systemd 模板 |
 | `packaging/` | 前后端源码包、离线包、可执行包的构建脚本 |
 | `tests/` | 离线测试；不用于触发现场设备 |
-| `analysis/high_frequency/` | 高频分析工作区与输入说明；分析服务尚待接入 |
+| `analysis/high_frequency/` | 高频输入与工作区说明 |
+| `src/waveform_storage/analysis/` | Archiver / HDF5 适配器、共用频谱引擎和任务服务 |
 
 ## 数据、文档和本地产物
 

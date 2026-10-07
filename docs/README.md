@@ -2,6 +2,7 @@
 
 - [当前阶段状态](CURRENT_STATUS.md)、[工作区地图](WORKSPACE.md)、[目录整理记录](工作目录整理_2026-10-07.md)
 - [日志前端使用说明](日志前端使用说明.md)
+- [频谱分析架构](spectrum-analysis-design.md)、[频谱分析使用说明](spectrum-analysis-usage.md)、[频谱分析验证记录](spectrum-analysis-validation.md)
 - `deployment/`：有明确日期的部署与更新记录
 - `audits/`：设备排查及未部署候选证据
 - `handoffs/`：历史任务交接，保留原始上下文

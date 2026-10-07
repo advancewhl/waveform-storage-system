@@ -1,0 +1,35 @@
+{
+  "source_revision": "original files in pv_engine/provenance.json",
+  "fixture": {
+    "seed": 42,
+    "points": 1800,
+    "sample_rate_hz": 1,
+    "target_hz": 0.152,
+    "amplitude": 2,
+    "noise_std": 0.2,
+    "transient_index": 700,
+    "transient_added": 20
+  },
+  "low_v1": {
+    "classification": "stable_candidate",
+    "peak_frequency_hz": 0.15333333333333335,
+    "clean_peak_to_background_db": 35.40806998663307,
+    "global_robust_z": null,
+    "detrended_prominence_db": null,
+    "frequency_resolution_hz": 0.0033333333333333335,
+    "stable_block_count": 6,
+    "total_block_count": 6,
+    "transient_count": 1
+  },
+  "low_v2": {
+    "classification": "stable_candidate",
+    "peak_frequency_hz": 0.15333333333333335,
+    "clean_peak_to_background_db": 35.40806998663307,
+    "global_robust_z": 36.06855013379729,
+    "detrended_prominence_db": 37.76857179217789,
+    "frequency_resolution_hz": 0.0033333333333333335,
+    "stable_block_count": 6,
+    "total_block_count": 6,
+    "transient_count": 1
+  }
+}

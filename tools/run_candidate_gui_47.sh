@@ -6,7 +6,7 @@ env_file="$project_root/.env"
 registry="$project_root/config/devices.operator.json"
 capture_registry="$project_root/config/devices.probe47.json"
 python_bin=${WAVEFORM_GUI_PYTHON:-/home/whloong/miniconda3/envs/waveform-storage/bin/python}
-operator_binary="$project_root/dist/operator-debian10/waveform-operator/waveform-operator"
+operator_binary=${WAVEFORM_OPERATOR_EXECUTABLE:-"$project_root/dist/operator-debian10/waveform-operator/waveform-operator"}
 tunnel_socket=${XDG_RUNTIME_DIR:-/tmp}/waveform-candidate-5001-${UID}.sock
 
 if [ "${1:-}" = "--stop-tunnel" ]; then
@@ -116,4 +116,4 @@ export WAVEFORM_OPERATOR_ROOT="$project_root"
 exec "$operator_binary" \
   --mode candidate_v2 \
   --registry "$registry" \
-  --capture-registry "$capture_registry"
+  --capture-registry "$capture_registry" "$@"

@@ -15,12 +15,16 @@ dependencies = [
 
 [project.optional-dependencies]
 mongodb = ["pymongo>=4"]
+spectrum = ["pandas>=2.0", "scipy>=1.10"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"waveform_storage.analysis.pv_engine" = ["*.json"]
 
 [tool.ruff]
 target-version = "py310"

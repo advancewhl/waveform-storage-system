@@ -36,3 +36,10 @@ waveform files at that time. Check the devices to align or download, then use
 The build script extracts the actual archive in a temporary directory, checks
 file hashes and exclusions, imports the formal runtime without old/demo modules,
 and renders an offscreen screenshot without sending a capture request.
+
+The third sidebar page **频谱分析** reads local waveform HDF5 and Archiver
+CSV/TSV/TXT/ZIP exports. Choose a source and an independent analysis preset;
+enter the capture's actual sample rate for HDF5 files without rate metadata.
+Analysis is also available in UI-only mode. Use **保存结果包** to export the
+manifest, quality checks, spectra, block statistics, and report as a ZIP file.
+The history page can pass its current aligned data to this analysis page.

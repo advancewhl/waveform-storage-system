@@ -21,7 +21,7 @@ from packaging.utils import canonicalize_name
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_NAME = "waveform-operator-direct-offline-20261004"
 OUTPUT = ROOT / "outputs" / "deployment-pair-20261004"
-REQUIREMENTS = ("PyQt5", "caproto", "h5py", "matplotlib", "numpy", "paramiko", "pyzmq")
+REQUIREMENTS = ("PyQt5", "caproto", "h5py", "matplotlib", "numpy", "pandas", "scipy", "paramiko", "pyzmq")
 COMPAT_CRYPTO = ROOT / "offline-packages/glibc228-crypto-compat-20261004.tar.gz"
 COMPAT_CRYPTO_VERSION = "50.0.2"
 SKIP_PARTS = {"__pycache__", "tests", "test", "examples", "ioc_examples", "demos", "demo"}

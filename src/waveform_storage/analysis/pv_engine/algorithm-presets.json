@@ -1,0 +1,59 @@
+{
+  "low_v1": {
+    "target_frequency_hz": 0.152,
+    "welch_window_seconds": 300.0,
+    "welch_overlap_ratio": 0.5,
+    "stability_block_seconds": 300.0,
+    "local_band_hz": [
+      0.12,
+      0.19
+    ],
+    "background_exclusion_hz": [
+      0.142,
+      0.162
+    ],
+    "transient_rolling_window_seconds": 21.0,
+    "transient_sigma_threshold": 8.0,
+    "exploratory_peak_threshold_db": 6.0,
+    "stable_min_block_count": 3,
+    "stable_min_ratio": 0.6,
+    "minimum_data_points": 128,
+    "minimum_duration_seconds": 300.0,
+    "max_gap_factor": 5.0,
+    "target_peak_search_half_width_hz": 0.01
+  },
+  "low_v2": {
+    "target_frequency_hz": 0.152,
+    "welch_window_seconds": 300.0,
+    "welch_overlap_ratio": 0.5,
+    "stability_block_seconds": 300.0,
+    "local_band_hz": [
+      0.12,
+      0.19
+    ],
+    "background_exclusion_hz": [
+      0.142,
+      0.162
+    ],
+    "transient_rolling_window_seconds": 21.0,
+    "transient_sigma_threshold": 8.0,
+    "exploratory_peak_threshold_db": 6.0,
+    "stable_min_block_count": 3,
+    "stable_min_ratio": 0.6,
+    "minimum_data_points": 128,
+    "minimum_duration_seconds": 300.0,
+    "max_gap_factor": 5.0,
+    "detrend_window_hz": 0.05,
+    "detrend_polyorder": 2,
+    "detrend_target_guard_bins": 3,
+    "target_peak_search_half_width_hz": 0.01,
+    "detrended_prominence_threshold_db": 3.0,
+    "block_detrended_prominence_threshold_db": 1.0,
+    "global_robust_z_threshold": 4.0,
+    "block_global_robust_z_threshold": 0.5,
+    "global_peak_percentile_threshold": 0.95,
+    "global_min_frequency_hz": 0.02,
+    "peak_width_min_bins": 0.5,
+    "peak_width_max_bins": 7.0
+  }
+}

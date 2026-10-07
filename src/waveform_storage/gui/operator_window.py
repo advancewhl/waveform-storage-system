@@ -54,6 +54,7 @@ from waveform_storage.gui.plotting import (
     plot_device_waveform,
 )
 from waveform_storage.gui.workers import BackgroundWorker
+from waveform_storage.gui.spectrum_panel import SpectrumPanel
 
 
 class BeamlineAreaModel(QStandardItemModel):
@@ -383,8 +384,10 @@ class OperatorMainWindow(QMainWindow):
         side.addSpacing(28)
         self.capture_nav = self._nav_button("采集控制", True)
         self.history_nav = self._nav_button("历史检索与绘图", False)
+        self.spectrum_nav = self._nav_button("频谱分析", False)
         side.addWidget(self.capture_nav)
         side.addWidget(self.history_nav)
+        side.addWidget(self.spectrum_nav)
         side.addStretch(1)
         root.addWidget(sidebar)
 
@@ -397,12 +400,15 @@ class OperatorMainWindow(QMainWindow):
         self.pages = QStackedWidget()
         self.pages.addWidget(self._capture_page())
         self.pages.addWidget(self._history_page())
+        self.spectrum_panel = SpectrumPanel(self.journal_path.parent / "spectrum-runs", self)
+        self.pages.addWidget(self.spectrum_panel)
         work.addWidget(self.pages, 1)
         work.addWidget(self._task_status_bar())
         root.addWidget(workspace, 1)
 
         self.capture_nav.clicked.connect(lambda: self._show_page(0))
         self.history_nav.clicked.connect(lambda: self._show_page(1))
+        self.spectrum_nav.clicked.connect(lambda: self._show_page(2))
 
     def _topbar(self) -> QHBoxLayout:
         layout = QHBoxLayout()
@@ -576,12 +582,15 @@ class OperatorMainWindow(QMainWindow):
         self.plot_button = QPushButton("刷新绘图")
         self.export_button = QPushButton("导出对齐数据")
         self.raw_button = QPushButton("下载原始数据")
+        self.history_spectrum_button = QPushButton("频谱分析")
         plot_head.addWidget(self.plot_button)
         plot_head.addWidget(self.export_button)
         plot_head.addWidget(self.raw_button)
+        plot_head.addWidget(self.history_spectrum_button)
         self.plot_button.clicked.connect(self._render_selected_plot)
         self.export_button.clicked.connect(self._export_alignment)
         self.raw_button.clicked.connect(self._download_raw)
+        self.history_spectrum_button.clicked.connect(self._analyze_history_alignment)
         self.plot_mode.currentIndexChanged.connect(self._plot_mode_changed)
         self.plot_device.currentIndexChanged.connect(
             lambda _index: self._plot_device_changed()
@@ -697,7 +706,22 @@ class OperatorMainWindow(QMainWindow):
 
     def _show_page(self, index: int) -> None:
         self.pages.setCurrentIndex(index)
-        self.page_title.setText(("采集控制", "历史检索与绘图")[index])
+        self.page_title.setText(("采集控制", "历史检索与绘图", "频谱分析")[index])
+        for page, button in enumerate((self.capture_nav, self.history_nav, self.spectrum_nav)):
+            button.setChecked(page == index)
+
+    def _analyze_history_alignment(self) -> None:
+        try:
+            if self.alignment_result is None:
+                raise ValueError("请先选择 BPM 并生成历史对齐结果")
+            self.spectrum_panel.use_alignment(self.alignment_result)
+            self._show_page(2)
+        except ValueError as exc:
+            QMessageBox.warning(self, "尚无法分析", str(exc))
+
+    def closeEvent(self, event) -> None:
+        self.spectrum_panel.shutdown()
+        super().closeEvent(event)
 
     def _update_selection_summary(self) -> None:
         area_count = len(self.area_model.selected_area_ids())

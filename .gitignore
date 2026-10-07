@@ -65,3 +65,4 @@ dist/
 /docs/ui-preview/references/*
 !/docs/ui-preview/references/README.md
 /analysis/**/runs/
+/outputs/spectrum-preview/
