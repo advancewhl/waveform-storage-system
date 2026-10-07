@@ -41,3 +41,5 @@
 | `server-candidates/20261005/waveform-server-retry-20261005-a357f2c3efe5.tar.gz` | 59106765 | 有 |
 
 频谱分析的中间源码包 `waveform-operator-formal-d0c190be8d87.tar.gz` 与校验文件保存在 `spectrum-preview/20261007/`。当前本机预览及验证说明见 `docs/spectrum-analysis-validation.md`，原桌面交付入口仍按既有记录使用。
+
+本机启动和排版修复过程产生的源码包 `cf99935148d0`、`2ffd065849d1`、`31c8046573a3`、`2279ca4bf622`，以及三次尚未采用的可执行目录，也保存在同一目录。当前本机桌面入口已接入新的本机包；另一台桌面机的既有包仍按原部署记录使用。

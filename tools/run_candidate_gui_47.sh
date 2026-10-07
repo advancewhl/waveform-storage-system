@@ -6,7 +6,11 @@ env_file="$project_root/.env"
 registry="$project_root/config/devices.operator.json"
 capture_registry="$project_root/config/devices.probe47.json"
 python_bin=${WAVEFORM_GUI_PYTHON:-/home/whloong/miniconda3/envs/waveform-storage/bin/python}
-operator_binary=${WAVEFORM_OPERATOR_EXECUTABLE:-"$project_root/dist/operator-debian10/waveform-operator/waveform-operator"}
+local_binary="$project_root/outputs/operator-local/waveform-operator/waveform-operator"
+operator_binary=${WAVEFORM_OPERATOR_EXECUTABLE:-"$local_binary"}
+if [ -z "${WAVEFORM_OPERATOR_EXECUTABLE:-}" ] && [ ! -x "$operator_binary" ]; then
+  operator_binary="$project_root/dist/operator-debian10/waveform-operator/waveform-operator"
+fi
 tunnel_socket=${XDG_RUNTIME_DIR:-/tmp}/waveform-candidate-5001-${UID}.sock
 
 if [ "${1:-}" = "--stop-tunnel" ]; then
@@ -20,9 +24,14 @@ if [ "${1:-}" = "--stop-tunnel" ]; then
   exit 0
 fi
 
-if [ "$#" -gt 1 ] || { [ "$#" -eq 1 ] && [ "$1" != "--check-only" ]; }; then
-  echo "Usage: $0 [--check-only|--stop-tunnel]" >&2
-  exit 2
+check_only=false
+if [ "${1:-}" = "--check-only" ]; then
+  if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 --check-only" >&2
+    exit 2
+  fi
+  check_only=true
+  shift
 fi
 
 if [ ! -f "$env_file" ]; then
@@ -105,7 +114,7 @@ if ! health; then
   exit 1
 fi
 
-if [ "${1:-}" = "--check-only" ]; then
+if [ "$check_only" = true ]; then
   echo "Candidate V2 is healthy; the expanded operator GUI is ready"
   exit 0
 fi

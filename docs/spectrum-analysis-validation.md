@@ -46,8 +46,22 @@
 
 ![真实数据频谱分析界面](ui-preview/spectrum-analysis.png)
 
-预览启动入口为 `tools/run_spectrum_preview.sh`。本机可执行文件位于 `outputs/spectrum-preview/pyinstaller-dist/waveform-operator/`；源码包为 `outputs/spectrum-preview/waveform-operator-formal-cf99935148d0.tar.gz`，配套 SHA-256 文件记录完整性。未采用的中间源码包集中保留在 `archive/build-artifacts/spectrum-preview/20261007/`。
+预览启动入口为 `tools/run_spectrum_preview.sh`。本机当前可执行文件位于 `outputs/operator-local/waveform-operator/`；当前源码包为 `outputs/spectrum-preview/waveform-operator-formal-fff64e6b7f72.tar.gz`，配套 SHA-256 文件记录完整性。未采用的中间包集中保留在 `archive/build-artifacts/spectrum-preview/20261007/`。
 
 本机可执行预览包含 pandas、SciPy 与原低频参数资源，已验证实际 HDF5 分析和 Archiver 固定信号的低频 V2 分析。后者峰值为 0.1533333333 Hz，6/6 个完整分块命中，与源码基准一致。打包规则显式选用当前 Python 环境的 libexpat，避免本机系统库与 pyexpat 的 ABI 冲突。
 
 桌面机仍使用原可执行版本。本阶段未更新桌面机，也未在桌面系统上验证新依赖；后续更新须使用对应平台的构建流程。已有采集与历史服务的连接配置由 `--connected` 启动入口复用，本次验证使用本地离线分析。
+
+## 本机入口与排版修复
+
+用户通过本机桌面图标运行时，旧可执行文件把工作目录的 `src/` 加入模块搜索路径，加载了新分析代码。旧包未包含 SciPy，导致 `ModuleNotFoundError`。运行进程路径和任务 traceback 均已核对。
+
+修复后，本机桌面和连接入口优先选择 `outputs/operator-local/waveform-operator/`。源码运行继续读取工作目录，打包运行使用包内代码，使代码与依赖对应。启动脚本也接受第三栏和文件导入参数；4 项启动脚本回归测试与原检查合计 189 项通过。
+
+最终包已通过桌面图标所用脚本的实际启动与分析，记录 SciPy 版本为 1.15.3。另用含报错代码的外部 `src/` 核验打包隔离，包内分析仍成功完成。两次验证均得到 40 个可分析通道和相同分类计数。
+
+参数标签和控件现在组成紧邻的一组。普通输入框宽 145 像素，下拉框宽 180 像素，不随大窗口拉长。一排的三组参数均匀分布，组间距随窗口扩展。“本次采样率”与文件缺失字段的提示保持对应。常规和展开参数均已检查，并在 1,120 × 720 和 1,549 × 926 下核对显示。
+
+用户截图中的文件为 `20261006_155416_BPMdata.h5`，与最初试运行文件不同。该文件也没有采样率字段，按填写的 1,000 Hz 试跑，40 个通道均可分析，结果为 5 个重复候选、27 个观察项和 8 个未通过项。这个结果仍以填写的采样率为条件。
+
+![缩短参数输入框后的界面](ui-preview/spectrum-analysis-layout.png)

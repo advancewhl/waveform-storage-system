@@ -47,6 +47,20 @@ class SpectrumPanel(QWidget):
         spin.setMinimumWidth(90)
         return spin
 
+    @staticmethod
+    def _parameter_field(label, widget):
+        field = QWidget()
+        row = QHBoxLayout(field)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(8)
+        text = QLabel(label)
+        text.setBuddy(widget)
+        widget.setFixedWidth(180 if isinstance(widget, QComboBox) else 145)
+        row.addWidget(text)
+        row.addWidget(widget)
+        row.addStretch(1)
+        return field
+
     def _build_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -68,16 +82,16 @@ class SpectrumPanel(QWidget):
         source_row.addWidget(self.file_button)
         source_row.addWidget(self.folder_button)
         form.addLayout(source_row)
-        self.input_note = QLabel("采样率使用该次采集的记录；旧 HDF5 缺失时须填写。")
+        self.input_note = QLabel("文件未记录采样率时，请在“本次采样率”填入该次采集值。")
         self.input_note.setWordWrap(True)
         form.addWidget(self.input_note)
         grid = QGridLayout()
-        grid.setHorizontalSpacing(10)
+        grid.setHorizontalSpacing(20)
         grid.setVerticalSpacing(7)
         self.profile_combo = QComboBox()
-        self.profile_combo.addItem("高频频带（40 Hz～50 Hz）", "high_band")
-        self.profile_combo.addItem("低频窄峰（V2）", "low_v2")
-        self.profile_combo.addItem("低频窄峰（V1）", "low_v1")
+        self.profile_combo.addItem("高频（40 Hz～50 Hz）", "high_band")
+        self.profile_combo.addItem("低频 0.152 Hz（V2）", "low_v2")
+        self.profile_combo.addItem("低频 0.152 Hz（V1）", "low_v1")
         self.sample_rate = self._spin(decimals=3)
         self.sample_rate.setSuffix(" Hz")
         self.sample_rate.setSpecialValueText("读取文件记录")
@@ -101,7 +115,7 @@ class SpectrumPanel(QWidget):
         self.minimum_points = QSpinBox()
         self.minimum_points.setRange(4, 5_000_000)
         fields = [
-            ("分析模板", self.profile_combo), ("采样率", self.sample_rate), ("零值策略", self.zero_combo),
+            ("分析模板", self.profile_combo), ("本次采样率", self.sample_rate), ("零值策略", self.zero_combo),
             ("搜索下限（Hz）", self.low), ("搜索上限（Hz）", self.high), ("窗口（秒）", self.window_seconds),
             ("背景下限（Hz）", self.background_low), ("背景上限（Hz）", self.background_high), ("分块（秒）", self.block_seconds),
             ("峰背景比（dB）", self.threshold), ("最少命中块", self.minimum_blocks), ("命中比例", self.block_ratio),
@@ -110,18 +124,21 @@ class SpectrumPanel(QWidget):
         ]
         for index, (label, widget) in enumerate(fields[:9]):
             row, pair = divmod(index, 3)
-            grid.addWidget(QLabel(label), row, 2 * pair)
-            grid.addWidget(widget, row, 2 * pair + 1)
+            grid.addWidget(self._parameter_field(label, widget), row, pair)
+        for column in range(3):
+            grid.setColumnStretch(column, 1)
         self.parameter_widgets = [widget for _label, widget in fields] + [
             self.source_combo, self.path_edit, self.file_button, self.folder_button]
         form.addLayout(grid)
         self.advanced_frame = QWidget()
         advanced_grid = QGridLayout(self.advanced_frame)
         advanced_grid.setContentsMargins(0, 0, 0, 0)
+        advanced_grid.setHorizontalSpacing(20)
         for index, (label, widget) in enumerate(fields[9:]):
             row, pair = divmod(index, 3)
-            advanced_grid.addWidget(QLabel(label), row, 2 * pair)
-            advanced_grid.addWidget(widget, row, 2 * pair + 1)
+            advanced_grid.addWidget(self._parameter_field(label, widget), row, pair)
+        for column in range(3):
+            advanced_grid.setColumnStretch(column, 1)
         self.advanced_frame.hide()
         form.addWidget(self.advanced_frame)
         action = QHBoxLayout()

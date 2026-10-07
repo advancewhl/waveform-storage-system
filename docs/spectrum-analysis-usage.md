@@ -12,7 +12,7 @@ bash tools/run_spectrum_preview.sh
 
 该入口默认打开第三栏。频谱分析读取本地文件，离线查看模式也可使用。
 
-已生成可执行预览时，启动脚本使用该预览；否则使用本机 Python 源码。需要接入已有采集与历史服务时，运行 `bash tools/run_spectrum_preview.sh --connected`，沿用当前 SSH 连接配置。
+启动脚本优先使用 `outputs/operator-local/waveform-operator/` 的本机可执行文件，其次使用已生成的预览；否则使用本机 Python 源码。桌面图标也优先使用本机新包。需要接入已有采集与历史服务时，运行 `bash tools/run_spectrum_preview.sh --connected`，沿用当前 SSH 连接配置。
 
 1. 选择“波形存储 HDF5”或“Archiver 导出”。
 2. 选择文件或目录。Archiver 支持 CSV、TSV、TXT 和 ZIP。
@@ -22,6 +22,12 @@ bash tools/run_spectrum_preview.sh
 6. 使用“保存结果包”或“保存频谱图”导出结果。
 
 历史检索完成对齐后，也可点击历史页面的“频谱分析”。界面接收当前对齐结果，并要求填写历史采集频率。
+
+## 启动环境故障
+
+若提示 `ModuleNotFoundError: No module named 'scipy'`，说明正在运行的包或 Python 环境缺少分析依赖。工作目录中的新源码曾被旧可执行文件加载，而旧包未包含 SciPy。本机桌面入口已调整为使用包含依赖的新包；更新后关闭原窗口，重新打开桌面图标。
+
+打包后的程序使用包内代码，源码运行使用工作目录代码。HDF5 未记录采样率时，界面的“读取文件记录”须改成该次采集的实际 Hz。
 
 ## 参数模板
 

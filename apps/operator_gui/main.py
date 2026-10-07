@@ -13,7 +13,7 @@ PROJECT_ROOT = Path(
     os.environ.get("WAVEFORM_OPERATOR_ROOT", "")
 ).resolve() if os.environ.get("WAVEFORM_OPERATOR_ROOT") else Path(__file__).resolve().parents[2]
 SOURCE_ROOT = PROJECT_ROOT / "src"
-if str(SOURCE_ROOT) not in sys.path:
+if not getattr(sys, "frozen", False) and str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
 from PyQt5.QtWidgets import QApplication

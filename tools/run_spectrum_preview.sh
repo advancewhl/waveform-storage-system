@@ -2,7 +2,10 @@
 set -euo pipefail
 project_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 python_bin=${WAVEFORM_GUI_PYTHON:-/home/whloong/miniconda3/envs/waveform-storage/bin/python}
-preview_binary="$project_root/outputs/spectrum-preview/pyinstaller-dist/waveform-operator/waveform-operator"
+preview_binary="$project_root/outputs/operator-local/waveform-operator/waveform-operator"
+if [ ! -x "$preview_binary" ]; then
+  preview_binary="$project_root/outputs/spectrum-preview/pyinstaller-dist/waveform-operator/waveform-operator"
+fi
 export MPLCONFIGDIR=${MPLCONFIGDIR:-/tmp/waveform-spectrum-mpl}
 export WAVEFORM_OPERATOR_ROOT="$project_root"
 if [ "${1:-}" = "--connected" ]; then

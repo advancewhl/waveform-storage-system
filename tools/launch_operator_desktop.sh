@@ -5,7 +5,12 @@ project_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 log_dir="$project_root/logs"
 log_file="$log_dir/operator-launcher.log"
 python_bin=${WAVEFORM_GUI_PYTHON:-/home/whloong/miniconda3/envs/waveform-storage/bin/python}
-operator_binary="$project_root/dist/operator-debian10/waveform-operator/waveform-operator"
+local_binary="$project_root/outputs/operator-local/waveform-operator/waveform-operator"
+operator_binary=${WAVEFORM_OPERATOR_EXECUTABLE:-"$local_binary"}
+if [ -z "${WAVEFORM_OPERATOR_EXECUTABLE:-}" ] && [ ! -x "$operator_binary" ]; then
+  operator_binary="$project_root/dist/operator-debian10/waveform-operator/waveform-operator"
+fi
+export WAVEFORM_OPERATOR_EXECUTABLE="$operator_binary"
 mkdir -p -- "$log_dir"
 
 printf '\n[%s] Starting formal operator GUI\n' "$(date '+%Y-%m-%d %H:%M:%S')" >>"$log_file"
@@ -21,11 +26,11 @@ fi
 
 if [ "$connected" = true ]; then
   printf '[%s] Service available; opening connected UI\n' "$(date '+%Y-%m-%d %H:%M:%S')" >>"$log_file"
-  command=(bash "$project_root/tools/run_candidate_gui_47.sh")
+  command=(bash "$project_root/tools/run_candidate_gui_47.sh" "$@")
 else
   printf '[%s] Service unavailable; opening UI-only mode\n' "$(date '+%Y-%m-%d %H:%M:%S')" >>"$log_file"
   export WAVEFORM_OPERATOR_ROOT="$project_root"
-  command=("$operator_binary" --ui-only)
+  command=("$operator_binary" --ui-only "$@")
 fi
 
 if "${command[@]}" >>"$log_file" 2>&1; then
