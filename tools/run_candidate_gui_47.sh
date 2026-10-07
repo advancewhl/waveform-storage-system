@@ -7,6 +7,9 @@ registry="$project_root/config/devices.operator.json"
 capture_registry="$project_root/config/devices.probe47.json"
 python_bin=${WAVEFORM_GUI_PYTHON:-/home/whloong/miniconda3/envs/waveform-storage/bin/python}
 local_binary="$project_root/outputs/operator-local/waveform-operator/waveform-operator"
+if [ -x "$project_root/outputs/operator-local/current/waveform-operator" ]; then
+  local_binary=$(readlink -f -- "$project_root/outputs/operator-local/current/waveform-operator")
+fi
 operator_binary=${WAVEFORM_OPERATOR_EXECUTABLE:-"$local_binary"}
 if [ -z "${WAVEFORM_OPERATOR_EXECUTABLE:-}" ] && [ ! -x "$operator_binary" ]; then
   operator_binary="$project_root/dist/operator-debian10/waveform-operator/waveform-operator"

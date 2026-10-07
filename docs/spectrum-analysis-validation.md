@@ -46,7 +46,7 @@
 
 ![真实数据频谱分析界面](ui-preview/spectrum-analysis.png)
 
-预览启动入口为 `tools/run_spectrum_preview.sh`。本机当前可执行文件位于 `outputs/operator-local/waveform-operator/`；当前源码包为 `outputs/spectrum-preview/waveform-operator-formal-fff64e6b7f72.tar.gz`，配套 SHA-256 文件记录完整性。未采用的中间包集中保留在 `archive/build-artifacts/spectrum-preview/20261007/`。
+预览启动入口为 `tools/run_spectrum_preview.sh`。本机当前版本由 `outputs/operator-local/current/` 指向；当前源码包为 `outputs/spectrum-preview/waveform-operator-formal-1b3095d8053a.tar.gz`，配套 SHA-256 文件记录完整性。未采用的中间包集中保留在 `archive/build-artifacts/spectrum-preview/20261007/`。
 
 本机可执行预览包含 pandas、SciPy 与原低频参数资源，已验证实际 HDF5 分析和 Archiver 固定信号的低频 V2 分析。后者峰值为 0.1533333333 Hz，6/6 个完整分块命中，与源码基准一致。打包规则显式选用当前 Python 环境的 libexpat，避免本机系统库与 pyexpat 的 ABI 冲突。
 
@@ -65,3 +65,13 @@
 用户截图中的文件为 `20261006_155416_BPMdata.h5`，与最初试运行文件不同。该文件也没有采样率字段，按填写的 1,000 Hz 试跑，40 个通道均可分析，结果为 5 个重复候选、27 个观察项和 8 个未通过项。这个结果仍以填写的采样率为条件。
 
 ![缩短参数输入框后的界面](ui-preview/spectrum-analysis-layout.png)
+
+## 峰标注、筛选与排序
+
+频谱图显示峰点和峰频率，使用 LaTeX 兼容数学渲染。结果表支持 X/Y 与四种状态筛选，以及峰值、峰背景比、命中块的数值升降序排序。行数据保存原通道索引，筛选和排序后仍能正确选图。空筛选会清空图表，禁止保存旧图。
+
+新增 Qt 测试覆盖组合筛选、空结果、缺失峰值、9.2 与 10 的数值排序、2 与 10 的命中块排序、通道对应关系、峰频标签和图片导出。版本启动测试还检查当前版本路径被解析为实际目录，已运行版本保留原目录。
+
+本次质量检查共 192 项测试通过。最终可执行文件与桌面入口均已使用真实 HDF5 完成 40 个通道分析，峰频标签已检查。当前本机版本位于 `outputs/operator-local/releases/20261007-spectrum-results/waveform-operator/`，此前使用的目录原地保留。
+
+![X 方向重复候选按峰背景比降序排列](ui-preview/spectrum-analysis-results.png)

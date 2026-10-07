@@ -72,6 +72,17 @@ class OperatorLauncherTests(unittest.TestCase):
         lines = self.launch("launch_operator_desktop.sh", [], override=custom)
         self.assertEqual(lines[0], str(custom))
 
+    def test_current_release_uses_resolved_path_and_preserves_previous_bundle(self):
+        release = self.root / "outputs/operator-local/releases/new/waveform-operator"
+        self.make_executable(release / "waveform-operator")
+        (self.root / "outputs/operator-local/current").symlink_to(release, target_is_directory=True)
+        for launcher, args in [("launch_operator_desktop.sh", ["--page", "spectrum"]),
+                               ("run_spectrum_preview.sh", []),
+                               ("run_candidate_gui_47.sh", ["--page", "spectrum"])]:
+            lines = self.launch(launcher, args)
+            self.assertEqual(lines[0], str(release / "waveform-operator"))
+        self.assertTrue(self.local.is_file())
+
 
 if __name__ == "__main__":
     unittest.main()

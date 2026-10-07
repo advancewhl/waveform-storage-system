@@ -24,6 +24,17 @@ LABELS = {"invalid": "无法分析", "stable_candidate": "重复候选",
           "observation": "观察项", "reject": "未通过门槛"}
 
 
+class NumericResultItem(QTableWidgetItem):
+    def __init__(self, text, value):
+        super().__init__(text)
+        self.sort_key = (0, ()) if value is None else (1, value if isinstance(value, tuple) else (value,))
+
+    def __lt__(self, other):
+        if isinstance(other, NumericResultItem):
+            return self.sort_key < other.sort_key
+        return super().__lt__(other)
+
+
 class SpectrumPanel(QWidget):
     def __init__(self, output_root, parent=None):
         super().__init__(parent)
@@ -164,16 +175,43 @@ class SpectrumPanel(QWidget):
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
         splitter = QSplitter(Qt.Horizontal)
+        table_host = QWidget()
+        table_layout = QVBoxLayout(table_host)
+        table_layout.setContentsMargins(0, 0, 0, 0)
+        table_layout.setSpacing(6)
+        filters = QHBoxLayout()
+        self.plane_filter = QComboBox()
+        for label, value in (("全部", ""), ("X", "X"), ("Y", "Y")):
+            self.plane_filter.addItem(label, value)
+        self.plane_filter.setFixedWidth(75)
+        self.state_filter = QComboBox()
+        self.state_filter.addItem("全部状态", "")
+        for value in ("stable_candidate", "observation", "reject", "invalid"):
+            self.state_filter.addItem(LABELS[value], value)
+        self.state_filter.setFixedWidth(130)
+        self.result_count = QLabel("显示 0 个")
+        filters.addWidget(QLabel("方向"))
+        filters.addWidget(self.plane_filter)
+        filters.addSpacing(8)
+        filters.addWidget(QLabel("状态"))
+        filters.addWidget(self.state_filter)
+        filters.addStretch(1)
+        filters.addWidget(self.result_count)
+        table_layout.addLayout(filters)
         self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(("通道", "状态", "峰值（Hz）", "峰背景比", "分块命中"))
+        self.table.setHorizontalHeaderLabels(("通道", "状态", "峰值（Hz）", "峰背景比", "命中块"))
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.table.setAlternatingRowColors(True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.horizontalHeader().setSortIndicator(0, Qt.AscendingOrder)
+        self.table.setSortingEnabled(True)
+        self.table.horizontalHeader().setToolTip("点击表头切换升序或降序；峰值、峰背景比和命中块按数值排序")
         self.table.setMinimumWidth(300)
-        splitter.addWidget(self.table)
+        table_layout.addWidget(self.table, 1)
+        splitter.addWidget(table_host)
         plot_host = QWidget()
         plot_layout = QVBoxLayout(plot_host)
         plot_layout.setContentsMargins(0, 0, 0, 0)
@@ -184,7 +222,7 @@ class SpectrumPanel(QWidget):
         self.detail_label.setWordWrap(True)
         plot_layout.addWidget(self.detail_label)
         splitter.addWidget(plot_host)
-        splitter.setSizes([440, 650])
+        splitter.setSizes([640, 650])
         layout.addWidget(splitter, 1)
         self.file_button.clicked.connect(self._choose_file)
         self.folder_button.clicked.connect(self._choose_folder)
@@ -196,6 +234,8 @@ class SpectrumPanel(QWidget):
         self.export_button.clicked.connect(self._export)
         self.plot_export_button.clicked.connect(self._export_plot)
         self.table.itemSelectionChanged.connect(self._render_selection)
+        self.plane_filter.currentIndexChanged.connect(self._refresh_result_table)
+        self.state_filter.currentIndexChanged.connect(self._refresh_result_table)
         self._apply_profile()
 
     def _apply_profile(self, *_args):
@@ -282,6 +322,7 @@ class SpectrumPanel(QWidget):
             return
         self.last_run = None
         self.table.setRowCount(0)
+        self.result_count.setText("显示 0 个")
         self.figure.clear()
         self.canvas.draw_idle()
         self.plot_export_button.setEnabled(False)
@@ -332,29 +373,66 @@ class SpectrumPanel(QWidget):
 
     def _show_result(self):
         run = self.last_run
-        self.table.setRowCount(len(run.channels))
-        for row, channel in enumerate(run.channels):
-            values = [channel.channel, LABELS[channel.classification],
-                      "—" if channel.peak_hz is None else f"{channel.peak_hz:.5g}",
-                      "—" if channel.peak_to_background_db is None else f"{channel.peak_to_background_db:.2f} dB",
-                      f"{channel.block_hits}/{channel.block_count}"]
-            for col, text in enumerate(values):
-                item = QTableWidgetItem(text)
-                item.setToolTip(channel.reason + "\n" + "\n".join(channel.warnings))
-                self.table.setItem(row, col, item)
+        self._refresh_result_table()
         valid = sum(c.classification != "invalid" for c in run.channels)
         candidates = sum(c.classification == "stable_candidate" for c in run.channels)
         self.status_label.setText(f"分析完成：{valid}/{len(run.channels)} 个通道可分析，{candidates} 个重复候选。可保存本次结果包。")
         self.status_label.setToolTip(str(run.directory))
         self.export_button.setEnabled(True)
-        if run.channels:
-            self.table.selectRow(0)
+
+    @staticmethod
+    def _plane(channel):
+        plane = str(channel.metadata.get("plane", "")).upper()
+        if plane in {"X", "Y"}:
+            return plane
+        name = channel.channel.upper()
+        return next((plane for plane in ("X", "Y") if name.endswith(("_" + plane, ":" + plane))), "")
+
+    def _refresh_result_table(self, *_args):
+        if self.last_run is None:
+            return
+        current = self.table.item(self.table.currentRow(), 0)
+        selected = current.data(Qt.UserRole) if current is not None else None
+        plane, state = self.plane_filter.currentData(), self.state_filter.currentData()
+        rows = [(index, c) for index, c in enumerate(self.last_run.channels)
+                if (not plane or self._plane(c) == plane) and (not state or c.classification == state)]
+        self.table.blockSignals(True)
+        self.table.setSortingEnabled(False)
+        self.table.clearContents()
+        self.table.setRowCount(len(rows))
+        for row, (index, channel) in enumerate(rows):
+            values = [channel.channel, LABELS[channel.classification],
+                      "—" if channel.peak_hz is None else f"{channel.peak_hz:.5g}",
+                      "—" if channel.peak_to_background_db is None else f"{channel.peak_to_background_db:.2f} dB",
+                      f"{channel.block_hits}/{channel.block_count}"]
+            keys = [None, None, channel.peak_hz, channel.peak_to_background_db,
+                    (channel.block_hits, channel.block_ratio or 0, channel.block_count)]
+            for col, text in enumerate(values):
+                item = NumericResultItem(text, keys[col]) if col >= 2 else QTableWidgetItem(text)
+                item.setData(Qt.UserRole, index)
+                item.setToolTip(channel.reason + "\n" + "\n".join(channel.warnings))
+                self.table.setItem(row, col, item)
+        self.table.setSortingEnabled(True)
+        self.result_count.setText(f"显示 {len(rows)}/{len(self.last_run.channels)} 个")
+        selected_row = next((row for row in range(len(rows))
+                             if self.table.item(row, 0).data(Qt.UserRole) == selected), 0)
+        if rows:
+            self.table.selectRow(selected_row)
+        self.table.blockSignals(False)
+        self._render_selection()
 
     def _render_selection(self):
         row = self.table.currentRow()
-        if self.last_run is None or row < 0:
+        if self.last_run is None:
             return
-        channel = self.last_run.channels[row]
+        item = self.table.item(row, 0) if row >= 0 else None
+        if item is None:
+            self.figure.clear()
+            self.canvas.draw_idle()
+            self.detail_label.setText("当前筛选条件下没有通道。")
+            self.plot_export_button.setEnabled(False)
+            return
+        channel = self.last_run.channels[item.data(Qt.UserRole)]
         self.figure.clear()
         axis = self.figure.add_subplot(111)
         if len(channel.frequency):
@@ -365,6 +443,15 @@ class SpectrumPanel(QWidget):
             axis.set_xlim(cfg["background_low_hz"], cfg["background_high_hz"])
             if channel.peak_hz is not None:
                 axis.axvline(channel.peak_hz, color="#c78136", linewidth=1, linestyle="--")
+                peak_power = float(np.interp(channel.peak_hz, channel.frequency, channel.psd))
+                axis.scatter([channel.peak_hz], [max(peak_power, np.finfo(float).tiny)],
+                             color="#c78136", s=22, zorder=4)
+                left = channel.peak_hz <= (cfg["background_low_hz"] + cfg["background_high_hz"]) / 2
+                axis.annotate(rf"$f_{{\mathrm{{peak}}}}={channel.peak_hz:.5g}\;\mathrm{{Hz}}$",
+                              xy=(channel.peak_hz, .97), xycoords=("data", "axes fraction"),
+                              xytext=(6 if left else -6, 0), textcoords="offset points",
+                              ha="left" if left else "right", va="top", fontsize=10, color="#a96822",
+                              bbox={"facecolor": "white", "edgecolor": "none", "alpha": .9, "pad": 2})
             axis.set_xlabel("Frequency (Hz)", fontsize=10)
             axis.set_ylabel(r"$\mathrm{PSD}\;[\mathrm{raw}^{2}/\mathrm{Hz}]$", fontsize=10)
             axis.set_title(channel.channel, loc="left", fontsize=10)

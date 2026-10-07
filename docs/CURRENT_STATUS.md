@@ -6,7 +6,7 @@
 
 | 工作 | 入口 |
 | --- | --- |
-| 本机正式桌面前端 | `tools/launch_operator_desktop.sh`，优先使用 `outputs/operator-local/waveform-operator/`，缺失时使用既有桌面包 |
+| 本机正式桌面前端 | `tools/launch_operator_desktop.sh`，优先使用 `outputs/operator-local/current/` 指向的本机版本，缺失时使用既有包 |
 | 前端源码入口 | `apps/operator_gui/main.py` |
 | 采集服务源码入口 | `apps/acquisition_server/main.py` |
 | 日志前端 | `tools/waveform_log_dashboard.py` 与同目录 HTML |
@@ -22,6 +22,8 @@
 日志前端单独提供采集任务查询和展示，读取元数据与日志。GUI 不承担日志网页的运行职责；部署或启动脚本需要按运行环境使用。
 
 波形 HDF5 保留 X/Y 和 bunchID。统一频谱任务服务已接入第三栏，支持 Archiver 与三种 HDF5。低频 V1/V2 和高频频带使用不同模板。使用方法见[频谱分析说明](spectrum-analysis-usage.md)。本机桌面入口使用包含 SciPy 的新包；桌面机的新版本更新尚未执行。
+
+结果浏览支持 X/Y 与状态筛选，数值表头支持升降序排序，频谱图显示峰点和峰频率。筛选与排序后的图表对应关系已验证。
 
 ## 历史和整理记录
 
