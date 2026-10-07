@@ -1,4 +1,4 @@
-"""Launch the scalable experimental operator UI without touching production."""
+"""Shared operator window launcher; standalone defaults to offline demo."""
 
 from __future__ import annotations
 
@@ -31,9 +31,14 @@ from waveform_storage.gui.plotting import plot_device_waveform
 from experimental_backend import ConnectedOperatorBackend
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(
+    *,
+    default_mode: str = OperatorMode.DEMO.value,
+    default_registry: Path | None = None,
+    default_capture_registry: Path | None = None,
+) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    default_registry = (
+    default_registry_path = (
         PROJECT_ROOT / "config" / "devices.candidate.json"
         if (PROJECT_ROOT / "config" / "devices.candidate.json").exists()
         else PROJECT_ROOT / "config" / "devices.json"
@@ -41,11 +46,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--registry",
         type=Path,
-        default=default_registry,
+        default=default_registry or default_registry_path,
         help=(
             "Device registry to load. The integrated branch defaults to the "
             "383-device candidate when present."
         ),
+    )
+    parser.add_argument(
+        "--capture-registry",
+        type=Path,
+        default=default_capture_registry,
+        help="Server-matched registry used only to validate real capture requests.",
     )
     parser.add_argument(
         "--screenshot",
@@ -66,7 +77,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         choices=tuple(item.value for item in OperatorMode),
-        default=OperatorMode.DEMO.value,
+        default=default_mode,
         help=(
             "demo is offline and safe; legacy and candidate_v2 are explicit "
             "connected modes"
@@ -75,13 +86,28 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
-    args = parse_args()
+def main(
+    *,
+    default_mode: str = OperatorMode.DEMO.value,
+    default_registry: Path | None = None,
+    default_capture_registry: Path | None = None,
+) -> int:
+    args = parse_args(
+        default_mode=default_mode,
+        default_registry=default_registry,
+        default_capture_registry=default_capture_registry,
+    )
     app = QApplication(sys.argv)
     registry_path = args.registry
     if not registry_path.is_absolute():
         registry_path = PROJECT_ROOT / registry_path
     registry = load_registry(registry_path)
+    capture_registry = None
+    if args.capture_registry is not None:
+        capture_registry_path = args.capture_registry
+        if not capture_registry_path.is_absolute():
+            capture_registry_path = PROJECT_ROOT / capture_registry_path
+        capture_registry = load_registry(capture_registry_path)
     mode = OperatorMode(args.mode)
     if mode is OperatorMode.DEMO:
         backend = DemoOperatorBackend(registry)
@@ -93,6 +119,7 @@ def main() -> int:
     window = ExperimentalMainWindow(
         registry,
         backend=backend,
+        capture_registry=capture_registry,
         journal_path=PROJECT_ROOT / "logs" / "operator-ui.jsonl",
     )
     window.setProperty("registryPath", str(registry_path))

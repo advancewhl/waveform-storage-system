@@ -1,0 +1,27 @@
+[Unit]
+Description=SHINE waveform acquisition protocol-v2 packaged service
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+User=storage-user
+Group=storage-user
+WorkingDirectory=/home/storage-user/waveform-storage-v2/current
+EnvironmentFile=/home/storage-user/waveform-storage-v2/service.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/storage-user/waveform-storage-v2/current/waveform-acquisition-v2/waveform-acquisition-v2
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=120
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/SHINE_Data /home/storage-user/waveform-storage-v2
+
+[Install]
+WantedBy=multi-user.target

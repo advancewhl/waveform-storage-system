@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import os
 import re
 import threading
@@ -19,6 +20,7 @@ import zmq
 from waveform_storage.acquisition.protocol import (
     CANCEL,
     GET_STATUS,
+    GET_TIMING_FREQUENCY,
     HEALTH,
     FIND_WAVEFORM_FILES,
     LIST_CAPTURE_TIMES,
@@ -37,12 +39,13 @@ from waveform_storage.acquisition.protocol import (
 )
 from waveform_storage.acquisition.task import CaptureCancelled
 from waveform_storage.config.registry import DeviceRegistry
-from waveform_storage.gui.beamline_selection import build_beamline_areas
+from waveform_storage.config.beamline_areas import build_beamline_areas
 from waveform_storage.logging_config import log_context
 
 
 TASK_RECORD_VERSION = 1
 _TERMINAL_STATUSES = {"succeeded", "failed", "cancelled", "rejected"}
+FREQUENCY_PV_RESPONSE_TIMEOUT_SECONDS = 20.0
 
 
 class TaskStoreError(RuntimeError):
@@ -170,6 +173,7 @@ class JsonTaskStore:
                         else None
                     ),
                     "error": item.error,
+                    "failure_stage": getattr(item, "failure_stage", None),
                     "output_paths": [str(path) for path in item.output_paths],
                     "attempted_cycles": item.attempted_cycles,
                     "successful_cycles": item.successful_cycles,
@@ -366,14 +370,20 @@ class PersistentTaskExecutor:
         try:
             results = tuple(self._runner(request))
             failed = [item for item in results if not item.success]
-            if failed:
+            saved = sum(item.successful_cycles for item in results)
+            attempted = sum(item.attempted_cycles for item in results)
+            without_data = sum(item.successful_cycles == 0 for item in results)
+            if failed or saved < attempted:
+                partial = saved > 0
                 response = CaptureResponse(
                     PROTOCOL_VERSION,
                     request.request_id,
                     True,
                     "failed",
-                    f"{len(failed)} of {len(results)} device(s) failed",
-                    "PARTIAL_DEVICE_FAILURE",
+                    (f"partial capture: {saved}/{attempted} cycles saved across "
+                     f"{len(results)} device(s); {without_data} device(s) had no data"
+                     if partial else f"capture failed: 0/{attempted} cycles saved across {len(results)} device(s)"),
+                    "PARTIAL_CAPTURE" if partial else "CAPTURE_FAILED",
                 )
             else:
                 response = CaptureResponse(
@@ -415,6 +425,10 @@ class PersistentTaskExecutor:
 
     def status(self, request_id: str) -> CaptureResponse | None:
         return self.store.get_response(request_id)
+
+    def active_request_id(self) -> str | None:
+        with self._lock:
+            return self._active_request_id
 
     def cancel(self, request_id: str) -> CaptureResponse:
         with self._lock:
@@ -476,11 +490,15 @@ class CandidateAcquisitionServer:
         *,
         context=None,
         metadata=None,
+        frequency_reader: Callable[[], float] | None = None,
     ) -> None:
         self.endpoint = endpoint
         self.policy = policy
         self.tasks = tasks
         self.metadata = metadata
+        self.frequency_reader = frequency_reader
+        self._frequency_lock = threading.Lock()
+        self._frequency_probe: threading.Thread | None = None
         self.context = context or zmq.Context.instance()
         self._socket = None
 
@@ -517,6 +535,8 @@ class CandidateAcquisitionServer:
                 )
             if request.command == CANCEL:
                 return self.tasks.cancel(request.request_id)
+            if request.command == GET_TIMING_FREQUENCY:
+                return self._handle_timing_frequency(request)
 
         if isinstance(request, MetadataQueryRequest):
             return self._handle_metadata_query(request)
@@ -529,7 +549,99 @@ class CandidateAcquisitionServer:
                 str(exc),
                 "REGISTRY_VALIDATION_FAILED",
             )
+        # Keep persisted retries idempotent and let the executor report busy
+        # requests without waiting for a timing PV that cannot be used yet.
+        if (
+            self.tasks.status(request.request_id) is not None
+            or self.tasks.active_request_id() is not None
+        ):
+            return self.tasks.submit(request)
+        if self.frequency_reader is not None:
+            try:
+                actual_frequency = self._read_frequency_bounded()
+            except Exception as exc:
+                return _rejected(
+                    request.request_id,
+                    f"timing frequency PV read failed: {exc}",
+                    "TIMING_FREQUENCY_FAILED",
+                )
+            if not math.isfinite(actual_frequency) or actual_frequency <= 0:
+                return _rejected(
+                    request.request_id,
+                    "timing frequency PV returned an invalid value",
+                    "TIMING_FREQUENCY_FAILED",
+                )
+            if not math.isclose(
+                request.frequency_hz,
+                actual_frequency,
+                rel_tol=1e-6,
+                abs_tol=1e-6,
+            ):
+                return _rejected(
+                    request.request_id,
+                    f"requested frequency {request.frequency_hz:g} Hz differs "
+                    f"from timing PV {actual_frequency:g} Hz",
+                    "FREQUENCY_MISMATCH",
+                )
         return self.tasks.submit(request)
+
+    def _handle_timing_frequency(
+        self, request: ControlRequest
+    ) -> MetadataQueryResponse:
+        active = self.tasks.active_request_id()
+        if active is not None:
+            return MetadataQueryResponse(
+                PROTOCOL_VERSION, request.request_id, False,
+                f"capture {active} is still active", {}, "SERVICE_BUSY",
+            )
+        if self.frequency_reader is None:
+            return MetadataQueryResponse(
+                PROTOCOL_VERSION, request.request_id, False,
+                "timing frequency reader is not configured", {},
+                "TIMING_FREQUENCY_UNAVAILABLE",
+            )
+        try:
+            frequency = self._read_frequency_bounded()
+        except Exception as exc:
+            return MetadataQueryResponse(
+                PROTOCOL_VERSION, request.request_id, False,
+                str(exc) or type(exc).__name__, {}, "TIMING_FREQUENCY_FAILED",
+            )
+        return MetadataQueryResponse(
+            PROTOCOL_VERSION, request.request_id, True,
+            "timing frequency read from PV on waveform server",
+            {"frequency_hz": frequency, "source": "timing_pv"},
+        )
+
+    def _read_frequency_bounded(self) -> float:
+        """Keep a stalled EPICS read from blocking the service's REP socket."""
+
+        reader = self.frequency_reader
+        if reader is None:
+            raise RuntimeError("timing frequency reader is not configured")
+        completed = threading.Event()
+        outcome: dict[str, object] = {}
+
+        def probe() -> None:
+            try:
+                outcome["value"] = float(reader())
+            except Exception as exc:
+                outcome["error"] = exc
+            finally:
+                completed.set()
+
+        with self._frequency_lock:
+            if self._frequency_probe is not None and self._frequency_probe.is_alive():
+                raise TimeoutError("previous timing frequency PV read is still pending")
+            self._frequency_probe = threading.Thread(
+                target=probe, name="waveform-frequency-pv", daemon=True
+            )
+            self._frequency_probe.start()
+        if not completed.wait(FREQUENCY_PV_RESPONSE_TIMEOUT_SECONDS):
+            raise TimeoutError("timing frequency PV read exceeded 20 seconds")
+        if "error" in outcome:
+            raise outcome["error"]
+        return float(outcome["value"])
 
     def _handle_metadata_query(
         self,

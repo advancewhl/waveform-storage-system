@@ -72,8 +72,8 @@ set -a
 source .env
 set +a
 
-python tools/backfill_mongodb.py ../20251112 --dry-run
-python tools/backfill_mongodb.py ../20251112
+python tools/backfill_mongodb.py data/samples/20251112 --dry-run
+python tools/backfill_mongodb.py data/samples/20251112
 ```
 
 若扫描路径与存储 SSH 账户看到的路径不同，必须显式提供 `--catalog-directory`，确保

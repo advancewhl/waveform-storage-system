@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "SHINE 波形存储系统数据流",
+    "locale": "zh-CN",
+    "output": "docs/diagrams/waveform-storage.dataflow.html",
+    "quality_profile": "showcase",
+    "viewBox": [1080, 480]
+  },
+  "stages": [
+    { "label": "请求与配置" },
+    { "label": "任务编排" },
+    { "label": "设备采集" },
+    { "label": "规范化与持久化" },
+    { "label": "检索与消费" }
+  ],
+  "nodes": [
+    {
+      "id": "control",
+      "type": "frontend",
+      "label": "操作与设备选择",
+      "sublabel": "GUI + devices.json",
+      "tag": "区域、设备、频率、时长",
+      "stage": 0,
+      "row": 0,
+      "width": 150,
+      "height": 70
+    },
+    {
+      "id": "orchestration",
+      "type": "backend",
+      "label": "Candidate v2 编排",
+      "sublabel": "ZMQ、策略校验、幂等",
+      "tag": "JSON 任务状态",
+      "stage": 1,
+      "row": 0,
+      "width": 150,
+      "height": 70
+    },
+    {
+      "id": "bpm_source",
+      "type": "external",
+      "label": "BPM 波形源",
+      "sublabel": "EPICS 触发 + SFTP TXT",
+      "tag": "x y bunchID",
+      "stage": 2,
+      "row": 0,
+      "width": 150,
+      "height": 70
+    },
+    {
+      "id": "persistence",
+      "type": "database",
+      "label": "规范化与持久化",
+      "sublabel": "TXT 校验 → 原始 HDF5",
+      "tag": "MongoDB 元数据索引",
+      "stage": 3,
+      "row": 0,
+      "width": 150,
+      "height": 70
+    },
+    {
+      "id": "consumption",
+      "type": "backend",
+      "label": "检索、对齐与交付",
+      "sublabel": "strict / coverage bunchID",
+      "tag": "绘图、下载、对齐 HDF5",
+      "stage": 4,
+      "row": 0,
+      "width": 150,
+      "height": 70
+    }
+  ],
+  "flows": [
+    {
+      "id": "capture_request",
+      "from": "control",
+      "to": "orchestration",
+      "label": "采集请求",
+      "classification": "ZMQ protocol v2",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": 59
+    },
+    {
+      "id": "device_capture",
+      "from": "orchestration",
+      "to": "bpm_source",
+      "label": "EPICS + SFTP",
+      "classification": "触发并拉取 TXT",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": 59
+    },
+    {
+      "id": "normalized_storage",
+      "from": "bpm_source",
+      "to": "persistence",
+      "label": "TXT → HDF5",
+      "classification": "uint64 bunchID + X/Y",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": 59
+    },
+    {
+      "id": "retrieval_result",
+      "from": "persistence",
+      "to": "consumption",
+      "label": "索引与波形",
+      "classification": "文件清单 + HDF5 序列",
+      "variant": "emphasis",
+      "route": "straight",
+      "labelDy": 59
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "波形数据契约",
+      "items": [
+        "设备 TXT 按 x、y、bunchID 和期望点数校验",
+        "原始 HDF5 保存 BunchIDData 与二维 Data",
+        "bunchID 保持 uint64，不推测时钟或缩放"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "状态、索引与消费",
+      "items": [
+        "JSON 任务记录原子替换并支持重启恢复",
+        "MongoDB 只保存任务与文件元数据，不复制波形数组",
+        "检索结果携带 valid_mask 与逐设备质量证据"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "当前边界",
+      "items": [
+        "Candidate v2 使用独立端点，不替换 legacy 生产链路",
+        "EPICS、SSH、现场存储与 HDF5 schema 尚待端到端确认",
+        "图中数据流来自代码实现，不代表现场部署已经验证"
+      ]
+    }
+  ]
+}

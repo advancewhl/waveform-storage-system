@@ -124,6 +124,11 @@ class ConnectedOperatorBackend:
             candidate_sender=transport.request
         ).dispatch(request, CaptureProtocolMode.CANDIDATE_V2)
 
+    def get_capture_status(self, request_id: str):
+        if self.mode is not OperatorMode.CANDIDATE_V2:
+            raise RuntimeError("task status is only available in candidate_v2 mode")
+        return self._candidate_transport().get_status(request_id)
+
     def retrieve_times(self, selected_date: date) -> tuple[str, ...]:
         if self.mode is OperatorMode.CANDIDATE_V2:
             reply = self._candidate_transport().list_capture_times(

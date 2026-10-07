@@ -1,6 +1,6 @@
 {"pv":"AC-LA-INJ1-BI:SBPM01-E:RESULT_CAPTURE", "ip":"192.0.2.5", "port":"6310"},
-{"pv":"AC-LA-INJ1-BI:SBPM02-E:RESULT_CAPTURE", "ip":"192.0.2.6", "port":"5064"},
-{"pv":"AC-LA-INJ1-BI:SBPM03-E:RESULT_CAPTURE", "ip":"192.0.2.7", "port":"5064"},
+{"pv":"AC-LA-INJ1-BI:SBPM02-E:RESULT_CAPTURE", "ip":"192.0.2.6", "port":"6310"},
+{"pv":"AC-LA-INJ1-BI:SBPM03-E:RESULT_CAPTURE", "ip":"192.0.2.7", "port":"6310"},
 {"pv":"AC-LA-INJ1-BI:SBPM04-E:RESULT_CAPTURE", "ip":"192.0.2.8", "port":"6310"},
 {"pv":"AC-LA-INJ1-BI:SBPM05-E:RESULT_CAPTURE", "ip":"192.0.2.9", "port":"6310"},
 {"pv":"AC-LA-INJ1-BI:SBPM06-E:RESULT_CAPTURE", "ip":"192.0.2.10", "port":"6310"},

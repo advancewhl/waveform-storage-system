@@ -17,6 +17,7 @@ START_CAPTURE = "start_capture"
 GET_STATUS = "get_status"
 HEALTH = "health"
 CANCEL = "cancel"
+GET_TIMING_FREQUENCY = "get_timing_frequency"
 LIST_CAPTURE_TIMES = "list_capture_times"
 FIND_WAVEFORM_FILES = "find_waveform_files"
 DEVICE_ID_PATTERN = re.compile(r"^[A-Z0-9_]+$")
@@ -160,12 +161,12 @@ class ControlRequest:
 
     version: int
     request_id: str
-    command: Literal["get_status", "health", "cancel"]
+    command: Literal["get_status", "health", "cancel", "get_timing_frequency"]
 
     def __post_init__(self) -> None:
         _validate_version(self.version)
         _validate_request_id(self.request_id)
-        if self.command not in {GET_STATUS, HEALTH, CANCEL}:
+        if self.command not in {GET_STATUS, HEALTH, CANCEL, GET_TIMING_FREQUENCY}:
             raise ProtocolValidationError(
                 f"unsupported command: {self.command!r}"
             )
@@ -355,7 +356,7 @@ def decode_service_request(
             area_ids=tuple(area_ids),
             devices=tuple(devices),
         )
-    if command in {GET_STATUS, HEALTH, CANCEL}:
+    if command in {GET_STATUS, HEALTH, CANCEL, GET_TIMING_FREQUENCY}:
         _require_exact_fields(payload, _CONTROL_REQUEST_FIELDS)
         return ControlRequest(
             version=payload["version"],
@@ -434,7 +435,7 @@ def validate_area_device_snapshot(
     request: CaptureRequest,
     area_devices: Mapping[str, Sequence[str]],
 ) -> None:
-    """Reject partial-area or stale client snapshots at the server boundary.
+    """Validate a nonempty, approved subset of the selected server areas.
 
     ``area_devices`` must come from the receiving service's trusted,
     version-controlled registry rather than from the request.
@@ -445,15 +446,21 @@ def validate_area_device_snapshot(
         raise ProtocolValidationError(
             f"area_ids are absent from the server registry: {unknown!r}"
         )
-    expected = tuple(
+    allowed = tuple(
         device_id
         for area_id in request.area_ids
         for device_id in area_devices[area_id]
     )
-    if request.devices != expected:
+    if len(set(allowed)) != len(allowed) or not set(request.devices).issubset(allowed):
         raise ProtocolValidationError(
-            "devices must exactly match the server expansion of area_ids"
+            "devices must belong to the selected server area_ids"
         )
+    actual_areas = {
+        area_id for area_id in request.area_ids
+        if any(device_id in request.devices for device_id in area_devices[area_id])
+    }
+    if len(actual_areas) != len(request.area_ids):
+        raise ProtocolValidationError("every area_id must contain a selected device")
 
 
 def _validate_version(version: object) -> None:

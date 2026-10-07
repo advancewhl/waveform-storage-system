@@ -1,13 +1,5 @@
 """Application services coordinating transports, I/O, and processing."""
 
-from .capture_service import CapturePlan, CaptureService
-from .communication_service import (
-    CaptureCommunicationService,
-    CaptureDispatchResult,
-    CaptureProtocolMode,
-)
-from .retrieval_service import RetrievalService, StorageQuery
-
 __all__ = [
     "CaptureCommunicationService",
     "CaptureDispatchResult",
@@ -17,3 +9,31 @@ __all__ = [
     "RetrievalService",
     "StorageQuery",
 ]
+
+
+def __getattr__(name):
+    if name in {"CapturePlan", "CaptureService"}:
+        from .capture_service import CapturePlan, CaptureService
+
+        return {"CapturePlan": CapturePlan, "CaptureService": CaptureService}[name]
+    if name in {
+        "CaptureCommunicationService",
+        "CaptureDispatchResult",
+        "CaptureProtocolMode",
+    }:
+        from .communication_service import (
+            CaptureCommunicationService,
+            CaptureDispatchResult,
+            CaptureProtocolMode,
+        )
+
+        return {
+            "CaptureCommunicationService": CaptureCommunicationService,
+            "CaptureDispatchResult": CaptureDispatchResult,
+            "CaptureProtocolMode": CaptureProtocolMode,
+        }[name]
+    if name in {"RetrievalService", "StorageQuery"}:
+        from .retrieval_service import RetrievalService, StorageQuery
+
+        return {"RetrievalService": RetrievalService, "StorageQuery": StorageQuery}[name]
+    raise AttributeError(name)

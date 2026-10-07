@@ -49,3 +49,19 @@ dist/
 # Local sample data
 /data/samples/*
 !/data/samples/README.md
+
+# Local generated packages and organization snapshots
+/archive/build-artifacts/*
+!/archive/build-artifacts/README.md
+/archive/organization/
+/offline-packages/*
+!/offline-packages/README.md
+/outputs/deployment-pair-*/
+/outputs/operator-formal/*.tar.gz*
+/outputs/server-formal/*.tar.gz*
+/交付/**/*.tar.gz
+/交付/**/*.tar.gz.sha256
+/docs/references/*.doc
+/docs/ui-preview/references/*
+!/docs/ui-preview/references/README.md
+/analysis/**/runs/

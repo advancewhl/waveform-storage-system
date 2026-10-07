@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import threading
 import time
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -14,6 +16,7 @@ import paramiko
 
 from waveform_storage.acquisition.protocol import (
     GET_STATUS,
+    GET_TIMING_FREQUENCY,
     HEALTH,
     FIND_WAVEFORM_FILES,
     LIST_CAPTURE_TIMES,
@@ -27,12 +30,14 @@ from waveform_storage.acquisition.protocol import (
     encode_metadata_query_request,
     encode_request,
 )
+from waveform_storage.transport.zmq_transport import ZmqTransport
 from waveform_storage.acquisition.runtime import (
     AcquisitionServerSettings,
     ProductionCaptureRunner,
     ServerSettingsError,
     capture_interval_seconds,
     load_server_registry,
+    read_timing_frequency,
 )
 from waveform_storage.acquisition.task import CaptureCancelled
 from waveform_storage.acquisition.server import (
@@ -186,6 +191,93 @@ class PersistentServerTests(unittest.TestCase):
             [str(self.root / "result.h5")],
         )
 
+    def test_partial_cycles_report_saved_data(self):
+        path = self.root / "saved.h5"
+        self.tasks._runner = lambda _request: (
+            DeviceCaptureResult(
+                "AC_LA_TEST_BI_SBPM01", False, path,
+                "two cycles had no completed file", (path,), 4, 2,
+                "设备文件等待/下载",
+            ),
+        )
+        request = capture_request()
+        self.handle(request)
+        result = self.wait_for_status(request.request_id, "failed")
+        self.assertEqual(result.error_code, "PARTIAL_CAPTURE")
+        self.assertIn("2/4 cycles saved", result.message)
+        self.assertIn("0 device(s) had no data", result.message)
+        record = json.loads((self.root / "state" / f"{request.request_id}.json").read_text(encoding="utf-8"))
+        self.assertEqual(record["device_results"][0]["failure_stage"], "设备文件等待/下载")
+
+    def test_server_reads_timing_pv_before_capture_request(self):
+        reads = []
+        def read_frequency():
+            reads.append(5.0)
+            return 5.0
+        self.server.frequency_reader = read_frequency
+        query = ControlRequest(
+            PROTOCOL_VERSION, str(uuid4()), GET_TIMING_FREQUENCY
+        )
+        reply = self.handle(query)
+        self.assertTrue(reply.accepted)
+        self.assertEqual(reply.payload, {
+            "frequency_hz": 5.0, "source": "timing_pv"
+        })
+
+        request = replace(capture_request(), frequency_hz=5.0)
+        accepted = self.handle(request)
+        self.assertTrue(accepted.accepted)
+        self.assertEqual(reads, [5.0, 5.0])
+        self.handle(request)
+        self.assertEqual(reads, [5.0, 5.0])
+        busy = self.handle(ControlRequest(
+            PROTOCOL_VERSION, str(uuid4()), GET_TIMING_FREQUENCY
+        ))
+        self.assertFalse(busy.accepted)
+        self.assertEqual(busy.error_code, "SERVICE_BUSY")
+
+    def test_timing_pv_error_does_not_create_capture(self):
+        self.server.frequency_reader = lambda: (_ for _ in ()).throw(
+            TimeoutError("PV timeout")
+        )
+        query = ControlRequest(
+            PROTOCOL_VERSION, str(uuid4()), GET_TIMING_FREQUENCY
+        )
+        reply = self.handle(query)
+        self.assertFalse(reply.accepted)
+        self.assertEqual(reply.error_code, "TIMING_FREQUENCY_FAILED")
+        capture = self.handle(capture_request())
+        self.assertFalse(capture.accepted)
+        self.assertEqual(capture.error_code, "TIMING_FREQUENCY_FAILED")
+        self.assertFalse(tuple((self.root / "state").glob("*.json")))
+
+    def test_stalled_frequency_read_does_not_block_health(self):
+        pending = threading.Event()
+        self.server.frequency_reader = lambda: pending.wait(1)
+        request = ControlRequest(
+            PROTOCOL_VERSION, str(uuid4()), GET_TIMING_FREQUENCY
+        )
+        with patch(
+            "waveform_storage.acquisition.server.FREQUENCY_PV_RESPONSE_TIMEOUT_SECONDS",
+            0.01,
+        ):
+            reply = self.handle(request)
+        self.assertFalse(reply.accepted)
+        self.assertEqual(reply.error_code, "TIMING_FREQUENCY_FAILED")
+        self.assertIn("exceeded", reply.message)
+        health = self.handle(
+            ControlRequest(PROTOCOL_VERSION, str(uuid4()), HEALTH)
+        )
+        self.assertTrue(health.accepted)
+        pending.set()
+
+    def test_capture_rejects_stale_client_frequency(self):
+        self.server.frequency_reader = lambda: 5.0
+        reply = self.handle(capture_request())
+        self.assertFalse(reply.accepted)
+        self.assertEqual(reply.error_code, "FREQUENCY_MISMATCH")
+        self.assertFalse(tuple((self.root / "state").glob("*.json")))
+
     def test_busy_conflict_registry_and_control_requests_are_explicit(self):
         first = capture_request()
         self.handle(first)
@@ -221,10 +313,7 @@ class PersistentServerTests(unittest.TestCase):
             ),
         )
         rejected = self.handle(partial)
-        self.assertEqual(
-            rejected.error_code,
-            "REGISTRY_VALIDATION_FAILED",
-        )
+        self.assertEqual(rejected.error_code, "REGISTRY_VALIDATION_FAILED")
 
         limited_server = CandidateAcquisitionServer(
             "inproc://limited",
@@ -381,14 +470,35 @@ class RestartRecoveryTests(unittest.TestCase):
 
 
 class ServerSettingsTests(unittest.TestCase):
+    def test_timing_frequency_read_uses_server_pv_and_restores_epics_settings(self):
+        class FakePv:
+            def wait_for_connection(self, timeout):
+                self.timeout = timeout
+
+            def read(self, timeout):
+                return SimpleNamespace(data=[5])
+
+        pv = FakePv()
+        context = SimpleNamespace(get_pvs=lambda name: [pv])
+        with patch.dict(os.environ, {"EPICS_CA_ADDR_LIST": "other:6310"}):
+            self.assertEqual(
+                read_timing_frequency(
+                    context_factory=lambda: context, timeout_seconds=3
+                ),
+                5.0,
+            )
+            self.assertEqual(os.environ["EPICS_CA_ADDR_LIST"], "other:6310")
+        self.assertEqual(pv.timeout, 3)
+
     def test_capture_intervals_match_legacy_field_rules(self):
         self.assertEqual(
             {
                 frequency: capture_interval_seconds(frequency)
-                for frequency in (1000, 100, 50, 2)
+                for frequency in (1000, 100, 50, 5, 2)
             },
-            {1000: 2, 100: 12, 50: 22, 2: 512},
+            {1000: 2, 100: 12, 50: 22, 5: 4200, 2: 512},
         )
+        self.assertEqual(capture_interval_seconds(500), 4)
         with self.assertRaisesRegex(ServerSettingsError, "supported"):
             capture_interval_seconds(10)
         self.assertTrue(callable(ProductionCaptureRunner._connect_device))
@@ -572,6 +682,7 @@ class WireServerTests(unittest.TestCase):
                 RegistryPolicy(make_registry()),
                 tasks,
                 context=context,
+                frequency_reader=lambda: 5.0,
             )
             stop = threading.Event()
             thread = threading.Thread(
@@ -590,6 +701,9 @@ class WireServerTests(unittest.TestCase):
                 socket.connect(endpoint)
                 socket.send_string(encode_control_request(request))
                 response = decode_response(socket.recv())
+                timing = ZmqTransport(endpoint, context=context).get_timing_frequency(
+                    str(uuid4())
+                )
             finally:
                 socket.close()
                 stop.set()
@@ -598,6 +712,7 @@ class WireServerTests(unittest.TestCase):
                 context.term()
 
         self.assertEqual(response.status, "succeeded")
+        self.assertEqual(timing.payload["frequency_hz"], 5.0)
         self.assertFalse(thread.is_alive())
 
 

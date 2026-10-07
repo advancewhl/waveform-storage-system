@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=波形存储
+Comment=启动正式版波形存储操作界面
+Exec=/home/whloong/waveform-storage/waveform-storage-system/tools/launch_operator_desktop.sh
+Path=/home/whloong/waveform-storage/waveform-storage-system
+Icon=/home/whloong/waveform-storage/waveform-storage-system/assets/waveform-operator.svg
+Terminal=false
+StartupNotify=true
+Categories=Science;

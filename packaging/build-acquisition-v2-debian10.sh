@@ -3,11 +3,13 @@ set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 build_image="${WAVEFORM_BUILD_IMAGE:-python:3.10-buster}"
-pip_index_url="${WAVEFORM_PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}"
+pip_index_url="${WAVEFORM_PIP_INDEX_URL:-https://pypi.org/simple}"
 host_uid="$(id -u)"
 host_gid="$(id -g)"
 
 docker run --rm \
+  --network host \
+  --env HTTP_PROXY --env HTTPS_PROXY --env http_proxy --env https_proxy --env NO_PROXY --env no_proxy \
   --env HOST_UID="${host_uid}" \
   --env HOST_GID="${host_gid}" \
   --env PIP_DEFAULT_TIMEOUT=300 \

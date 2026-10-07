@@ -126,12 +126,12 @@ class OperationErrorDialog(QDialog):
             """
             QDialog#operationErrorDialog { background: #f8fafc; }
             QLabel#errorIcon {
-                background: #fee2e2; color: #b91c1c; border-radius: 19px;
+                background: #eaf3f9; color: #357fb5; border-radius: 19px;
                 font-size: 22px; font-weight: 700;
             }
             QLabel#errorTitle { color: #0f172a; font-size: 19px; font-weight: 700; }
             QLabel#errorCode {
-                background: #fff1f2; color: #be123c; border: 1px solid #fecdd3;
+                background: #eaf3f9; color: #357fb5; border: 1px solid #c3deef;
                 border-radius: 10px; padding: 4px 10px; font-weight: 600;
             }
             QLabel#errorSummary { color: #334155; font-size: 14px; }
@@ -152,7 +152,7 @@ class OperationErrorDialog(QDialog):
             }
             QPushButton:hover { background: #f1f5f9; }
             QPushButton#primaryButton {
-                background: #2563eb; color: white; border-color: #2563eb;
+                background: #458cc4; color: white; border-color: #458cc4;
             }
             """
         )

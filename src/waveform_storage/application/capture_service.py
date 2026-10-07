@@ -60,6 +60,7 @@ class DeviceCaptureResult:
     output_paths: tuple[Path, ...] = ()
     attempted_cycles: int = 1
     successful_cycles: int = 0
+    failure_stage: str | None = None
 
     def __post_init__(self) -> None:
         paths = tuple(Path(item) for item in self.output_paths)
@@ -110,6 +111,7 @@ class CaptureService:
                         if device_id in trigger_by_device
                         else "not triggered"
                     ),
+                    failure_stage="EPICS 触发",
                 )
                 for device_id in request.device_ids
             )
@@ -139,20 +141,37 @@ class CaptureService:
             trigger = trigger_by_device.get(device_id)
             if trigger is None or not trigger.success:
                 error = trigger.error if trigger is not None else "not triggered"
-                results.append(DeviceCaptureResult(device_id, False, error=error))
+                results.append(DeviceCaptureResult(
+                    device_id, False, error=error, failure_stage="EPICS 触发"
+                ))
                 continue
             download = downloads.get(device_id)
             if download is None or not download.success:
                 error = download.error if download is not None else "not downloaded"
-                results.append(DeviceCaptureResult(device_id, False, error=error))
+                results.append(DeviceCaptureResult(
+                    device_id, False, error=error,
+                    failure_stage="设备文件等待/下载",
+                ))
                 continue
             try:
                 parsed = self._parser(download.path)
+            except Exception as exc:
+                results.append(
+                    DeviceCaptureResult(
+                        device_id, False, error=str(exc),
+                        failure_stage="TXT 解析",
+                    )
+                )
+                continue
+            try:
                 output = Path(self._writer(device_id, parsed, request))
                 results.append(DeviceCaptureResult(device_id, True, output))
             except Exception as exc:
                 results.append(
-                    DeviceCaptureResult(device_id, False, error=str(exc))
+                    DeviceCaptureResult(
+                        device_id, False, error=str(exc),
+                        failure_stage="HDF5 写入",
+                    )
                 )
         completed = tuple(results)
         failures = sum(not item.success for item in completed)

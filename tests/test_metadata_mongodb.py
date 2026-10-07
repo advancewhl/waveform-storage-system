@@ -299,6 +299,41 @@ class MemoryRepositoryTests(unittest.TestCase):
             ("120721", "120733"),
         )
 
+    def test_partial_cycles_count_devices_with_saved_files(self):
+        registry_path = PROJECT_ROOT / "config/devices.json"
+        registry = load_registry(registry_path)
+        device = registry.devices[0]
+        repository = InMemoryMetadataRepository()
+        service = CaptureMetadataService(repository, registry, registry_path)
+        request = CaptureRequest(
+            PROTOCOL_VERSION, str(uuid4()), "start_capture", 100, 30,
+            (device.section,), (device.id,),
+        )
+        accepted = CaptureResponse(
+            PROTOCOL_VERSION, request.request_id, True, "accepted", "accepted"
+        )
+        partial = CaptureResponse(
+            PROTOCOL_VERSION, request.request_id, True, "failed",
+            "2/4 cycles saved", "PARTIAL_CAPTURE",
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / f"RAW-120721-{device.id}-S00000.h5"
+            with h5py.File(path, "w") as h5:
+                h5.create_dataset("BunchIDData", data=np.asarray([[1, 2]]))
+                h5.create_dataset("Data", data=np.asarray([[1, 2], [3, 4]]))
+            service.record_created(request, accepted)
+            service.record_status(request, partial, device_results=(
+                DeviceCaptureResult(device.id, False, path,
+                                    output_paths=(path,), attempted_cycles=4,
+                                    successful_cycles=2),
+            ))
+        summary = repository.tasks[request.request_id]["result_summary"]
+        self.assertEqual(summary["succeeded"], 1)
+        self.assertEqual(summary["failed"], 0)
+        self.assertEqual(summary["saved_cycles"], 2)
+        self.assertEqual(summary["partial_devices"], 1)
+        self.assertEqual(len(repository.files), 1)
+
     def test_historical_directory_import_is_validated_and_idempotent(self):
         registry = load_registry(PROJECT_ROOT / "config" / "devices.json")
         device = registry.devices[0]

@@ -11,6 +11,7 @@ from waveform_storage.acquisition.protocol import (
     CANCEL,
     FIND_WAVEFORM_FILES,
     GET_STATUS,
+    GET_TIMING_FREQUENCY,
     HEALTH,
     LIST_CAPTURE_TIMES,
     CaptureResponse,
@@ -56,6 +57,14 @@ class ZmqTransport:
             HEALTH,
         )
         return self._exchange(encode_control_request(request))
+
+    def get_timing_frequency(self, request_id):
+        request = ControlRequest(
+            PROTOCOL_VERSION,
+            request_id,
+            GET_TIMING_FREQUENCY,
+        )
+        return self._exchange_metadata(encode_control_request(request))
 
     def cancel(self, request_id):
         request = ControlRequest(

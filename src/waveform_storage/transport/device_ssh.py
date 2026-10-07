@@ -18,6 +18,8 @@ class DeviceDownload:
     file_pattern: str = "*.txt"
     not_before_epoch: float = 0
     settle_seconds: float = 2
+    wait_timeout_seconds: float = 0
+    poll_seconds: float = 2
 
 
 @dataclass(frozen=True)
@@ -50,19 +52,30 @@ class DeviceSshGateway:
         try:
             client = self._connector(request)
             sftp = client.open_sftp()
-            if self._file_selector is None:
-                filename = self._select_completed_file(sftp, request)
-            else:
-                filename = self._file_selector(
-                    request.device_id,
-                    list(sftp.listdir(request.remote_dir)),
-                )
-            if not filename:
-                raise FileNotFoundError("no completed matching file")
+            deadline = time.monotonic() + request.wait_timeout_seconds
+            while True:
+                if self._file_selector is None:
+                    filename = self._select_completed_file(sftp, request)
+                else:
+                    filename = self._file_selector(
+                        request.device_id,
+                        list(sftp.listdir(request.remote_dir)),
+                    )
+                if filename:
+                    remote_path = f"{request.remote_dir.rstrip('/')}/{filename}"
+                    try:
+                        if self._file_selector is None:
+                            self._require_stable_file(sftp, remote_path, request)
+                        break
+                    except (OSError, RuntimeError):
+                        # A file can appear before its writer closes it.
+                        pass
+                if time.monotonic() >= deadline:
+                    raise FileNotFoundError(
+                        f"no completed matching file within {request.wait_timeout_seconds:g}s"
+                    )
+                self._waiter(min(request.poll_seconds, max(0, deadline - time.monotonic())))
             request.destination.parent.mkdir(parents=True, exist_ok=True)
-            remote_path = f"{request.remote_dir.rstrip('/')}/{filename}"
-            if self._file_selector is None:
-                self._require_stable_file(sftp, remote_path, request)
             sftp.get(remote_path, str(request.destination))
             return DownloadResult(
                 request.device_id,

@@ -7,8 +7,8 @@ import numpy as np
 from matplotlib.ticker import MaxNLocator
 
 
-BLUE = "#0072B2"
-ORANGE = "#D55E00"
+BLUE = "#458cc4"
+GRAY = "#7f919e"
 INK = "#111111"
 MUTED = "#2f2f2f"
 GRID = "#c8c8c8"
@@ -41,7 +41,7 @@ def plot_alignment_result(result, selected_index):
         markersize=marker_size,
         label="Y position",
         linewidth=2.1,
-        color=ORANGE,
+        color=GRAY,
     )
     axis.set_title(
         f"BPM distribution  ·  BunchID {int(result.bunch_ids[index])}",
@@ -117,7 +117,7 @@ def plot_device_waveform(result, device_id: str):
         bunch_ids,
         y_values,
         label="Y position",
-        color=ORANGE,
+        color=GRAY,
         linewidth=2.0,
         marker="s",
         markevery=marker_step,

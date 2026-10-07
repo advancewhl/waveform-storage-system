@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "description": "Isolated INJ1/SBPM01 one-time 5 Hz capture, 20000 points",
+  "devices": [
+    {
+      "id": "AC_LA_INJ1_BI_SBPM01",
+      "section": "INJ1",
+      "display_name": "INJ1/SBPM01",
+      "device_type": "SBPM",
+      "capture_pv": "AC-LA-INJ1-BI:SBPM01-E:RESULT_CAPTURE",
+      "epics_host": "192.0.2.5",
+      "epics_port": 6310,
+      "ssh_host": "192.0.2.5",
+      "ssh_port": 22,
+      "credential_profile": "bpm_device_default",
+      "remote_data_dir": "/home/data",
+      "file_pattern": "bram_result.txt",
+      "expected_points": 20000,
+      "x_unit": null,
+      "y_unit": null,
+      "scale_factor": null,
+      "order": 0,
+      "enabled": true,
+      "acquisition_enabled": true,
+      "default_selected": false,
+      "tags": [
+        "INJ1",
+        "SBPM"
+      ]
+    }
+  ]
+}

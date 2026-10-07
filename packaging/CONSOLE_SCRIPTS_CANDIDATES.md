@@ -1,18 +1,7 @@
-# Console script candidates
+# Historical console-script proposal
 
-No production entrypoint is changed in this stage. The current scripts remain:
-
-- `python apps/operator_gui/main.py`
-- `python apps/acquisition_agent/main_file_transport_h5df.py`
-- `python tools/device_registry.py`
-
-Candidates for a later, field-reviewed packaging stage:
-
-- `waveform-operator-gui`
-- `waveform-acquisition-agent`
-- `waveform-device-registry`
-- `waveform-quality`
-
-Before enabling these in `pyproject.toml`, Linux Qt resources, configuration
-discovery, deployment ownership, production protocol and rollback must be
-validated. No production package or executable is generated here.
+This file records an earlier proposal and is not a build input. The current
+formal source packages use `apps/operator_gui/main.py` and
+`apps/acquisition_server/main.py` with the explicit allowlists documented in
+`PACKAGE_AUDIT_2026-09-29.md`. The old Designer GUI, demo backend, and legacy
+entry points are excluded from those packages.

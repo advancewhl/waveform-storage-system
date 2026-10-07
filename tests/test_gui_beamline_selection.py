@@ -7,6 +7,8 @@ from pathlib import Path
 from waveform_storage.config.registry import DeviceRegistry, load_registry
 from waveform_storage.gui.beamline_selection import (
     build_beamline_areas,
+    build_display_areas,
+    REFERENCE_AREAS,
     selected_device_ids,
 )
 
@@ -62,6 +64,29 @@ class BeamlineAreaSelectionTests(unittest.TestCase):
             len(selected_device_ids(areas, {area.area_id for area in areas})),
             400,
         )
+
+    def test_display_areas_follow_reference_without_losing_devices(self):
+        candidate = load_registry(
+            PROJECT_ROOT / "config" / "devices.candidate.json"
+        )
+        display = build_display_areas(candidate)
+        self.assertEqual(
+            tuple(area.display_name for area in display[:len(REFERENCE_AREAS)]),
+            ("ING",) + tuple(name for name, _sections in REFERENCE_AREAS[1:]),
+        )
+        self.assertEqual(display[0].area_id, "BI")
+        self.assertTrue(all(area.device_count > 0 for area in display))
+        self.assertNotIn("GUN", {area.area_id for area in display})
+        self.assertNotIn("InjCM", {area.area_id for area in display})
+        self.assertNotIn("LH&BD", {area.area_id for area in display})
+        self.assertEqual(
+            next(area for area in display if area.area_id == "EXT1&2").device_count,
+            8,
+        )
+        displayed_ids = [device_id for area in display for device_id in area.device_ids]
+        self.assertEqual(len(displayed_ids), len(set(displayed_ids)))
+        self.assertEqual(set(displayed_ids), {device.id for device in candidate.devices})
+        self.assertEqual(len(display), 24)
 
     def test_candidate_registry_groups_all_383_devices(self):
         candidate = load_registry(

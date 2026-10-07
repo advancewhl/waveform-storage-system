@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from waveform_storage.acquisition.protocol import (
     GET_STATUS,
+    GET_TIMING_FREQUENCY,
     FIND_WAVEFORM_FILES,
     LIST_CAPTURE_TIMES,
     PROTOCOL_VERSION,
@@ -73,6 +74,12 @@ class CaptureRequestTests(unittest.TestCase):
         self.assertEqual(
             decode_service_request(encode_control_request(request)),
             request,
+        )
+        timing = ControlRequest(
+            PROTOCOL_VERSION, str(uuid4()), GET_TIMING_FREQUENCY
+        )
+        self.assertEqual(
+            decode_service_request(encode_control_request(timing)), timing
         )
         payload = json.loads(encode_control_request(request))
         payload["extra"] = True
@@ -154,7 +161,7 @@ class CaptureRequestTests(unittest.TestCase):
                 ("BPM_A",),
             )
 
-    def test_server_rejects_partial_area_device_snapshot(self):
+    def test_server_accepts_approved_partial_area_device_snapshot(self):
         request = CaptureRequest(
             PROTOCOL_VERSION,
             str(uuid4()),
@@ -164,15 +171,12 @@ class CaptureRequestTests(unittest.TestCase):
             ("INJECTOR",),
             ("BPM_A",),
         )
-        with self.assertRaisesRegex(
-            ProtocolValidationError,
-            "exactly match",
-        ):
-            validate_area_device_snapshot(
-                request,
-                {"INJECTOR": ("BPM_A", "BPM_B")},
-            )
+        validate_area_device_snapshot(
+            request, {"INJECTOR": ("BPM_A", "BPM_B")}
+        )
         validate_area_device_snapshot(request, {"INJECTOR": ("BPM_A",)})
+        with self.assertRaisesRegex(ProtocolValidationError, "belong"):
+            validate_area_device_snapshot(request, {"INJECTOR": ("BPM_B",)})
         with self.assertRaisesRegex(ProtocolValidationError, "area_ids contains"):
             CaptureRequest(
                 PROTOCOL_VERSION,

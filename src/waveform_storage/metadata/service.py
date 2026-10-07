@@ -138,10 +138,17 @@ class CaptureMetadataService:
         now = datetime.now(timezone.utc)
         summary = None
         if device_results:
+            with_data = sum(item.successful_cycles > 0 for item in device_results)
             summary = {
                 "requested": len(request.devices),
-                "succeeded": sum(bool(item.success) for item in device_results),
-                "failed": sum(not bool(item.success) for item in device_results),
+                "succeeded": with_data,
+                "failed": len(device_results) - with_data,
+                "attempted_cycles": sum(item.attempted_cycles for item in device_results),
+                "saved_cycles": sum(item.successful_cycles for item in device_results),
+                "partial_devices": sum(
+                    0 < item.successful_cycles < item.attempted_cycles
+                    for item in device_results
+                ),
             }
         self._best_effort(
             "update capture task",

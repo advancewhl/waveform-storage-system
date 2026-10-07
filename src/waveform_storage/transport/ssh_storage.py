@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import os
 import re
+import select
+import shlex
+import stat
+import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 import paramiko
@@ -27,6 +32,118 @@ def _connect(hostname, username, password, port):
         ssh.close()
         raise SshStorageError(f"SSH connection failed: {exc}") from exc
     return ssh
+
+
+class _ControlSftpSocket:
+    """Expose an OpenSSH control-master SFTP channel to Paramiko."""
+
+    def __init__(self, command: str) -> None:
+        # PyInstaller prepends its bundled OpenSSL libraries to LD_LIBRARY_PATH.
+        # The host's ssh binary must use the host libraries instead.
+        environment = os.environ.copy()
+        original_library_path = environment.pop("LD_LIBRARY_PATH_ORIG", None)
+        if original_library_path is None:
+            environment.pop("LD_LIBRARY_PATH", None)
+        else:
+            environment["LD_LIBRARY_PATH"] = original_library_path
+        self._process = subprocess.Popen(
+            shlex.split(command),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            bufsize=0,
+            env=environment,
+        )
+        self._timeout_seconds = 30.0
+
+    def send(self, data: bytes) -> int:
+        try:
+            assert self._process.stdin is not None
+            written = self._process.stdin.write(data)
+        except (BrokenPipeError, OSError) as exc:
+            raise SshStorageError(f"SFTP SSH write failed: {exc}") from exc
+        if written != len(data):
+            raise SshStorageError("SFTP SSH wrote an incomplete packet")
+        return written
+
+    def recv(self, size: int) -> bytes:
+        assert self._process.stdout is not None
+        deadline = time.monotonic() + self._timeout_seconds
+        result = bytearray()
+        while len(result) < size:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise SshStorageError("SFTP SSH response timed out")
+            ready, _, _ = select.select([self._process.stdout], [], [], remaining)
+            if not ready:
+                raise SshStorageError("SFTP SSH response timed out")
+            chunk = os.read(self._process.stdout.fileno(), size - len(result))
+            if not chunk:
+                status = self._process.poll()
+                detail = ""
+                if status is not None and self._process.stderr is not None:
+                    detail = self._process.stderr.read(512).decode(
+                        "utf-8", errors="replace"
+                    ).strip()
+                raise SshStorageError(
+                    f"SFTP SSH stream closed (exit {status}): {detail}"
+                )
+            result.extend(chunk)
+        return bytes(result)
+
+    def get_name(self) -> str:
+        return "ssh-control-sftp"
+
+    def close(self) -> None:
+        if self._process.poll() is None:
+            self._process.terminate()
+            try:
+                self._process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                self._process.kill()
+                self._process.wait(timeout=2)
+        for stream in (
+            self._process.stdin,
+            self._process.stdout,
+            self._process.stderr,
+        ):
+            if stream is not None:
+                stream.close()
+
+
+def _sftp_over_control_socket(
+    hostname: str, username: str, port: int, control_socket: str
+):
+    socket_path = Path(control_socket)
+    try:
+        socket_stat = socket_path.stat()
+    except OSError as exc:
+        raise SshStorageError("SSH tunnel control socket is unavailable") from exc
+    if (
+        not socket_path.is_absolute()
+        or not stat.S_ISSOCK(socket_stat.st_mode)
+        or socket_stat.st_uid != os.getuid()
+    ):
+        raise SshStorageError("SSH tunnel control socket is invalid")
+    arguments = [
+        "ssh", "-S", str(socket_path),
+        "-o", "BatchMode=yes",
+        "-o", "StrictHostKeyChecking=yes",
+    ]
+    known_hosts = os.environ.get("WAVEFORM_OPERATOR_KNOWN_HOSTS_FILE")
+    if known_hosts:
+        arguments.extend((
+            "-o", f"UserKnownHostsFile={known_hosts}",
+            "-o", "GlobalKnownHostsFile=/dev/null",
+        ))
+    arguments.extend(("-p", str(port), "-s", f"{username}@{hostname}", "sftp"))
+    command = shlex.join(arguments)
+    channel = _ControlSftpSocket(command)
+    try:
+        return paramiko.SFTPClient(channel)
+    except Exception as exc:
+        channel.close()
+        raise SshStorageError(f"SSH tunnel SFTP failed: {exc}") from exc
 
 
 def list_time_fields(hostname, username, password, remote_path, port=22):
@@ -98,6 +215,8 @@ def save_files(
     file_device_pairs,
     local_path,
     port=22,
+    *,
+    control_socket=None,
 ):
     """Download the exact catalog-approved paths without a remote directory scan."""
 
@@ -106,10 +225,13 @@ def save_files(
         return []
     destination = Path(local_path)
     destination.mkdir(parents=True, exist_ok=True)
-    ssh = _connect(hostname, username, password, port)
+    ssh = None if control_socket else _connect(hostname, username, password, port)
     sftp = None
     try:
-        sftp = ssh.open_sftp()
+        sftp = (
+            _sftp_over_control_socket(hostname, username, port, control_socket)
+            if control_socket else ssh.open_sftp()
+        )
         saved = []
         for remote_file, _device_id in pairs:
             filename = Path(remote_file).name
@@ -120,26 +242,31 @@ def save_files(
     finally:
         if sftp is not None:
             sftp.close()
-        ssh.close()
+        if ssh is not None:
+            ssh.close()
 
 
 def download_device_series(
-    file_device_pairs, *, reader=read_single_device_hdf5, settings=None
+    file_device_pairs, *, reader=read_single_device_hdf5, settings=None,
+    control_socket=None,
 ):
     pairs = list(file_device_pairs)
     if not pairs:
         return [], []
     active = settings or AppSettings.from_env()
-    ssh = _connect(
-        active.storage_host,
-        active.storage_user,
-        active.storage_password,
-        active.storage_port,
+    ssh = None if control_socket else _connect(
+        active.storage_host, active.storage_user,
+        active.storage_password, active.storage_port,
     )
     sftp = None
     records, skipped = [], []
     try:
-        sftp = ssh.open_sftp()
+        sftp = (
+            _sftp_over_control_socket(
+                active.storage_host, active.storage_user,
+                active.storage_port, control_socket,
+            ) if control_socket else ssh.open_sftp()
+        )
         for remote_file, expected_device_id in pairs:
             try:
                 with tempfile.NamedTemporaryFile(
@@ -168,4 +295,5 @@ def download_device_series(
     finally:
         if sftp is not None:
             sftp.close()
-        ssh.close()
+        if ssh is not None:
+            ssh.close()

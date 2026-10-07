@@ -24,6 +24,7 @@ from waveform_storage.acquisition.runtime import (
     AcquisitionServerSettings,
     ProductionCaptureRunner,
     load_server_registry,
+    read_timing_frequency,
 )
 from waveform_storage.acquisition.server import (
     CandidateAcquisitionServer,
@@ -142,6 +143,9 @@ def main() -> int:
         ),
         tasks,
         metadata=metadata,
+        frequency_reader=lambda: read_timing_frequency(
+            timeout_seconds=settings.epics_connect_timeout_seconds
+        ),
     )
     log_context(
         logger,

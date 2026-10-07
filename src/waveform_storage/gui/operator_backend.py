@@ -34,51 +34,7 @@ from waveform_storage.processing.alignment import (
 )
 
 
-class OperatorMode(str, Enum):
-    DEMO = "demo"
-    LEGACY = "legacy"
-    CANDIDATE_V2 = "candidate_v2"
-
-
-class OperatorBackend(Protocol):
-    mode: OperatorMode
-
-    def start_capture(
-        self,
-        area_ids: tuple[str, ...],
-        device_ids: tuple[str, ...],
-        duration_seconds: int,
-    ) -> CaptureDispatchResult:
-        ...
-
-    def retrieve_times(self, selected_date: date) -> tuple[str, ...]:
-        ...
-
-    def align(
-        self,
-        selected_date: date,
-        time_sec: str,
-        device_ids: tuple[str, ...],
-    ) -> AlignmentResult:
-        ...
-
-    def export_alignment(
-        self,
-        result: AlignmentResult,
-        selected_date: date,
-        time_sec: str,
-        destination: str | Path,
-    ) -> Path:
-        ...
-
-    def download_raw(
-        self,
-        selected_date: date,
-        time_sec: str,
-        device_ids: tuple[str, ...],
-        destination: str | Path,
-    ) -> tuple[Path, ...]:
-        ...
+from waveform_storage.gui.operator_contract import OperatorBackend, OperatorMode
 
 
 @dataclass
@@ -96,12 +52,13 @@ class DemoOperatorBackend:
         area_ids: tuple[str, ...],
         device_ids: tuple[str, ...],
         duration_seconds: int,
+        requested_frequency_hz: float | None = None,
     ) -> CaptureDispatchResult:
         request = CaptureRequest(
             PROTOCOL_VERSION,
             str(uuid4()),
             "start_capture",
-            100,
+            requested_frequency_hz or 100,
             duration_seconds,
             area_ids,
             device_ids,
@@ -121,6 +78,15 @@ class DemoOperatorBackend:
             )
         )
         return service.dispatch(decoded, CaptureProtocolMode.CANDIDATE_V2)
+
+    def get_capture_status(self, request_id: str) -> CaptureResponse:
+        return CaptureResponse(
+            PROTOCOL_VERSION,
+            request_id,
+            True,
+            "succeeded",
+            "demo capture completed",
+        )
 
     def retrieve_times(self, selected_date: date) -> tuple[str, ...]:
         del selected_date

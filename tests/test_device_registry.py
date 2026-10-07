@@ -203,7 +203,15 @@ class CurrentProjectRegistryTests(unittest.TestCase):
         registry = load_registry(root / "config" / "devices.candidate.json")
         imported = import_candidate_registry(source)
 
-        self.assertEqual(registry, imported)
+        # The reviewed field profile overrides the importer's legacy 1024-point
+        # placeholder while preserving all identity and connection fields.
+        self.assertEqual(
+            registry,
+            replace(imported, devices=tuple(
+                replace(device, expected_points=20000)
+                for device in imported.devices
+            )),
+        )
         self.assertEqual(registry.schema_version, 2)
         self.assertEqual(len(registry.devices), 383)
         self.assertEqual(len({item.id for item in registry.devices}), 383)

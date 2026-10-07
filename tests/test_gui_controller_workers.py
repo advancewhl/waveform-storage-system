@@ -68,7 +68,9 @@ class GuiControllerTests(unittest.TestCase):
         for source in (primary, legacy):
             self.assertNotIn("import h5py", source)
             self.assertNotIn("import paramiko", source)
-        self.assertIn("experimental_main", primary)
+        self.assertIn("candidate_backend", primary)
+        self.assertIn("operator_window", primary)
+        self.assertNotIn("experimental_main", primary)
         self.assertIn("BackgroundWorker", legacy)
         self.assertIn("TaskState.ALIGNING", legacy)
         self.assertIn("TaskState.EXPORTING", legacy)

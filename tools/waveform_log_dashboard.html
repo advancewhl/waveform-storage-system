@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waveform 采集日志</title>
+  <style>
+    :root { color-scheme: light; --ink:#18304b; --muted:#667b90; --line:#dce6ee; --blue:#1463b0; --pale:#f2f7fb; --green:#13835e; --red:#c34048; }
+    * { box-sizing:border-box; } body { margin:0; background:#edf3f8; color:var(--ink); font:14px/1.55 system-ui,-apple-system,"Microsoft YaHei",sans-serif; }
+    header { background:linear-gradient(110deg,#102e51,#174e80 65%,#22739b); color:white; padding:32px max(24px,calc((100vw - 1180px)/2)); }
+    header .eyebrow { letter-spacing:.13em; text-transform:uppercase; opacity:.68; font-size:12px; font-weight:700; }
+    h1 { margin:7px 0 4px; font-size:30px; line-height:1.2; } header p { margin:0; opacity:.75; }
+    main { max-width:1228px; margin:auto; padding:24px; } .toolbar { display:flex; gap:12px; align-items:end; flex-wrap:wrap; margin-bottom:18px; }
+    label { display:grid; gap:5px; color:var(--muted); font-size:12px; font-weight:700; } input,button { font:inherit; }
+    input[type=date],input[type=search] { border:1px solid #c8d7e4; border-radius:8px; background:white; color:var(--ink); padding:9px 12px; min-height:40px; }
+    input[type=search] { width:255px; max-width:100%; } button { border:0; border-radius:8px; background:var(--blue); color:white; font-weight:700; padding:9px 17px; min-height:40px; cursor:pointer; }
+    button.secondary { background:white; color:var(--blue); border:1px solid #bfd1e1; } button:hover { filter:brightness(.94); }
+    button:disabled { opacity:.45; cursor:not-allowed; filter:none; }
+    .date-control { display:flex; gap:0; align-items:center; }
+    .date-control input { border-radius:0; width:157px; text-align:center; }
+    .date-control button { padding:0; width:38px; border-radius:0; font-size:21px; font-weight:500; }
+    .date-control button:first-child { border-radius:8px 0 0 8px; border-right:0; }
+    .date-control button:last-child { border-radius:0 8px 8px 0; border-left:0; }
+    #updated { color:var(--muted); margin-left:auto; align-self:center; font-size:12px; }
+    .alert { border-radius:10px; padding:12px 16px; margin:0 0 18px; background:#fff4e5; border:1px solid #efd3a1; color:#805415; }
+    .live-status { color:var(--muted); align-self:center; font-size:12px; white-space:nowrap; }
+    .failure-notice { display:flex; align-items:center; gap:12px; padding:12px 15px; margin-bottom:18px; border:1px solid #edb8bc; background:#fff0f1; color:#92323c; border-radius:10px; font-weight:700; }
+    .failure-notice[hidden] { display:none; } .failure-notice button { background:transparent; color:#92323c; border:1px solid #e7a9ae; min-height:29px; padding:3px 10px; margin-left:auto; }
+    .cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:18px; }
+    .cards.server-mode { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .card,.panel { background:white; border:1px solid var(--line); border-radius:12px; box-shadow:0 4px 18px #2447630a; }
+    .card { padding:18px 20px; min-height:102px; } .card span { display:block; color:var(--muted); font-size:12px; font-weight:700; }
+    .card strong { display:block; font-size:29px; line-height:1.3; margin-top:4px; font-variant-numeric:tabular-nums; }
+    .card small { color:var(--muted); } .card strong.bad { color:var(--red); } .card strong.good { color:var(--green); }
+    .grid { display:grid; grid-template-columns:340px minmax(0,1fr); gap:18px; margin-bottom:18px; }
+    .panel { padding:20px; min-width:0; } h2 { margin:0 0 14px; font-size:17px; } .sub { color:var(--muted); margin:-10px 0 16px; font-size:12px; }
+    .bar-row { display:grid; grid-template-columns:72px 1fr 28px; gap:10px; align-items:center; margin:12px 0; font-variant-numeric:tabular-nums; }
+    .bar-track { height:13px; border-radius:20px; background:#e7eef5; overflow:hidden; } .bar { height:100%; border-radius:20px; background:#3189ca; min-width:3px; }
+    .timeline { display:flex; align-items:end; gap:5px; height:105px; border-bottom:1px solid #d8e4ec; padding:0 2px; }
+    .tick { min-width:14px; flex:1; max-width:52px; background:#2b8bbb; border-radius:4px 4px 0 0; position:relative; cursor:help; }
+    .tick.failed { background:#df6c72; } .tick:hover { filter:brightness(.8); }
+    .empty { padding:28px 8px; color:var(--muted); text-align:center; }
+    .table-wrap { overflow:auto; } table { width:100%; border-collapse:collapse; white-space:nowrap; }
+    th { color:var(--muted); font-size:12px; text-align:left; font-weight:700; background:#f7fafc; }
+    th,td { padding:11px 13px; border-bottom:1px solid #edf1f5; vertical-align:top; }
+    tr:last-child td { border-bottom:0; } tbody tr:hover { background:#f8fbfe; }
+    .pill { display:inline-block; border-radius:20px; padding:2px 9px; font-size:12px; font-weight:700; background:#e5f5ee; color:var(--green); }
+    .pill.failed,.pill.rejected,.pill.cancelled { background:#feebeb; color:var(--red); } .pill.running,.pill.accepted { background:#e9f2fc; color:var(--blue); }
+    code { color:#36516b; font:12px ui-monospace,SFMono-Regular,Consolas,monospace; } .muted { color:var(--muted); }
+    .detail-toggle { background:none; border:0; padding:0; min-height:0; color:var(--blue); font-weight:700; white-space:nowrap; }
+    .detail-row td { padding:0 13px 13px; background:#f8fbfe; white-space:normal; }
+    .detail-box { border:1px solid #d9e7f1; border-radius:9px; padding:13px 16px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px 22px; }
+    .detail-box p { margin:0; overflow-wrap:anywhere; } .detail-box strong { color:var(--muted); font-size:12px; margin-right:7px; }
+    .detail-box .error { color:#9d303a; } .detail-box .device-list { grid-column:1 / -1; }
+    .device-list summary { color:var(--blue); cursor:pointer; font-weight:700; width:max-content; }
+    .device-results { max-height:350px; overflow:auto; display:grid; gap:7px; padding:10px 2px 2px; }
+    .device-result { border:1px solid #dce8f0; background:white; border-radius:7px; padding:8px 10px; }
+    .device-result.issue { border-color:#f0c8cb; background:#fffafb; }
+    .device-result-head { display:flex; gap:9px; align-items:center; flex-wrap:wrap; }
+    .device-result-head code { overflow-wrap:anywhere; } .device-result-head .cycles { color:var(--muted); margin-left:auto; font-size:12px; }
+    .device-result-meta { display:flex; gap:10px; flex-wrap:wrap; margin-top:5px; font-size:12px; }
+    .device-result-meta .stage { color:#925317; } .device-result-meta .error { color:#a43b45; overflow-wrap:anywhere; }
+    .event-state { font-weight:700; } .event-state.bad { color:var(--red); }
+    footer { color:var(--muted); font-size:12px; padding:3px 0 20px; }
+    @media(max-width:950px){ .task-col-secondary { display:none; } .detail-box { grid-template-columns:1fr; } }
+    @media(max-width:800px){ .cards,.cards.server-mode{grid-template-columns:repeat(2,1fr)} .grid{grid-template-columns:1fr} #updated{margin-left:0} }
+    @media(max-width:520px){ .cards,.cards.server-mode{grid-template-columns:1fr 1fr} .card{padding:14px} .card strong{font-size:23px} h1{font-size:25px} main{padding:16px} }
+  </style>
+</head>
+<body>
+  <header><div class="eyebrow">Waveform / Capture observability</div><h1>采集日志</h1><p>按上海时间查看采集任务、执行结果与操作界面记录</p></header>
+  <main>
+    <div class="toolbar">
+      <label>日期 <span class="date-control"><button id="prevDay" class="secondary" title="前一天" aria-label="前一天">‹</button><input id="date" type="date"><button id="nextDay" class="secondary" title="后一天" aria-label="后一天">›</button></span></label>
+      <label>查找任务 / 设备 / 操作 <input id="search" type="search" placeholder="输入关键词筛选表格"></label>
+      <button id="refresh">刷新</button>
+      <span id="liveStatus" class="live-status" aria-live="polite"></span>
+      <span id="updated"></span>
+    </div>
+    <div id="alert" class="alert" hidden></div>
+    <div id="failureNotice" class="failure-notice" role="status" aria-live="polite" hidden><span id="failureText"></span><button id="dismissFailure" type="button">知道了</button></div>
+    <section class="cards" id="summaryCards" aria-label="当日概览">
+      <div class="card"><span>采集任务</span><strong id="total">—</strong><small>按任务创建日期统计</small></div>
+      <div class="card"><span>成功任务</span><strong id="success" class="good">—</strong><small>服务端最终状态</small></div>
+      <div class="card"><span>失败任务</span><strong id="failed" class="bad">—</strong><small>含拒绝与取消</small></div>
+      <div class="card" id="eventCard"><span>操作记录</span><strong id="events">—</strong><small>本机界面日志</small></div>
+    </section>
+    <div class="grid">
+      <section class="panel"><h2>设置的采集时长</h2><p class="sub">按请求时长统计；任务失败时也计入</p><div id="durationChart"></div></section>
+      <section class="panel"><h2>任务时间线</h2><p class="sub">每根柱代表一个任务；红色表示失败、拒绝或取消</p><div id="timeline"></div></section>
+    </div>
+    <section class="panel" style="margin-bottom:18px"><h2>服务端采集任务</h2><p class="sub">时间显示为 Asia/Shanghai；任务详情在表格下方展开</p><div class="table-wrap"><table><thead><tr><th>开始时间</th><th>请求时长</th><th class="task-col-secondary">实际耗时</th><th>状态</th><th>设备</th><th class="task-col-secondary">周期已保存</th><th class="task-col-secondary">频率</th><th>详情</th></tr></thead><tbody id="tasksBody"></tbody></table></div></section>
+    <section class="panel" id="eventPanel" style="margin-bottom:18px"><h2>操作界面记录</h2><p class="sub">来自本机 logs/operator-ui.jsonl；只显示所选日期的记录</p><div class="table-wrap"><table><thead><tr><th>时间</th><th>环节</th><th>结果</th><th>说明</th></tr></thead><tbody id="eventsBody"></tbody></table></div></section>
+    <footer>数据来源：服务端 MongoDB capture_tasks（只读）；本机模式还显示本机操作日志。采集时长是请求设置；实际耗时由服务端开始与结束时间计算。</footer>
+  </main>
+  <script>
+    const $ = id => document.getElementById(id);
+    let data = null;
+    const tz = 'Asia/Shanghai';
+    const dateFmt = new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit'});
+    const timeFmt = new Intl.DateTimeFormat('zh-CN',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+    function shanghaiDate(offset=0){ const now=new Date(Date.now()+offset*86400000); return dateFmt.format(now); }
+    function moveDate(value,days){ const day=new Date(`${value}T12:00:00Z`); day.setUTCDate(day.getUTCDate()+days); return day.toISOString().slice(0,10); }
+    function updateDateNav(){ $('nextDay').disabled=$('date').value>=shanghaiDate(); }
+    function el(tag,text,cls){ const node=document.createElement(tag); if(text!==undefined)node.textContent=String(text); if(cls)node.className=cls; return node; }
+    function clear(node){ node.replaceChildren(); }
+    function time(value){ return value ? timeFmt.format(new Date(value)) : '—'; }
+    function duration(seconds){ if(seconds==null)return '—'; return seconds%60===0 ? `${seconds/60} 分钟` : `${seconds} 秒`; }
+    function elapsed(task){ if(!task.started_at||!task.completed_at)return '—'; return `${Math.round((Date.parse(task.completed_at)-Date.parse(task.started_at))/1000)} 秒`; }
+    function status(value){ return ({succeeded:'成功',failed:'失败',cancelled:'已取消',rejected:'已拒绝',running:'运行中',accepted:'已接受'})[value] || value || '未知'; }
+    function bad(value){ return ['failed','cancelled','rejected'].includes(value); }
+    function matches(value){ const needle=$('search').value.trim().toLowerCase(); return !needle || JSON.stringify(value).toLowerCase().includes(needle); }
+    function render(){
+      if(!data)return;
+      const tasks=data.capture?.tasks || [], events=data.operator_events || [];
+      const showEvents=data.operator_events_available!==false;
+      $('eventCard').hidden=!showEvents;$('eventPanel').hidden=!showEvents;
+      $('summaryCards').classList.toggle('server-mode',!showEvents);
+      $('total').textContent=data.capture ? tasks.length : '—';
+      $('success').textContent=data.capture ? tasks.filter(x=>x.status==='succeeded').length : '—';
+      $('failed').textContent=data.capture ? tasks.filter(x=>bad(x.status)).length : '—';
+      $('events').textContent=events.length;
+      const running=tasks.filter(x=>x.status==='running'||x.status==='accepted').length;
+      $('liveStatus').textContent=$('date').value===shanghaiDate()
+        ? `${running ? `运行中 ${running} · ` : ''}自动刷新，约每 60 秒`
+        : '历史日期 · 手动刷新';
+      const alert=$('alert'); alert.hidden=!data.capture_error; alert.textContent=data.capture_error || '';
+      const chart=$('durationChart'); clear(chart);
+      if(!data.capture)chart.append(el('div','服务端暂不可用','empty'));
+      else if(!tasks.length)chart.append(el('div','当日没有采集任务','empty'));
+      else {
+        const counts=new Map(); for(const task of tasks) counts.set(task.duration_seconds,(counts.get(task.duration_seconds)||0)+1);
+        const max=Math.max(...counts.values());
+        for(const [seconds,count] of [...counts].sort((a,b)=>a[0]-b[0])){
+          const row=el('div',undefined,'bar-row'); row.append(el('span',duration(seconds)));
+          const track=el('div',undefined,'bar-track'),bar=el('div',undefined,'bar'); bar.style.width=`${100*count/max}%`; track.append(bar);row.append(track,el('strong',count));chart.append(row);
+        }
+      }
+      const timeline=$('timeline');clear(timeline);
+      if(!data.capture)timeline.append(el('div','服务端暂不可用','empty'));
+      else if(!tasks.length)timeline.append(el('div','当日没有采集任务','empty'));
+      else {
+        timeline.className='timeline'; const max=Math.max(...tasks.map(t=>t.duration_seconds||1));
+        for(const task of tasks){ const tick=el('div',undefined,`tick ${bad(task.status)?'failed':''}`); tick.style.height=`${Math.max(12,Math.round(92*(task.duration_seconds||1)/max))}px`; tick.title=`${time(task.created_at)} · ${duration(task.duration_seconds)} · ${status(task.status)}`; timeline.append(tick); }
+      }
+      const body=$('tasksBody');clear(body);
+      for(const task of tasks.filter(matches)){
+        const tr=el('tr');tr.append(el('td',time(task.started_at||task.created_at)),el('td',duration(task.duration_seconds)),el('td',elapsed(task),'task-col-secondary'));
+        const state=el('td');state.append(el('span',status(task.status),`pill ${task.status||''}`));tr.append(state);
+        tr.append(el('td',`${task.result_summary?.succeeded??0} / ${task.device_ids?.length??task.result_summary?.requested??0}`));
+        tr.append(el('td',`${task.result_summary?.saved_cycles??'—'} / ${task.result_summary?.attempted_cycles??'—'}`,'task-col-secondary'));
+        tr.append(el('td',task.frequency_hz==null?'—':`${task.frequency_hz} Hz`,'task-col-secondary'));
+        const detailCell=el('td'),toggle=el('button','查看','detail-toggle');toggle.type='button';toggle.setAttribute('aria-expanded','false');detailCell.append(toggle);tr.append(detailCell);
+        const detailRow=el('tr',undefined,'detail-row'),fullCell=el('td');fullCell.colSpan=8;
+        const box=el('div',undefined,'detail-box');
+        const field=(name,value,cls='')=>{const p=el('p',undefined,cls);p.append(el('strong',name),el('span',value));return p;};
+        box.append(field('请求 ID',task._id||'—'));
+        box.append(field('区域',(task.area_ids||[]).join('、')||'—'));
+        box.append(field('实际耗时',elapsed(task)));
+        box.append(field('周期已保存',`${task.result_summary?.saved_cycles??'—'} / ${task.result_summary?.attempted_cycles??'—'}`));
+        box.append(field('采集频率',task.frequency_hz==null?'—':`${task.frequency_hz} Hz`));
+        if(task.error)box.append(field('错误',`${task.error.code||''} ${task.error.message||''}`.trim(),'error'));
+        const devices=task.device_results||[],deviceList=el('details',undefined,'device-list');
+        const issueCount=devices.filter(item=>!item.success || (item.successful_cycles??0)<(item.attempted_cycles??0)).length;
+        deviceList.append(el('summary',task.device_detail_state==='unavailable'
+          ? '逐设备记录不可用'
+          : devices.length ? `逐设备结果（${devices.length} 台，异常 ${issueCount} 台）` : '逐设备结果尚未生成'));
+        if(devices.length){
+          const list=el('div',undefined,'device-results');
+          for(const item of [...devices].sort((a,b)=>Number(a.success)-Number(b.success)||a.device_id.localeCompare(b.device_id))){
+            const issue=!item.success || (item.successful_cycles??0)<(item.attempted_cycles??0);
+            const card=el('div',undefined,`device-result ${issue?'issue':''}`),head=el('div',undefined,'device-result-head');
+            head.append(el('code',item.device_id),el('span',issue?'异常':'成功',`pill ${issue?'failed':''}`));
+            head.append(el('span',`保存 ${item.successful_cycles??'—'} / ${item.attempted_cycles??'—'} 周期`,'cycles'));card.append(head);
+            if(issue){
+              const meta=el('div',undefined,'device-result-meta');
+              meta.append(el('span',`阶段：${item.failure_stage||'未记录'}${item.stage_source==='inferred'?'（推断）':''}`,'stage'));
+              if(item.error)meta.append(el('span',`错误：${item.error}`,'error'));
+              card.append(meta);
+            }
+            list.append(card);
+          }
+          deviceList.append(list);
+        }
+        box.append(deviceList);
+        fullCell.append(box);detailRow.append(fullCell);detailRow.hidden=true;
+        toggle.addEventListener('click',()=>{detailRow.hidden=!detailRow.hidden;toggle.textContent=detailRow.hidden?'查看':'收起';toggle.setAttribute('aria-expanded',String(!detailRow.hidden));});
+        body.append(tr,detailRow);
+      }
+      if(!body.childNodes.length){const tr=el('tr'),td=el('td',data.capture?'没有匹配的任务':'服务端暂不可用','empty');td.colSpan=8;tr.append(td);body.append(tr);}
+      const eventBody=$('eventsBody');clear(eventBody);
+      for(const event of events.filter(matches).reverse()){
+        const tr=el('tr');tr.append(el('td',time(event.timestamp)),el('td',event.stage||'—'));
+        tr.append(el('td',event.state||'—',`event-state ${event.state==='失败'?'bad':''}`));
+        tr.append(el('td',event.detail||event.summary||event.code||'—'));eventBody.append(tr);
+      }
+      if(!eventBody.childNodes.length){const tr=el('tr'),td=el('td','没有匹配的操作记录','empty');td.colSpan=4;tr.append(td);eventBody.append(tr);}
+    }
+    let latestRequest=0, refreshTimer=null, lastSnapshotDate=null, previousStatus=new Map();
+    function scheduleRefresh(){
+      clearTimeout(refreshTimer);
+      if($('date').value===shanghaiDate()){
+        refreshTimer=setTimeout(()=>load(),60000);
+      }
+    }
+    function checkNewFailures(received,selectedDate){
+      if(!received.capture)return;
+      const tasks=received.capture.tasks||[];
+      if(lastSnapshotDate===selectedDate && selectedDate===shanghaiDate()){
+        const newFailures=tasks.filter(task=>bad(task.status)&&previousStatus.get(task._id)!==task.status);
+        if(newFailures.length){
+          $('failureText').textContent=`新增 ${newFailures.length} 个失败任务；请查看服务端采集任务及逐设备结果。`;
+          $('failureNotice').hidden=false;
+          document.title='⚠ Waveform 采集日志';
+        }
+      }else if(lastSnapshotDate!==selectedDate){
+        $('failureNotice').hidden=true;
+        document.title='Waveform 采集日志';
+      }
+      lastSnapshotDate=selectedDate;
+      previousStatus=new Map(tasks.map(task=>[task._id,task.status]));
+    }
+    async function load(){
+      const request=++latestRequest;
+      const selectedDate=$('date').value;
+      clearTimeout(refreshTimer);
+      updateDateNav();
+      $('refresh').disabled=true;$('updated').textContent='正在读取…';
+      try{ const response=await fetch(`/api/logs?date=${encodeURIComponent(selectedDate)}`,{cache:'no-store'}); const received=await response.json(); if(request!==latestRequest)return; if(!response.ok)throw new Error(received.error||'读取失败');checkNewFailures(received,selectedDate);data=received;render();$('updated').textContent=`更新于 ${time(new Date())}`; }
+      catch(error){if(request===latestRequest){$('alert').hidden=false;$('alert').textContent=error.message;$('updated').textContent='读取失败';}}
+      finally{if(request===latestRequest){$('refresh').disabled=false;scheduleRefresh();}}
+    }
+    $('date').value=shanghaiDate();$('date').max=shanghaiDate();$('date').addEventListener('change',load);
+    $('prevDay').addEventListener('click',()=>{$('date').value=moveDate($('date').value,-1);load();});
+    $('nextDay').addEventListener('click',()=>{if($('date').value<shanghaiDate()){$('date').value=moveDate($('date').value,1);load();}});
+    $('refresh').addEventListener('click',load);$('search').addEventListener('input',render);
+    $('dismissFailure').addEventListener('click',()=>{$('failureNotice').hidden=true;document.title='Waveform 采集日志';});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden && $('date').value===shanghaiDate())load();});
+    if(location.protocol==='file:'){
+      const link=el('a','http://127.0.0.1:8765/');link.href='http://127.0.0.1:8765/';
+      $('alert').append('这是页面源文件，不能直接读取日志。请先运行 tools/run_waveform_log_dashboard.sh --background，再打开 ',link,'。');
+      $('alert').hidden=false;$('updated').textContent='未连接看板服务';
+    }else{
+      load();
+    }
+  </script>
+</body>
+</html>

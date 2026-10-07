@@ -188,6 +188,44 @@ class CaptureServiceTests(unittest.TestCase):
             [("A", True), ("B", False)],
         )
         self.assertEqual(result[0].output_path, Path("A.h5"))
+        self.assertEqual(result[1].failure_stage, "EPICS 触发")
+
+    def test_failure_stage_identifies_download_parse_and_write(self):
+        class Epics:
+            def trigger(self, pairs):
+                return [TriggerResult("A", True)]
+
+        request = CaptureRequest("request", 100, 1, ("A",))
+        pairs = [("A", "PV_A")]
+        for expected_stage, downloader, parser, writer in (
+            (
+                "设备文件等待/下载",
+                lambda: [DownloadResult("A", False, error="missing file")],
+                lambda path: "parsed",
+                lambda device, parsed, plan: "a.h5",
+            ),
+            (
+                "TXT 解析",
+                lambda: [DownloadResult("A", True, Path("a.txt"))],
+                lambda path: (_ for _ in ()).throw(ValueError("bad text")),
+                lambda device, parsed, plan: "a.h5",
+            ),
+            (
+                "HDF5 写入",
+                lambda: [DownloadResult("A", True, Path("a.txt"))],
+                lambda path: "parsed",
+                lambda device, parsed, plan: (_ for _ in ()).throw(OSError("write failed")),
+            ),
+        ):
+            with self.subTest(stage=expected_stage):
+                class Downloader:
+                    def download_many(self, requests):
+                        return downloader()
+
+                result = CaptureService(
+                    Epics(), Downloader(), parser, writer
+                ).capture(request, pairs, [])
+                self.assertEqual(result[0].failure_stage, expected_stage)
 
 
 class LegacyAcquisitionCharacterizationTests(unittest.TestCase):

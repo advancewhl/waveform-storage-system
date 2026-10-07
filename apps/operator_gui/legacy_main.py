@@ -74,8 +74,15 @@ class LockManager:
     """锁管理类：自动检测并生成所需文件，支持状态恢复"""
 # path = '/home/desktop-user-a/Desktop/AlarmProject/20251011'  home/site-user/work/StreamDataPro
     def __init__(self):
-        self.lock_file = "/home/site-user/waveform_data/lock/button_lock.lock"  # 锁文件路径
-        self.status_file = "/home/site-user/waveform_data/lock/lock_status.json"  # 状态文件路径
+        lock_dir = Path(
+            os.environ.get(
+                "WAVEFORM_LEGACY_LOCK_DIR",
+                str(Path.home() / ".local" / "state" / "waveform-storage" / "legacy-lock"),
+            )
+        )
+        lock_dir.mkdir(parents=True, exist_ok=True)
+        self.lock_file = str(lock_dir / "button_lock.lock")
+        self.status_file = str(lock_dir / "lock_status.json")
         self.fd = None  # 锁文件描述符
         self.lock_duration = 600
         self._init_files()
