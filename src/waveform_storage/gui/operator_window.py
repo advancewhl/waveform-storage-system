@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import json
 import re
+from zoneinfo import ZoneInfo
 from datetime import date, datetime
 from pathlib import Path
+from typing import cast
 from time import monotonic
 from uuid import UUID
 
@@ -48,7 +50,7 @@ from waveform_storage.gui.error_dialogs import (
     OperationError,
     show_operation_error,
 )
-from waveform_storage.gui.operator_contract import OperatorBackend, OperatorMode
+from waveform_storage.gui.operator_contract import OperatorBackend, OperatorMode, CandidateHistoryBackend
 from waveform_storage.gui.plotting import (
     plot_alignment_result,
     plot_device_waveform,
@@ -325,7 +327,12 @@ class OperatorMainWindow(QMainWindow):
         self._capture_timer.timeout.connect(self._poll_capture_status)
         self.alignment_result = None
         self.history_selected_devices: tuple[str, ...] = ()
-        self.history_selection_key: tuple[date, str] | None = None
+        self.history_selection_key: tuple | None = None
+        self.history_runs = ()
+        self.history_segments = ()
+        self.current_history_run = None
+        self.current_history_segment = None
+        self._history_generation = 0
         self.device_waveform_result = None
         self.device_waveform_key = None
         self.plot_canvas = None
@@ -517,7 +524,17 @@ class OperatorMainWindow(QMainWindow):
         self.history_date.setCalendarPopup(True)
         self.history_time = QComboBox()
         self.history_time.addItem("先检索可用时刻")
-        self.retrieve_button = QPushButton("检索数据")
+        self.history_run_combo = self.history_time
+        self.segment_index = QSpinBox()
+        self.segment_index.setRange(0, 0)
+        self.previous_segment_button = QPushButton("上一段")
+        self.next_segment_button = QPushButton("下一段")
+        self.segment_label = QLabel("尚未选择数据段")
+        self.previous_segment_button.setEnabled(False)
+        self.next_segment_button.setEnabled(False)
+        self.retrieve_button = QPushButton(
+            "检索任务" if self.backend.mode is OperatorMode.CANDIDATE_V2 else "检索数据"
+        )
         self.select_bpm_button = QPushButton("选择BPM")
         self.align_button = QPushButton("确认并对齐")
         self.bunch_index = QSpinBox()
@@ -542,8 +559,28 @@ class OperatorMainWindow(QMainWindow):
         self.retrieve_button.clicked.connect(self._retrieve_times)
         self.select_bpm_button.clicked.connect(self._select_history_devices)
         self.align_button.clicked.connect(self._align_selected)
-        self.history_date.dateChanged.connect(self._clear_history_selection)
-        self.history_time.currentIndexChanged.connect(self._clear_history_selection)
+        if self.backend.mode is OperatorMode.CANDIDATE_V2:
+            self.history_time.setItemText(0, "先检索采集任务")
+            form.removeWidget(self.history_time)
+            form.addWidget(self.history_time, 0, 2, 1, 5)
+            for widget in (self.select_bpm_button, self.align_button, self.bunch_index,
+                           self.show_id_button):
+                form.removeWidget(widget)
+            for column, widget in enumerate((self.previous_segment_button, self.segment_index,
+                                              self.next_segment_button, self.select_bpm_button,
+                                              self.align_button, self.bunch_index, self.show_id_button)):
+                form.addWidget(widget, 1, column)
+            form.addWidget(self.segment_label, 2, 0, 1, 7)
+            self.history_date.dateChanged.connect(self._history_date_changed)
+            self.history_time.currentIndexChanged.connect(self._history_run_changed)
+            self.segment_index.valueChanged.connect(self._history_segment_changed)
+            self.previous_segment_button.clicked.connect(
+                lambda: self.segment_index.setValue(self.segment_index.value() - 1))
+            self.next_segment_button.clicked.connect(
+                lambda: self.segment_index.setValue(self.segment_index.value() + 1))
+        else:
+            self.history_date.dateChanged.connect(self._clear_history_selection)
+            self.history_time.currentIndexChanged.connect(self._clear_history_selection)
         self.bunch_index.valueChanged.connect(self._show_bunch_id)
         self.show_id_button.clicked.connect(self._locate_bunch)
         layout.addWidget(toolbar)
@@ -601,7 +638,7 @@ class OperatorMainWindow(QMainWindow):
         self.plot_layout = QVBoxLayout(self.plot_host)
         self.plot_layout.setContentsMargins(0, 0, 0, 0)
         self.plot_placeholder = QLabel(
-            "选择日期与采集时刻后，在这里显示 X / Y 随 BPM 设备的分布"
+            "选择历史数据后，在这里显示 X / Y 随 BPM 设备的分布"
         )
         self.plot_placeholder.setObjectName("plotPlaceholder")
         self.plot_placeholder.setAlignment(Qt.AlignCenter)
@@ -1091,7 +1128,114 @@ class OperatorMainWindow(QMainWindow):
             )
         )
 
+    def _candidate_history_backend(self) -> CandidateHistoryBackend:
+        return cast(CandidateHistoryBackend, self.backend)
+
+    def _history_key(self):
+        segment = self.current_history_segment
+        if self.backend.mode is OperatorMode.CANDIDATE_V2:
+            return (("segment", segment.request_id, segment.capture_sequence)
+                    if segment is not None else None)
+        return ("time", self._selected_date(), self._selected_time())
+
+    def _history_date_changed(self, *_args):
+        self.history_runs = ()
+        self.current_history_run = None
+        self.history_time.blockSignals(True)
+        self.history_time.clear()
+        self.history_time.addItem("先检索采集任务")
+        self.history_time.blockSignals(False)
+        self._reset_history_segments()
+
+    def _reset_history_segments(self):
+        self.history_segments = ()
+        self.current_history_segment = None
+        self.segment_index.blockSignals(True)
+        self.segment_index.setRange(0, 0)
+        self.segment_index.blockSignals(False)
+        self.segment_label.setText("尚未选择数据段")
+        self.previous_segment_button.setEnabled(False)
+        self.next_segment_button.setEnabled(False)
+        self._clear_history_selection()
+
+    def _retrieve_runs(self):
+        selected_date = self._selected_date()
+        self._history_date_changed()
+        generation = self._history_generation
+
+        def loaded(runs):
+            if generation != self._history_generation or selected_date != self._selected_date():
+                return
+            self.history_runs = tuple(runs)
+            self.history_time.blockSignals(True)
+            self.history_time.clear()
+            for run in runs:
+                clock = run.first_capture_at.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%H:%M:%S")
+                if run.has_task_metadata:
+                    frequency = f"{run.frequency_hz:g} Hz" if run.frequency_hz is not None else "频率未知"
+                    seconds = run.duration_seconds
+                    duration = (f"{seconds // 60} 分钟" if seconds and seconds % 60 == 0
+                                else f"{seconds} 秒" if seconds is not None else "时长未知")
+                    text = f"{clock} | {frequency} | {duration} | 当日 {run.segment_count} 段"
+                else:
+                    text = f"{clock} | 历史数据 | 当日 {run.segment_count} 段"
+                self.history_time.addItem(text, run)
+                self.history_time.setItemData(self.history_time.count() - 1, text, Qt.ToolTipRole)
+            if not runs:
+                self.history_time.addItem("该日期没有可用数据")
+            self.history_time.blockSignals(False)
+            self._history_run_changed()
+
+        self._run_task("历史任务检索", lambda: self._candidate_history_backend().retrieve_runs(selected_date), loaded)
+
+    def _history_run_changed(self, *_args):
+        self.current_history_run = self.history_time.currentData()
+        self._reset_history_segments()
+        run = self.current_history_run
+        if run is None:
+            return
+        generation = self._history_generation
+
+        def loaded(segments):
+            if generation != self._history_generation or run != self.current_history_run:
+                return
+            self.history_segments = tuple(segments)
+            self.segment_index.blockSignals(True)
+            if segments:
+                self.segment_index.setRange(1, len(segments))
+            else:
+                self.segment_index.setRange(0, 0)
+            self.segment_index.setEnabled(bool(segments))
+            self.segment_index.setValue(1 if segments else 0)
+            self.segment_index.blockSignals(False)
+            self._history_segment_changed()
+
+        self._run_task("任务数据段检索", lambda: self._candidate_history_backend().retrieve_segments(run.request_id), loaded)
+
+    def _history_segment_changed(self, *_args):
+        position = self.segment_index.value()
+        segment = self.history_segments[position - 1] if self.history_segments and position else None
+        self.current_history_segment = segment
+        self._clear_history_selection()
+        count = len(self.history_segments)
+        self.previous_segment_button.setEnabled(position > 1)
+        self.next_segment_button.setEnabled(0 < position < count)
+        if segment is None:
+            self.segment_label.setText("尚未选择数据段")
+            return
+        run = self.current_history_run
+        requested = run.requested_device_count
+        bpm_count = (f"{len(segment.device_ids)}/{requested}" if requested is not None
+                     else str(len(segment.device_ids)))
+        clock = segment.captured_at.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M:%S")
+        self.segment_label.setText(
+            f"第 {position} / {count} 段（全任务） · S{segment.capture_sequence:05d} · {clock} · {bpm_count} BPM"
+        )
+
     def _retrieve_times(self) -> None:
+        if self.backend.mode is OperatorMode.CANDIDATE_V2:
+            self._retrieve_runs()
+            return
         selected_date = self._selected_date()
 
         def loaded(times: tuple[str, ...]) -> None:
@@ -1119,6 +1263,7 @@ class OperatorMainWindow(QMainWindow):
         )
 
     def _clear_history_selection(self, *_args) -> None:
+        self._history_generation += 1
         self.history_selected_devices = ()
         self.history_selection_key = None
         self._clear_alignment_view()
@@ -1129,9 +1274,12 @@ class OperatorMainWindow(QMainWindow):
         if time_sec is None:
             self._show_validation_error(
                 "无法选择 BPM",
-                "请先检索并选择采集时刻。",
+                ("请先检索采集任务并选择数据段。" if self.backend.mode is OperatorMode.CANDIDATE_V2
+                 else "请先检索并选择采集时刻。"),
                 "BPM_SELECTION_NO_TIME",
-                "选择日期，点击“检索数据”，然后选取采集时刻。",
+                ("选择日期，点击“检索任务”，然后选择任务和数据段。"
+                 if self.backend.mode is OperatorMode.CANDIDATE_V2
+                 else "选择日期，点击“检索数据”，然后选取采集时刻。"),
             )
             return
         selected_date = self._selected_date()
@@ -1139,10 +1287,11 @@ class OperatorMainWindow(QMainWindow):
         display_names = {
             device.id: device.display_name for device in self.registry.devices
         }
-        key = (selected_date, time_sec)
+        key = self._history_key()
+        generation = self._history_generation
 
         def show_choices(available_ids: tuple[str, ...]) -> None:
-            if key != (self._selected_date(), self._selected_time()):
+            if key != self._history_key() or generation != self._history_generation:
                 return
             if not available_ids:
                 self._show_validation_error(
@@ -1173,7 +1322,10 @@ class OperatorMainWindow(QMainWindow):
                 f"{selected_date} {time_sec} · {len(self.history_selected_devices)} 台",
             )
 
-        if self.backend.mode is OperatorMode.DEMO:
+        if self.backend.mode is OperatorMode.CANDIDATE_V2:
+            segment = self.current_history_segment
+            show_choices(tuple(item for item in all_ids if item in segment.device_ids))
+        elif self.backend.mode is OperatorMode.DEMO:
             show_choices(all_ids)
         else:
             self._run_task(
@@ -1189,9 +1341,11 @@ class OperatorMainWindow(QMainWindow):
         if time_sec is None:
             self._show_validation_error(
                 "无法开始对齐",
-                "尚未选择有效的采集时刻。",
+                ("尚未选择有效的数据段。" if self.backend.mode is OperatorMode.CANDIDATE_V2
+                 else "尚未选择有效的采集时刻。"),
                 "ALIGNMENT_NO_TIME",
-                "请先检索数据并选择一个采集时刻。",
+                ("请先检索任务并选择一个数据段。" if self.backend.mode is OperatorMode.CANDIDATE_V2
+                 else "请先检索数据并选择一个采集时刻。"),
             )
             return
         selected_date = self._selected_date()
@@ -1202,7 +1356,12 @@ class OperatorMainWindow(QMainWindow):
         else:
             devices = self.history_selected_devices or self._query_devices()
 
+        segment = self.current_history_segment
+        generation = self._history_generation
+
         def aligned(result) -> None:
+            if generation != self._history_generation:
+                return
             if not self.load_alignment_result(result, devices):
                 return
             self._record_task(
@@ -1217,9 +1376,9 @@ class OperatorMainWindow(QMainWindow):
 
         self._run_task(
             "波形对齐",
-            lambda: self.backend.align(
-                selected_date, time_sec, devices
-            ),
+            (lambda: self._candidate_history_backend().align_segment(segment, devices))
+            if self.backend.mode is OperatorMode.CANDIDATE_V2
+            else (lambda: self.backend.align(selected_date, time_sec, devices)),
             aligned,
         )
 
@@ -1332,13 +1491,17 @@ class OperatorMainWindow(QMainWindow):
         if time_sec is None:
             self._show_validation_error(
                 "无法绘制单设备波形",
-                "尚未选择有效的采集时刻。",
+                ("尚未选择有效的数据段。" if self.backend.mode is OperatorMode.CANDIDATE_V2
+                 else "尚未选择有效的采集时刻。"),
                 "PLOT_NO_TIME",
-                "请先检索并选择采集时刻。",
+                ("请先检索采集任务并选择数据段。" if self.backend.mode is OperatorMode.CANDIDATE_V2
+                 else "请先检索并选择采集时刻。"),
             )
             return
         selected_date = self._selected_date()
-        key = (selected_date.isoformat(), time_sec, device_id)
+        key = (self._history_key(), device_id)
+        segment = self.current_history_segment
+        generation = self._history_generation
         if self.device_waveform_key == key and self.device_waveform_result is not None:
             self._set_data_duration(self.device_waveform_result)
             self._install_figure(
@@ -1347,6 +1510,8 @@ class OperatorMainWindow(QMainWindow):
             return
 
         def loaded(result) -> None:
+            if generation != self._history_generation:
+                return
             if result.bunch_ids.size == 0 or device_id not in result.device_ids:
                 self._show_validation_error(
                     "单设备波形为空",
@@ -1368,11 +1533,9 @@ class OperatorMainWindow(QMainWindow):
 
         self._run_task(
             "单设备波形",
-            lambda: self.backend.align(
-                selected_date,
-                time_sec,
-                (device_id,),
-            ),
+            (lambda: self._candidate_history_backend().align_segment(segment, (device_id,)))
+            if self.backend.mode is OperatorMode.CANDIDATE_V2
+            else (lambda: self.backend.align(selected_date, time_sec, (device_id,))),
             loaded,
         )
 
@@ -1391,6 +1554,8 @@ class OperatorMainWindow(QMainWindow):
 
     def _clear_alignment_view(self) -> None:
         self.alignment_result = None
+        if hasattr(self, "spectrum_panel"):
+            self.spectrum_panel.reset_history_context()
         self.data_duration_label.setText("数据时长：—")
         self.device_waveform_result = None
         self.device_waveform_key = None
@@ -1404,7 +1569,7 @@ class OperatorMainWindow(QMainWindow):
             self.plot_canvas = None
         if self.plot_placeholder is None:
             self.plot_placeholder = QLabel(
-                "选择日期与采集时刻后，在这里显示 X / Y 随 BPM 设备的分布"
+                "选择历史数据后，在这里显示 X / Y 随 BPM 设备的分布"
             )
             self.plot_placeholder.setObjectName("plotPlaceholder")
             self.plot_placeholder.setAlignment(Qt.AlignCenter)
@@ -1428,18 +1593,19 @@ class OperatorMainWindow(QMainWindow):
         if not destination:
             return
 
+        result = self.alignment_result
+        selected_date = self._selected_date()
+        segment = self.current_history_segment
+
         def exported(path: Path) -> None:
             self._record_task("导出对齐数据", "成功", str(path))
             QMessageBox.information(self, "导出完成", f"已保存到：\n{path}")
 
         self._run_task(
             "导出对齐数据",
-            lambda: self.backend.export_alignment(
-                self.alignment_result,
-                self._selected_date(),
-                time_sec,
-                destination,
-            ),
+            (lambda: self._candidate_history_backend().export_segment_alignment(result, segment, destination))
+            if self.backend.mode is OperatorMode.CANDIDATE_V2
+            else (lambda: self.backend.export_alignment(result, selected_date, time_sec, destination)),
             exported,
         )
 
@@ -1448,9 +1614,11 @@ class OperatorMainWindow(QMainWindow):
         if time_sec is None:
             self._show_validation_error(
                 "无法下载原始数据",
-                "尚未选择有效的采集时刻。",
+                ("尚未选择有效的数据段。" if self.backend.mode is OperatorMode.CANDIDATE_V2
+                 else "尚未选择有效的采集时刻。"),
                 "RAW_NO_TIME",
-                "请先检索并选择采集时刻。",
+                ("请先检索采集任务并选择数据段。" if self.backend.mode is OperatorMode.CANDIDATE_V2
+                 else "请先检索并选择采集时刻。"),
             )
             return
         if self.backend.mode is OperatorMode.CANDIDATE_V2:
@@ -1465,6 +1633,9 @@ class OperatorMainWindow(QMainWindow):
         if not destination:
             return
 
+        selected_date = self._selected_date()
+        segment = self.current_history_segment
+
         def downloaded(paths: tuple[Path, ...]) -> None:
             detail = (
                 f"已保存 {len(paths)} 个文件"
@@ -1476,12 +1647,9 @@ class OperatorMainWindow(QMainWindow):
 
         self._run_task(
             "下载原始数据",
-            lambda: self.backend.download_raw(
-                self._selected_date(),
-                time_sec,
-                devices,
-                destination,
-            ),
+            (lambda: self._candidate_history_backend().download_segment_raw(segment, devices, destination))
+            if self.backend.mode is OperatorMode.CANDIDATE_V2
+            else (lambda: self.backend.download_raw(selected_date, time_sec, devices, destination)),
             downloaded,
         )
 
@@ -1507,18 +1675,19 @@ class OperatorMainWindow(QMainWindow):
         return self.history_date.date().toPyDate()
 
     def _selected_time(self) -> str | None:
+        if self.backend.mode is OperatorMode.CANDIDATE_V2:
+            return self.current_history_segment.time_sec if self.current_history_segment else None
         value = self.history_time.currentData()
         return str(value) if value else None
 
     def _selected_history_devices(self) -> tuple[str, ...]:
-        if self.history_selection_key != (
-            self._selected_date(), self._selected_time()
-        ) or not self.history_selected_devices:
+        if self.history_selection_key != self._history_key() or not self.history_selected_devices:
             self._show_validation_error(
                 "尚未选择 BPM",
                 "请先在历史页点击“选择BPM”，勾选参与处理的设备。",
                 "BPM_SELECTION_REQUIRED",
-                "列表只显示所选采集时刻有波形文件的 BPM。",
+                ("列表只显示所选数据段有波形文件的 BPM。" if self.backend.mode is OperatorMode.CANDIDATE_V2
+                 else "列表只显示所选采集时刻有波形文件的 BPM。"),
             )
             return ()
         return self.history_selected_devices
@@ -1547,10 +1716,14 @@ class OperatorMainWindow(QMainWindow):
         # Lock the UI before handing work to the thread pool. Waiting for the
         # worker's queued ``started`` signal leaves a short double-click race.
         self._set_busy(True, f"{stage}处理中…")
-        worker.signals.completed.connect(on_success)
-        worker.signals.completed.connect(
-            lambda _result, current=worker: self._finish_worker(current)
-        )
+        def completed(result):
+            self._finish_worker(worker)
+            try:
+                on_success(result)
+            except Exception as exc:
+                self._task_failed(worker, stage, exc)
+
+        worker.signals.completed.connect(completed)
         worker.signals.failed.connect(
             lambda exc, current=worker: self._task_failed(
                 current, stage, exc
@@ -1585,7 +1758,7 @@ class OperatorMainWindow(QMainWindow):
 
     def _finish_worker(self, worker: BackgroundWorker) -> None:
         self._active_workers.discard(worker)
-        self._set_busy(False, "就绪")
+        self._set_busy(bool(self._active_workers), "处理中" if self._active_workers else "就绪")
 
     def _set_busy(self, busy: bool, message: str) -> None:
         self._busy = busy
@@ -1598,6 +1771,12 @@ class OperatorMainWindow(QMainWindow):
         else:
             self.task_progress.setRange(0, 100)
             self.task_progress.setValue(0)
+        if self.backend.mode is OperatorMode.CANDIDATE_V2:
+            self.history_time.setEnabled(not busy)
+            self.segment_index.setEnabled(not busy and bool(self.history_segments))
+            position = self.segment_index.value()
+            self.previous_segment_button.setEnabled(not busy and position > 1)
+            self.next_segment_button.setEnabled(not busy and 0 < position < len(self.history_segments))
         for button in (
             self.start_button,
             self.retrieve_button,

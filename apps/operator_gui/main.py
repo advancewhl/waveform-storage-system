@@ -63,6 +63,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--spectrum-source", choices=("archiver", "hdf5"), default="hdf5")
     parser.add_argument("--spectrum-sample-rate-hz", type=float)
     parser.add_argument("--spectrum-profile", choices=("low_v1", "low_v2", "high_band"))
+    parser.add_argument("--history-smoke-report", type=Path,
+                        default=os.environ.get("WAVEFORM_HISTORY_SMOKE_REPORT"),
+                        help="Opt-in query/read/export acceptance report; never starts capture.")
+    parser.add_argument("--history-smoke-date", default=os.environ.get("WAVEFORM_HISTORY_SMOKE_DATE"))
     return parser.parse_args()
 
 
@@ -117,6 +121,13 @@ def main() -> int:
             raise RuntimeError("background workers did not stop after screenshot")
         app.processEvents()
         return 0
+    if args.history_smoke_report is not None:
+        if args.ui_only or not args.history_smoke_date:
+            raise ValueError("history acceptance requires a connected backend and an explicit date")
+        from datetime import date
+        date.fromisoformat(args.history_smoke_date)
+        from waveform_storage.gui.history_smoke import install_history_smoke
+        install_history_smoke(window, app, args.history_smoke_report, args.history_smoke_date, PROJECT_ROOT)
     return app.exec_()
 
 

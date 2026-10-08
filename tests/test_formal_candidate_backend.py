@@ -37,6 +37,113 @@ class FormalCandidateBackendTests(unittest.TestCase):
     def tearDown(self):
         self.environment.stop()
 
+    def test_candidate_history_contract_is_formal_and_legacy_is_separate(self):
+        from waveform_storage.gui.operator_contract import CandidateHistoryBackend, OperatorBackend
+        self.assertIsInstance(self.backend, CandidateHistoryBackend)
+        for name in ("retrieve_runs", "retrieve_segments", "align_segment",
+                     "export_segment_alignment", "download_segment_raw"):
+            self.assertIn(name, CandidateHistoryBackend.__dict__)
+            self.assertNotIn(name, OperatorBackend.__dict__)
+
+    @patch("candidate_backend.ZmqTransport")
+    def test_malformed_metadata_responses_have_stable_runtime_errors(self, transport):
+        from datetime import datetime, timezone
+        from uuid import uuid4
+        from waveform_storage.metadata.history import CaptureRunSummary, CaptureSegment
+        capture_id = str(uuid4())
+        now = datetime.now(timezone.utc)
+        run = CaptureRunSummary(capture_id, now, now, now, 1000, 600, "failed", 1, 2, 1, True).to_payload()
+        segment = CaptureSegment(capture_id, 3, "000001", now, ("BPM_A",), "2026-10-08").to_payload()
+        def reply(payload):
+            return SimpleNamespace(accepted=True, payload=payload, error_code=None, message="ok")
+        for payload in (None, [], {}, {"runs": {}}, {"runs": [None]}, {"runs": [{}]},
+                        {"runs": [dict(run, segment_count=True)]},
+                        {"runs": [dict(run, frequency_hz="1000")]},
+                        {"runs": [dict(run, frequency_hz=10**1000)]},
+                        {"runs": [dict(run, first_capture_at="broken")]}, {"runs": [run, run]}):
+            with self.subTest(payload=payload):
+                transport.return_value.list_capture_runs.return_value = reply(payload)
+                with self.assertRaisesRegex(RuntimeError, "invalid capture runs"):
+                    self.backend.retrieve_runs(date(2026, 10, 8))
+        for payload in (None, {}, {"segments": "bad"}, {"segments": [None]}, {"segments": [{}]},
+                        {"segments": [dict(segment, request_id=str(uuid4()))]},
+                        {"segments": [segment, segment]},
+                        {"segments": [dict(segment, capture_sequence=True)]},
+                        {"segments": [dict(segment, capture_sequence=-1)]},
+                        {"segments": [dict(segment, device_ids=["BPM_A", "BPM_A"])]},
+                        {"segments": [dict(segment, device_ids="BPM_A")]},
+                        {"segments": [dict(segment, device_ids=[])]}):
+            transport.return_value.list_capture_segments.return_value = reply(payload)
+            with self.assertRaisesRegex(RuntimeError, "invalid capture segments"):
+                self.backend.retrieve_segments(capture_id)
+        file = {"request_id": capture_id, "capture_sequence": 3, "device_id": "BPM_A", "path": "/data.h5"}
+        for payload in (None, {}, {"files": {}}, {"files": [None]},
+                        {"files": [dict(file, request_id=str(uuid4()))]},
+                        {"files": [dict(file, capture_sequence=4)]},
+                        {"files": [dict(file, capture_sequence=3.0)]},
+                        {"files": [dict(file, path="")]}, {"files": [file, file]}):
+            transport.return_value.find_waveform_files_by_segment.return_value = reply(payload)
+            with self.assertRaises(RuntimeError):
+                self.backend._candidate_segment_file_pairs(capture_id, 3, ("BPM_A",))
+        transport.return_value.list_capture_runs.return_value = reply({"runs": []})
+        self.assertEqual(self.backend.retrieve_runs(date(2026, 10, 8)), ())
+
+    @patch("candidate_backend.ZmqTransport")
+    def test_precise_segment_queries_cache_download_and_export(self, transport):
+        import json
+        from dataclasses import replace
+        from datetime import datetime, timezone
+        from uuid import uuid4
+        from waveform_storage.metadata.history import CaptureRunSummary, CaptureSegment
+        from waveform_storage.processing.alignment import DeviceSeries, align_devices
+        now = datetime(2026, 10, 8, 16, 0, 1, tzinfo=timezone.utc)
+        first_id, second_id = str(uuid4()), str(uuid4())
+        segment = CaptureSegment(first_id, 3, "000001", now, ("BPM_A",), "2026-10-09")
+        run = CaptureRunSummary(first_id, now, now, now, 1000, 600, "failed", 1, 2, 1, True)
+        def reply(payload):
+            return SimpleNamespace(accepted=True, payload=payload, error_code=None, message="ok")
+        transport.return_value.list_capture_runs.return_value = reply({"runs": [run.to_payload()]})
+        transport.return_value.list_capture_segments.return_value = reply({"segments": [segment.to_payload()]})
+        self.assertEqual(self.backend.retrieve_runs(date(2026, 10, 9)), (run,))
+        self.assertEqual(self.backend.retrieve_segments(first_id), (segment,))
+        with tempfile.TemporaryDirectory() as temporary:
+            sources = {}
+            for request_id in (first_id, second_id):
+                path = Path(temporary) / request_id / "RAW.h5"
+                path.parent.mkdir()
+                path.write_bytes(b"raw")
+                sources[request_id] = path
+            def lookup(correlation, capture_id, sequence, devices):
+                return reply({"files": [{"request_id": capture_id, "capture_sequence": sequence,
+                    "device_id": "BPM_A", "path": str(sources[capture_id]), "storage_id": "primary"}]})
+            transport.return_value.find_waveform_files_by_segment.side_effect = lookup
+            result = align_devices([DeviceSeries("BPM_A", [1, 2], [10, 11], [20, 21])])
+            with patch.object(self.backend._retrieval._storage, "read_series", return_value=(
+                (DeviceSeries("BPM_A", [1, 2], [10, 11], [20, 21]),), ())):
+                for selected in (segment, replace(segment, request_id=second_id),
+                                 replace(segment, request_id=second_id, capture_sequence=9)):
+                    self.backend.align_segment(selected, ("BPM_A",))
+                    self.backend.align_segment(selected, ("BPM_A",))
+            self.assertEqual(transport.return_value.find_waveform_files_by_segment.call_count, 3)
+            self.backend.candidate_local_files = True
+            paths = self.backend.download_segment_raw(segment, ("BPM_A",), Path(temporary) / "out")
+            self.assertEqual(paths[0].parent, Path(temporary) / "out" / "20261009" / first_id / "S00003")
+            self.assertEqual(paths[0].read_bytes(), b"raw")
+            exported = self.backend.export_segment_alignment(result, segment, temporary)
+            self.assertIn(f"20261009_000001_S00003_{first_id}", exported.name)
+            with h5py.File(exported) as h5:
+                metadata = json.loads(h5.attrs["metadata_json"])
+                self.assertEqual(metadata["request_id"], first_id)
+                self.assertEqual(metadata["capture_sequence"], 3)
+                self.assertEqual(metadata["captured_at"], now.isoformat())
+            transport.return_value.find_waveform_files.assert_not_called()
+            # A server returning another capture must fail rather than silently read it.
+            transport.return_value.find_waveform_files_by_segment.side_effect = None
+            transport.return_value.find_waveform_files_by_segment.return_value = reply({"files": [{
+                "request_id": second_id, "capture_sequence": 3, "device_id": "BPM_A", "path": "/wrong"}]})
+            with self.assertRaises(RuntimeError):
+                self.backend._candidate_segment_file_pairs(first_id, 3, ("BPM_A",))
+
     @patch("candidate_backend.ZmqTransport")
     def test_capture_uses_frequency_read_by_waveform_server(self, transport):
         transport.return_value.get_timing_frequency.return_value = SimpleNamespace(

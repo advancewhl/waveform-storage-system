@@ -27,3 +27,4 @@ src/waveform_storage/processing/alignment.py
 src/waveform_storage/transport/__init__.py
 src/waveform_storage/transport/device_ssh.py
 src/waveform_storage/transport/epics_gateway.py
+src/waveform_storage/metadata/history.py

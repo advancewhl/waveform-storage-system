@@ -10,6 +10,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Mapping, Sequence
 
+from waveform_storage.metadata.history import (
+    CaptureRunSummary, CaptureSegment,
+)
 from waveform_storage.metadata.models import (
     TASK_STATUSES,
     CaptureTaskMetadata,
@@ -54,6 +57,7 @@ class MongoMetadataRepository:
             serverSelectionTimeoutMS=settings.server_selection_timeout_ms,
             connect=False,
             appname="site-user-waveform-storage",
+            tz_aware=True,
         )
         return cls(client[settings.database], client=client)
 
@@ -169,6 +173,56 @@ class MongoMetadataRepository:
             snapshot.to_document(),
             upsert=True,
         )
+
+    def list_capture_runs(self, storage_date_local: str) -> tuple[CaptureRunSummary, ...]:
+        groups = tuple(self.files.aggregate([
+            {"$match": {"storage_date_local": storage_date_local, "status": "completed"}},
+            {"$group": {"_id": "$request_id", "first_capture_at": {"$min": "$captured_at"},
+                        "last_capture_at": {"$max": "$captured_at"},
+                        "sequences": {"$addToSet": {"$ifNull": ["$capture_sequence", 0]}},
+                        "devices": {"$addToSet": "$device_id"}}},
+            {"$sort": {"first_capture_at": -1, "_id": -1}},
+        ]))
+        tasks = {item["_id"]: item for item in self.tasks.find(
+            {"_id": {"$in": [group["_id"] for group in groups]}},
+        )}
+        runs = []
+        for group in groups:
+            task = tasks.get(group["_id"])
+            first = group["first_capture_at"]
+            runs.append(CaptureRunSummary(
+                group["_id"], (task.get("started_at") or first) if task else first,
+                first, group["last_capture_at"], task.get("frequency_hz") if task else None,
+                task.get("duration_seconds") if task else None,
+                task["status"] if task else "historical", len(group["sequences"]),
+                len(task["device_ids"]) if task else None, len(group["devices"]), task is not None,
+            ))
+        return tuple(runs)
+
+    def list_capture_segments(self, capture_request_id: str) -> tuple[CaptureSegment, ...]:
+        groups = self.files.aggregate([
+            {"$match": {"request_id": capture_request_id, "status": "completed"}},
+            {"$sort": {"captured_at": 1, "device_id": 1}},
+            {"$group": {"_id": {"$ifNull": ["$capture_sequence", 0]},
+                        "time_sec": {"$first": "$time_sec"},
+                        "captured_at": {"$first": "$captured_at"},
+                        "storage_date_local": {"$first": "$storage_date_local"},
+                        "devices": {"$addToSet": "$device_id"}}},
+            {"$sort": {"_id": 1}},
+        ])
+        return tuple(CaptureSegment(capture_request_id, group["_id"], group["time_sec"],
+                                    group["captured_at"], tuple(sorted(group["devices"])),
+                                    group["storage_date_local"])
+                     for group in groups)
+
+    def find_waveform_files_by_segment(
+        self, *, capture_request_id: str, capture_sequence: int,
+        device_ids: Sequence[str],
+    ) -> tuple[Mapping[str, Any], ...]:
+        return tuple(self.files.find({
+            "request_id": capture_request_id, "capture_sequence": capture_sequence,
+            "status": "completed", "device_id": {"$in": list(device_ids)},
+        }).sort([("device_id", 1)]))
 
     def list_capture_times(self, storage_date_local: str) -> tuple[str, ...]:
         values = self.files.distinct(

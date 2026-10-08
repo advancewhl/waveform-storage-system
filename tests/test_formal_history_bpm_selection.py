@@ -5,7 +5,8 @@ from __future__ import annotations
 import os
 import time
 import unittest
-from datetime import date
+from datetime import date, datetime, timezone
+from waveform_storage.metadata.history import CaptureRunSummary, CaptureSegment
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -35,6 +36,20 @@ class Backend:
 
     def __init__(self) -> None:
         self.align_calls = []
+
+    def retrieve_runs(self, selected_date):
+        now = datetime(2026, 10, 2, 15, 3, 8, tzinfo=timezone.utc)
+        return (CaptureRunSummary("run-10min", now, now, now, 1000, 600,
+                                  "failed", 30, 2, 2, True),)
+
+    def retrieve_segments(self, capture_request_id):
+        now = datetime(2026, 10, 2, 15, 3, 8, tzinfo=timezone.utc)
+        return tuple(CaptureSegment(capture_request_id, i + (2 if i >= 6 else 0),
+            "230308", now, (FIRST, SECOND) if i == 0 else (FIRST,), "2026-10-02")
+            for i in range(30))
+
+    def align_segment(self, segment, device_ids):
+        return self.align(date(2026, 10, 2), (segment.request_id, segment.capture_sequence), device_ids)
 
     def retrieve_times(self, selected_date):
         return ("230308",)
@@ -72,6 +87,61 @@ class FormalHistorySelectionTests(unittest.TestCase):
             time.sleep(0.01)
         self.app.processEvents()
         self.assertFalse(window._active_workers)
+
+    def test_two_runs_and_stale_history_callbacks(self):
+        from dataclasses import replace
+        registry = load_registry(ROOT / "config/devices.operator.json")
+        capture_registry = load_registry(ROOT / "config/devices.probe47.json")
+        backend = Backend()
+        with TemporaryDirectory() as temporary:
+            window = OperatorMainWindow(registry, backend=backend, capture_registry=capture_registry,
+                                        journal_path=Path(temporary) / "journal.jsonl")
+            pending = []
+            def defer(stage, operation, callback):
+                pending.append((operation, callback))
+            window._run_task = defer
+            window.history_date.setDate(QDate(2026, 10, 2))
+            window._retrieve_times()
+            operation, callback = pending.pop(0)
+            old_runs = operation()
+            window.history_date.setDate(QDate(2026, 10, 3))
+            callback(old_runs)
+            self.assertEqual(window.history_runs, ())
+            self.assertIsNone(window.current_history_segment)
+            window.history_date.setDate(QDate(2026, 10, 2))
+            window._retrieve_times()
+            operation, callback = pending.pop(0)
+            runs = operation()
+            callback((runs[0], replace(runs[0], request_id="run-1min", duration_seconds=60),
+                      replace(runs[0], request_id="historical", has_task_metadata=False,
+                              duration_seconds=None, frequency_hz=None, requested_device_count=None)))
+            self.assertEqual(window.history_time.count(), 3)
+            self.assertIn("10 分钟", window.history_time.itemText(0))
+            self.assertIn("1 分钟", window.history_time.itemText(1))
+            self.assertIn("历史数据", window.history_time.itemText(2))
+            old_operation, old_callback = pending.pop(0)
+            window.history_time.setCurrentIndex(1)
+            operation, callback = pending.pop(0)
+            old_callback(old_operation())
+            self.assertIsNone(window.current_history_segment)
+            callback(operation())
+            self.assertEqual(window.current_history_segment.request_id, "run-1min")
+            window.history_selected_devices = (FIRST,)
+            window.history_selection_key = window._history_key()
+            window._align_selected()
+            operation, callback = pending.pop(0)
+            result = operation()
+            window.segment_index.setValue(7)
+            callback(result)
+            self.assertIsNone(window.alignment_result)
+            window._request_device_waveform(FIRST)
+            operation, callback = pending.pop(0)
+            result = operation()
+            window.segment_index.setValue(8)
+            callback(result)
+            self.assertIsNone(window.device_waveform_result)
+            self.assertIsNone(window.plot_canvas)
+            window.close()
 
     def test_frequency_is_displayed_after_startup_query(self):
         class FrequencyBackend(Backend):
@@ -152,6 +222,10 @@ class FormalHistorySelectionTests(unittest.TestCase):
             window.retrieve_button.click()
             self.wait_for_workers(window)
 
+            self.assertEqual(window.history_time.count(), 1)
+            self.assertIn("1000 Hz | 10 分钟", window.history_time.itemText(0))
+            self.assertEqual((window.segment_index.minimum(), window.segment_index.maximum()), (1, 30))
+
             def choose_first(dialog):
                 self.assertEqual(dialog.list_widget.count(), 2)
                 dialog.list_widget.item(1).setCheckState(Qt.Unchecked)
@@ -166,9 +240,27 @@ class FormalHistorySelectionTests(unittest.TestCase):
             self.wait_for_workers(window)
             self.assertEqual(
                 backend.align_calls,
-                [(date(2026, 10, 2), "230308", (FIRST,))],
+                [(date(2026, 10, 2), ("run-10min", 0), (FIRST,))],
             )
             self.assertEqual(window.alignment_result.device_ids, (FIRST,))
+            window.spectrum_panel.use_alignment(window.alignment_result)
+            window.segment_index.setValue(7)
+            self.assertIn("S00008", window.segment_label.text())
+            self.assertEqual(window.history_selected_devices, ())
+            self.assertIsNone(window.alignment_result)
+            self.assertIsNone(window.spectrum_panel.alignment)
+            def choose_partial(dialog):
+                self.assertEqual(dialog.list_widget.count(), 1)
+                return QDialog.Accepted
+            with patch.object(BpmSelectionDialog, "exec_", choose_partial):
+                window.select_bpm_button.click()
+            window.align_button.click()
+            self.wait_for_workers(window)
+            self.assertEqual(backend.align_calls[-1][1], ("run-10min", 8))
+            window._request_device_waveform(FIRST)
+            self.wait_for_workers(window)
+            self.assertEqual(backend.align_calls[-1][1], ("run-10min", 8))
+            self.assertEqual(window.device_waveform_key, (("segment", "run-10min", 8), FIRST))
             window.history_date.setDate(QDate(2026, 10, 3))
             self.assertEqual(window.history_selected_devices, ())
             self.assertIsNone(window.alignment_result)

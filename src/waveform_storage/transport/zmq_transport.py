@@ -14,6 +14,8 @@ from waveform_storage.acquisition.protocol import (
     GET_TIMING_FREQUENCY,
     HEALTH,
     LIST_CAPTURE_TIMES,
+    LIST_CAPTURE_RUNS, LIST_CAPTURE_SEGMENTS, FIND_WAVEFORM_FILES_BY_SEGMENT,
+    CaptureSegmentQueryRequest,
     CaptureResponse,
     ControlRequest,
     MetadataQueryRequest,
@@ -97,6 +99,27 @@ class ZmqTransport:
             storage_date_local,
             time_sec,
             tuple(device_ids),
+        )
+        return self._exchange_metadata(encode_metadata_query_request(request))
+
+    def list_capture_runs(self, request_id, storage_date_local):
+        request = MetadataQueryRequest(
+            PROTOCOL_VERSION, request_id, LIST_CAPTURE_RUNS, storage_date_local,
+        )
+        return self._exchange_metadata(encode_metadata_query_request(request))
+
+    def list_capture_segments(self, request_id, capture_request_id):
+        request = CaptureSegmentQueryRequest(
+            PROTOCOL_VERSION, request_id, LIST_CAPTURE_SEGMENTS, capture_request_id,
+        )
+        return self._exchange_metadata(encode_metadata_query_request(request))
+
+    def find_waveform_files_by_segment(
+        self, request_id, capture_request_id, capture_sequence, device_ids,
+    ):
+        request = CaptureSegmentQueryRequest(
+            PROTOCOL_VERSION, request_id, FIND_WAVEFORM_FILES_BY_SEGMENT,
+            capture_request_id, capture_sequence, tuple(device_ids),
         )
         return self._exchange_metadata(encode_metadata_query_request(request))
 

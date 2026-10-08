@@ -1,0 +1,14 @@
+{
+  "verified_at": "2026-10-08T15:57:12.506569+08:00",
+  "endpoint": "tcp://127.0.0.1:5001",
+  "date": "2026-10-06",
+  "health": true,
+  "list_capture_runs": true,
+  "list_capture_segments": true,
+  "find_waveform_files_by_segment": true,
+  "legacy_list_capture_times": true,
+  "run_count": 3,
+  "segment_count": 87,
+  "exact_file_count": 1740,
+  "status": "passed"
+}

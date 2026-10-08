@@ -5,7 +5,9 @@ from __future__ import annotations
 from datetime import date
 from enum import Enum
 from pathlib import Path
-from typing import Protocol
+from typing import Protocol, runtime_checkable
+
+from waveform_storage.metadata.history import CaptureRunSummary, CaptureSegment
 
 from waveform_storage.acquisition.protocol import CaptureResponse
 from waveform_storage.application.communication_service import CaptureDispatchResult
@@ -69,3 +71,24 @@ class OperatorBackend(Protocol):
         destination: str | Path,
     ) -> tuple[Path, ...]:
         ...
+
+
+@runtime_checkable
+class CandidateHistoryBackend(Protocol):
+    """Task/segment capability; legacy backends keep the time-based contract."""
+
+    def retrieve_runs(self, selected_date: date) -> tuple[CaptureRunSummary, ...]: ...
+
+    def retrieve_segments(self, capture_request_id: str) -> tuple[CaptureSegment, ...]: ...
+
+    def align_segment(
+        self, segment: CaptureSegment, device_ids: tuple[str, ...],
+    ) -> AlignmentResult: ...
+
+    def export_segment_alignment(
+        self, result: AlignmentResult, segment: CaptureSegment, destination: str | Path,
+    ) -> Path: ...
+
+    def download_segment_raw(
+        self, segment: CaptureSegment, device_ids: tuple[str, ...], destination: str | Path,
+    ) -> tuple[Path, ...]: ...

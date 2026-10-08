@@ -6,6 +6,9 @@ from copy import deepcopy
 from datetime import datetime
 from typing import Any, Mapping, Sequence
 
+from waveform_storage.metadata.history import (
+    CaptureRunSummary, CaptureSegment, summarize_runs, summarize_segments,
+)
 from waveform_storage.metadata.models import (
     TASK_STATUSES,
     CaptureTaskMetadata,
@@ -76,6 +79,25 @@ class InMemoryMetadataRepository:
 
     def upsert_registry_snapshot(self, snapshot: RegistrySnapshotMetadata) -> None:
         self.registries[snapshot.registry_id] = deepcopy(snapshot.to_document())
+
+    def list_capture_runs(self, storage_date_local: str) -> tuple[CaptureRunSummary, ...]:
+        return summarize_runs(self.find_waveform_files(
+            storage_date_local=storage_date_local), self.tasks)
+
+    def list_capture_segments(self, capture_request_id: str) -> tuple[CaptureSegment, ...]:
+        return summarize_segments(tuple(record for record in self.files.values()
+            if record["request_id"] == capture_request_id and record["status"] == "completed"))
+
+    def find_waveform_files_by_segment(
+        self, *, capture_request_id: str, capture_sequence: int,
+        device_ids: Sequence[str],
+    ) -> tuple[Mapping[str, Any], ...]:
+        allowed = set(device_ids)
+        return tuple(sorted((deepcopy(record) for record in self.files.values()
+            if record["request_id"] == capture_request_id
+            and record.get("capture_sequence", 0) == capture_sequence
+            and record["status"] == "completed" and record["device_id"] in allowed),
+            key=lambda item: item["device_id"]))
 
     def list_capture_times(self, storage_date_local: str) -> tuple[str, ...]:
         return tuple(

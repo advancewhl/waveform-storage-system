@@ -1,0 +1,115 @@
+{
+  "release_id": "20261008-history-release-r4",
+  "protocol": "v2 + history-run-segment extension",
+  "operator": {
+    "kind": "operator",
+    "built_local_date": "2026-10-08",
+    "built_at": "2026-10-08T15:55:33.665852+08:00",
+    "release_id": "20261008-history-release-r4",
+    "source_revision": "51afde8b1347f77c8a036bcd6e57d9f03bb09133",
+    "source_state": "working-tree",
+    "source_manifest_sha256": "206cbfecc2b93ab53ea3244024a5c4c38740f292906ed1ef2b7de3164795e22b",
+    "binary_sha256": "8e50fd5e623113ae40aa19a03e9c912182691c80145269e2f849d69a306cf416",
+    "runtime_versions": {
+      "python": "3.10.20 | packaged by conda-forge | (main, Jun 11 2026, 03:31:56) [GCC 14.3.0]",
+      "dependencies": {
+        "PyInstaller": "6.22.3",
+        "PyQt5": "5.15.11",
+        "h5py": "3.16.0",
+        "numpy": "2.2.6",
+        "matplotlib": "3.10.9",
+        "pandas": "2.3.3",
+        "scipy": "1.15.3",
+        "paramiko": "5.0.0",
+        "pyzmq": "27.1.0",
+        "caproto": "1.3.0",
+        "cryptography": "49.0.0"
+      }
+    },
+    "protocol_capabilities": [
+      "health",
+      "list_capture_runs",
+      "list_capture_segments",
+      "find_waveform_files_by_segment"
+    ]
+  },
+  "server": {
+    "kind": "server",
+    "built_local_date": "2026-10-08",
+    "built_at": "2026-10-08T15:55:34.494542+08:00",
+    "release_id": "20261008-history-release-r4",
+    "source_revision": "51afde8b1347f77c8a036bcd6e57d9f03bb09133",
+    "source_state": "working-tree",
+    "source_manifest_sha256": "206cbfecc2b93ab53ea3244024a5c4c38740f292906ed1ef2b7de3164795e22b",
+    "binary_sha256": "4ff9896c4eb811c72cc0dc9ad0e676865b07025330f87d266a1cb63b57941fc3",
+    "runtime_versions": {
+      "python": "3.10.12 (main, Jun 13 2023, 15:51:40) [GCC 8.3.0]",
+      "dependencies": {
+        "PyInstaller": "6.11.1",
+        "caproto": "1.3.0",
+        "h5py": "3.16.0",
+        "numpy": "2.2.6",
+        "paramiko": "5.0.0",
+        "pymongo": "4.17.0",
+        "pyzmq": "27.1.0",
+        "cryptography": "50.0.2"
+      },
+      "build_image": "python:3.10-buster",
+      "build_image_digest": "sha256:31a8498af27dba1f431f2df60189ca79ff5f440cfa7b6dea2da6ab15c74abcd4"
+    },
+    "protocol_capabilities": [
+      "health",
+      "list_capture_runs",
+      "list_capture_segments",
+      "find_waveform_files_by_segment"
+    ]
+  },
+  "deployment_status": "EXECUTED; operator/server deployed and real desktop acceptance passed",
+  "compatibility": "operator and server must support all recorded protocol capabilities",
+  "operator_current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-history-release-r4/waveform-operator",
+  "server_current": "/home/storage-user/waveform-storage-v2/releases/20261008-history-release-r4",
+  "previous_operator_release": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-history-release-r3/waveform-operator",
+  "previous_server_release": "/home/storage-user/waveform-storage-v2/releases/20261008-history-release-r3",
+  "onsite_operator_status": "not deployed in this release; last recorded deployment 2026-10-05",
+  "verified_local_date": "2026-10-08",
+  "integration": {
+    "protocol": {
+      "verified_at": "2026-10-08T15:57:12.506569+08:00",
+      "endpoint": "tcp://127.0.0.1:5001",
+      "date": "2026-10-06",
+      "health": true,
+      "list_capture_runs": true,
+      "list_capture_segments": true,
+      "find_waveform_files_by_segment": true,
+      "legacy_list_capture_times": true,
+      "run_count": 3,
+      "segment_count": 87,
+      "exact_file_count": 1740,
+      "status": "passed"
+    },
+    "gui_status": "passed",
+    "capture_requests": 0,
+    "partial_segment": "full inproc catalog/server/backend/GUI integration fixture passed"
+  },
+  "dashboard": {
+    "release_id": "20261008-history-release-r4",
+    "endpoint": "http://192.0.2.2:8765/",
+    "query_sha256": "342fdc79c878ff552b0d67740325e7ca09ae828b1e9c249e57ff547b6afb0679",
+    "html_sha256": "8b293549baea6e2c702a3bb573013e4af979d172be751deea4ee993bc916c7f8"
+  },
+  "artifacts": {
+    "acceptance-data-20261008-history-release-r4.tar.gz": "d0c5cc6ab57ce46c951eb32750fc326df2469c6e5786d655a5081c23605a38a6",
+    "waveform-operator-20261008-history-release-r4.tar.gz": "f0282173d9e4dcf7327a28b4829495a7417fcc4ccd5fc64f3df23a6dcf68a7c6",
+    "waveform-server-20261008-history-release-r4.tar.gz": "aebeb4b0411ef1c53642b8f24dfa5e893687caf6f224dbf73db824b3ffc70b35"
+  },
+  "final_quality": {
+    "tests": 206,
+    "status": "passed",
+    "log": "evidence/final-quality.log"
+  },
+  "partial_integration_fixture": {
+    "status": "passed",
+    "test": "test_partial_history_integration.py",
+    "log": "evidence/partial-integration.log"
+  }
+}

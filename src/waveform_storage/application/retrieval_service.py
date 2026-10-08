@@ -31,6 +31,9 @@ class StorageQuery:
     run_id: str
     time_sec: str
     device_ids: tuple[str, ...]
+    request_id: str | None = None
+    capture_sequence: int | None = None
+    captured_at: str | None = None
 
     def __post_init__(self) -> None:
         if not self.remote_path:
@@ -39,16 +42,25 @@ class StorageQuery:
             raise ValueError("run_id must not be empty")
         if not self.time_sec:
             raise ValueError("time_sec must not be empty")
+        if (self.request_id is None) != (self.capture_sequence is None):
+            raise ValueError("request_id and capture_sequence must be specified together")
+        if self.capture_sequence is not None and (
+            isinstance(self.capture_sequence, bool)
+            or not isinstance(self.capture_sequence, int) or self.capture_sequence < 0
+        ):
+            raise ValueError("capture_sequence must be a nonnegative integer")
         if len(set(self.device_ids)) != len(self.device_ids):
             raise ValueError("device_ids must not contain duplicates")
 
     @property
-    def cache_key(self) -> tuple[str, str, str, tuple[str, ...]]:
+    def cache_key(self) -> tuple:
         return (
             self.remote_path,
             self.run_id,
             self.time_sec,
             self.device_ids,
+            self.request_id,
+            self.capture_sequence,
         )
 
 
@@ -165,14 +177,18 @@ class RetrievalService:
             selected = "legacy" if np.all(result.valid_mask) else "v2"
 
         directory = Path(destination_dir)
+        stem = f"{query.run_id}_{query.time_sec}"
+        if query.request_id is not None:
+            stem += f"_S{query.capture_sequence:05d}_{query.request_id}"
+            selected = "v2"
         if selected == "legacy":
             destination = (
-                directory / f"{query.run_id}_{query.time_sec}_BPMdata.h5"
+                directory / f"{stem}_BPMdata.h5"
             )
             return Path(self._legacy_writer(destination, result))
 
         destination = (
-            directory / f"{query.run_id}_{query.time_sec}_BPMdata_v2.h5"
+            directory / f"{stem}_BPMdata_v2.h5"
         )
         return Path(
             self._v2_writer(
@@ -181,6 +197,9 @@ class RetrievalService:
                 metadata={
                     "run_id": query.run_id,
                     "time_sec": query.time_sec,
+                    **({"request_id": query.request_id,
+                        "capture_sequence": query.capture_sequence,
+                        "captured_at": query.captured_at} if query.request_id else {}),
                 },
             )
         )

@@ -15,6 +15,9 @@ import h5py
 
 from waveform_storage.acquisition.protocol import CaptureRequest, CaptureResponse
 from waveform_storage.config.registry import DeviceRegistry
+from waveform_storage.metadata.history import (
+    CaptureRunSummary, CaptureSegment,
+)
 from waveform_storage.metadata.models import (
     CaptureTaskMetadata,
     RegistrySnapshotMetadata,
@@ -164,6 +167,21 @@ class CaptureMetadataService:
             self._record_files(request, device_results)
         if response.status in {"succeeded", "failed", "cancelled", "rejected"}:
             self._accepted_at.pop(request.request_id, None)
+
+    def list_capture_runs(self, storage_date_local: str) -> tuple[CaptureRunSummary, ...]:
+        return self.repository.list_capture_runs(storage_date_local)
+
+    def list_capture_segments(self, capture_request_id: str) -> tuple[CaptureSegment, ...]:
+        return self.repository.list_capture_segments(capture_request_id)
+
+    def find_waveform_files_by_segment(
+        self, *, capture_request_id: str, capture_sequence: int,
+        device_ids: Sequence[str],
+    ) -> tuple[Mapping[str, Any], ...]:
+        return self.repository.find_waveform_files_by_segment(
+            capture_request_id=capture_request_id, capture_sequence=capture_sequence,
+            device_ids=device_ids,
+        )
 
     def list_capture_times(self, storage_date_local: str) -> tuple[str, ...]:
         return self.repository.list_capture_times(storage_date_local)

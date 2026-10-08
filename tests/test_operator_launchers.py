@@ -51,6 +51,15 @@ class OperatorLauncherTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return (self.root / "trace").read_text().splitlines()
 
+    def test_desktop_definition_routes_to_launcher_not_a_version_binary(self):
+        definition = (ROOT / "tools/waveform-operator.desktop").read_text()
+        executable = next(line[5:] for line in definition.splitlines() if line.startswith("Exec="))
+        self.assertEqual(Path(executable), ROOT / "tools/launch_operator_desktop.sh")
+        release = self.root / "outputs/operator-local/releases/contract/waveform-operator"
+        self.make_executable(release / "waveform-operator")
+        (self.root / "outputs/operator-local/current").symlink_to(release)
+        self.assertEqual(self.launch(Path(executable).name, [])[0], str(release / "waveform-operator"))
+
     def test_desktop_prefers_local_bundle_and_forwards_gui_options(self):
         lines = self.launch("launch_operator_desktop.sh", ["--page", "spectrum"])
         self.assertEqual(lines[0], str(self.local))

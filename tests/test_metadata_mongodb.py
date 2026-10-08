@@ -525,5 +525,71 @@ class MongoSettingsTests(unittest.TestCase):
             MongoSettings.from_env({"WAVEFORM_MONGODB_REQUIRED": "true"})
 
 
+
+
+
+class CaptureHistoryRepositoryTests(unittest.TestCase):
+    def test_runs_segments_partial_devices_orphans_and_exact_identity(self):
+        from dataclasses import replace
+        repository = InMemoryMetadataRepository()
+        for request, duration, sequences in (("run-a", 60, (0, 1, 2)),
+                                             ("run-b", 600, (0, 1, 3))):
+            repository.upsert_task(replace(task(), request_id=request,
+                                          duration_seconds=duration, frequency_hz=1000))
+            repository.tasks[request]["result_summary"] = {"saved_cycles": 99}
+            for sequence in sequences:
+                for device in (("BPM_A",) if sequence == 3 else ("BPM_A", "BPM_B")):
+                    repository.upsert_waveform_file(replace(waveform(device),
+                        request_id=request, capture_sequence=sequence,
+                        path=f"/{request}/{sequence}/{device}.h5"))
+        repository.upsert_waveform_file(replace(waveform(), request_id="historical",
+                                                path="/historical.h5"))
+        repository.upsert_waveform_file(replace(waveform(status="failed"),
+                                                request_id="run-b", capture_sequence=2))
+        runs = {item.request_id: item for item in repository.list_capture_runs("2026-08-25")}
+        self.assertEqual(len(runs), 3)
+        self.assertEqual((runs["run-a"].duration_seconds, runs["run-b"].duration_seconds), (60, 600))
+        self.assertEqual(runs["run-b"].frequency_hz, 1000)
+        self.assertEqual(runs["run-b"].segment_count, 3)
+        self.assertFalse(runs["historical"].has_task_metadata)
+        self.assertEqual(runs["historical"].status, "historical")
+        segments = repository.list_capture_segments("run-b")
+        self.assertEqual([item.capture_sequence for item in segments], [0, 1, 3])
+        self.assertEqual(segments[-1].device_ids, ("BPM_A",))
+        files = repository.find_waveform_files_by_segment(capture_request_id="run-b",
+            capture_sequence=3, device_ids=("BPM_A", "BPM_B"))
+        self.assertEqual([item["file"]["path"] for item in files], ["/run-b/3/BPM_A.h5"])
+
+    def test_mongo_aggregates_before_task_lookup_and_preserves_naive_utc(self):
+        from unittest.mock import Mock
+        database = FakeDatabase()
+        repository = MongoMetadataRepository(database)
+        repository.files.aggregate = Mock(return_value=[{
+            "_id": "orphan", "first_capture_at": NOW.replace(tzinfo=None),
+            "last_capture_at": NOW.replace(tzinfo=None), "sequences": [0, 3],
+            "devices": ["BPM_A", "BPM_B"],
+        }])
+        repository.tasks.find = Mock(return_value=[])
+        runs = repository.list_capture_runs("2026-08-25")
+        self.assertEqual(runs[0].segment_count, 2)
+        self.assertEqual(runs[0].first_capture_at, NOW)
+        pipeline = repository.files.aggregate.call_args.args[0]
+        self.assertEqual(pipeline[0]["$match"], {"storage_date_local": "2026-08-25", "status": "completed"})
+        self.assertIn("$addToSet", pipeline[1]["$group"]["sequences"])
+        repository.tasks.find.assert_called_once_with({"_id": {"$in": ["orphan"]}})
+        repository.files.aggregate.return_value = [{"_id": 3, "time_sec": "010003",
+            "captured_at": NOW.replace(tzinfo=None), "storage_date_local": "2026-08-25",
+            "devices": ["BPM_B", "BPM_A"]}]
+        segments = repository.list_capture_segments("orphan")
+        self.assertEqual(segments[0].capture_sequence, 3)
+        self.assertEqual(segments[0].device_ids, ("BPM_A", "BPM_B"))
+        self.assertEqual(segments[0].captured_at, NOW)
+        repository.files.find = Mock(return_value=FakeCursor())
+        repository.find_waveform_files_by_segment(capture_request_id="orphan",
+            capture_sequence=3, device_ids=("BPM_A",))
+        repository.files.find.assert_called_once_with({"request_id": "orphan", "capture_sequence": 3,
+            "status": "completed", "device_id": {"$in": ["BPM_A"]}})
+
+
 if __name__ == "__main__":
     unittest.main()

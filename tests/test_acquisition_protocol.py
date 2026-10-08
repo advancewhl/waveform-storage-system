@@ -244,5 +244,62 @@ class CaptureResponseTests(unittest.TestCase):
             validate_status_transition("accepted", "succeeded")
 
 
+
+
+
+class SegmentProtocolTests(unittest.TestCase):
+    def test_all_new_commands_round_trip_exact_fields_and_sequence_validation(self):
+        import json
+        from uuid import uuid4
+        from waveform_storage.acquisition.protocol import (
+            CaptureSegmentQueryRequest, MetadataQueryRequest, decode_service_request,
+            encode_metadata_query_request, ProtocolValidationError,
+        )
+        correlation, capture = str(uuid4()), str(uuid4())
+        requests = (
+            MetadataQueryRequest(2, correlation, "list_capture_runs", "2026-10-08"),
+            CaptureSegmentQueryRequest(2, correlation, "list_capture_segments", capture),
+            CaptureSegmentQueryRequest(2, correlation, "find_waveform_files_by_segment",
+                                       capture, 3, ("BPM_A",)),
+        )
+        for request in requests:
+            encoded = encode_metadata_query_request(request)
+            self.assertEqual(decode_service_request(encoded), request)
+            payload = json.loads(encoded)
+            for key in tuple(payload):
+                invalid = dict(payload)
+                del invalid[key]
+                with self.assertRaises(ProtocolValidationError):
+                    decode_service_request(json.dumps(invalid))
+            payload["unexpected"] = 1
+            with self.assertRaises(ProtocolValidationError):
+                decode_service_request(json.dumps(payload))
+        base = json.loads(encode_metadata_query_request(requests[-1]))
+        for key, values in (("capture_sequence", (-1, True, 1.5, "3", None)),
+                            ("capture_request_id", ("invalid", None)),
+                            ("devices", ([], ["BPM_A", "BPM_A"], "BPM_A", [3]))):
+            for value in values:
+                payload = dict(base, **{key: value})
+                with self.assertRaises(ProtocolValidationError):
+                    decode_service_request(json.dumps(payload))
+
+    def test_transport_preserves_old_and_new_request_shapes(self):
+        from unittest.mock import patch
+        from uuid import uuid4
+        from waveform_storage.transport.zmq_transport import ZmqTransport
+        from waveform_storage.acquisition.protocol import decode_service_request
+        transport = ZmqTransport("inproc://test")
+        correlation, capture = str(uuid4()), str(uuid4())
+        with patch.object(transport, "_exchange_metadata", side_effect=decode_service_request):
+            self.assertEqual(transport.list_capture_times(correlation, "2026-10-08").command,
+                             "list_capture_times")
+            self.assertEqual(transport.list_capture_runs(correlation, "2026-10-08").command,
+                             "list_capture_runs")
+            self.assertEqual(transport.list_capture_segments(correlation, capture).capture_request_id,
+                             capture)
+            self.assertEqual(transport.find_waveform_files_by_segment(
+                correlation, capture, 7, ("BPM_A",)).capture_sequence, 7)
+
+
 if __name__ == "__main__":
     unittest.main()

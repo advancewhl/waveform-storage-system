@@ -5,6 +5,9 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Mapping, Protocol, Sequence
 
+from waveform_storage.metadata.history import (
+    CaptureRunSummary, CaptureSegment,
+)
 from waveform_storage.metadata.models import (
     CaptureTaskMetadata,
     RegistrySnapshotMetadata,
@@ -41,6 +44,15 @@ class MetadataRepository(Protocol):
     def upsert_waveform_file(self, record: WaveformFileMetadata) -> None: ...
 
     def upsert_registry_snapshot(self, snapshot: RegistrySnapshotMetadata) -> None: ...
+
+    def list_capture_runs(self, storage_date_local: str) -> tuple[CaptureRunSummary, ...]: ...
+
+    def list_capture_segments(self, capture_request_id: str) -> tuple[CaptureSegment, ...]: ...
+
+    def find_waveform_files_by_segment(
+        self, *, capture_request_id: str, capture_sequence: int,
+        device_ids: Sequence[str],
+    ) -> tuple[Mapping[str, Any], ...]: ...
 
     def list_capture_times(self, storage_date_local: str) -> tuple[str, ...]: ...
 

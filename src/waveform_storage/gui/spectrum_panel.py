@@ -284,6 +284,32 @@ class SpectrumPanel(QWidget):
             self._clear_alignment()
             self.path_edit.setText(path)
 
+    def reset_history_context(self):
+        """Discard history analysis, including late results of a cancelled job."""
+        if self.alignment is None:
+            return
+        if self.job_id:
+            self.jobs.cancel(self.job_id)
+            self.job_id = None
+            self.timer.stop()
+        self.alignment = None
+        self.last_run = None
+        self.path_edit.clear()
+        self.sample_rate.setValue(0)
+        self.table.setRowCount(0)
+        self.result_count.setText("显示 0 个")
+        self.figure.clear()
+        self.canvas.draw_idle()
+        self.export_button.setEnabled(False)
+        self.plot_export_button.setEnabled(False)
+        self.run_button.setEnabled(True)
+        self.cancel_button.setEnabled(False)
+        for widget in self.parameter_widgets:
+            widget.setEnabled(True)
+        self.progress.setRange(0, 100)
+        self.progress.setValue(0)
+        self.status_label.setText("历史数据段已切换，请重新选择分析输入。")
+
     def use_alignment(self, result):
         if self.job_id:
             raise ValueError("当前分析仍在运行，请先等待完成或取消")

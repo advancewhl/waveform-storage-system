@@ -1,0 +1,23 @@
+{
+  "ssh_control_socket": "/run/user/1001/waveform-candidate-5001-1001.sock",
+  "ssh_master_pid": 145015,
+  "ssh_forwarding": [
+    "5001:127.0.0.1:5001"
+  ],
+  "local_listener": "State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess                         \nLISTEN 0      128        127.0.0.1:5001      0.0.0.0:*    users:((\"ssh\",pid=145015,fd=6))\nLISTEN 0      128            [::1]:5001         [::]:*    users:((\"ssh\",pid=145015,fd=3))\n",
+  "server_main_pid": "1129649",
+  "registry_devices": 47,
+  "acquisition_enabled": 47,
+  "mongodb_connected": true,
+  "startup_errors": 0,
+  "mongodb_container": "mongo:8.0.29 running",
+  "dashboard_endpoint": "http://192.0.2.2:8765/",
+  "dashboard_query": {
+    "date": "2026-10-06",
+    "task_count": 5,
+    "segment_count": 87,
+    "completed_file_count": 1740
+  },
+  "dashboard_query_sha256": "342fdc79c878ff552b0d67740325e7ca09ae828b1e9c249e57ff547b6afb0679",
+  "dashboard_html_sha256": "8b293549baea6e2c702a3bb573013e4af979d172be751deea4ee993bc916c7f8"
+}

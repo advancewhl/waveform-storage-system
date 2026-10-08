@@ -9,7 +9,7 @@ PROJECT_ROOT = Path(SPECPATH).parent
 ENTRY_POINT = PROJECT_ROOT / "apps" / "acquisition_server" / "main.py"
 SOURCE_ROOT = PROJECT_ROOT / "src"
 
-datas = [(str(PROJECT_ROOT / "config" / "devices.json"), "config")]
+datas = []
 binaries = []
 hiddenimports = []
 for package in (
@@ -39,6 +39,8 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+# The packaged default registry is the approved formal 47-device registry.
+a.datas.append(("config/devices.json", str(PROJECT_ROOT / "config/devices.probe47.json"), "DATA"))
 pyz = PYZ(a.pure)
 
 exe = EXE(

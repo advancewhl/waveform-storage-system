@@ -67,3 +67,6 @@ dist/
 /analysis/**/runs/
 /outputs/spectrum-preview/
 /outputs/operator-local/
+/outputs/server-history-*/
+/outputs/server-releases/
+/outputs/release-pairs/

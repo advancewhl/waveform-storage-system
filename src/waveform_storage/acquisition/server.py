@@ -24,6 +24,8 @@ from waveform_storage.acquisition.protocol import (
     HEALTH,
     FIND_WAVEFORM_FILES,
     LIST_CAPTURE_TIMES,
+    LIST_CAPTURE_RUNS, LIST_CAPTURE_SEGMENTS, FIND_WAVEFORM_FILES_BY_SEGMENT,
+    CaptureSegmentQueryRequest,
     PROTOCOL_VERSION,
     CaptureRequest,
     CaptureResponse,
@@ -538,7 +540,7 @@ class CandidateAcquisitionServer:
             if request.command == GET_TIMING_FREQUENCY:
                 return self._handle_timing_frequency(request)
 
-        if isinstance(request, MetadataQueryRequest):
+        if isinstance(request, (MetadataQueryRequest, CaptureSegmentQueryRequest)):
             return self._handle_metadata_query(request)
 
         try:
@@ -657,6 +659,17 @@ class CandidateAcquisitionServer:
                 "METADATA_UNAVAILABLE",
             )
         try:
+            if request.command in {LIST_CAPTURE_RUNS, LIST_CAPTURE_SEGMENTS}:
+                if request.command == LIST_CAPTURE_RUNS:
+                    items = self.metadata.list_capture_runs(request.storage_date_local)
+                    key = "runs"
+                else:
+                    items = self.metadata.list_capture_segments(request.capture_request_id)
+                    key = "segments"
+                return MetadataQueryResponse(
+                    PROTOCOL_VERSION, request.request_id, True,
+                    f"found {len(items)} {key}", {key: [item.to_payload() for item in items]},
+                )
             if request.command == LIST_CAPTURE_TIMES:
                 times = self.metadata.list_capture_times(
                     request.storage_date_local
@@ -682,14 +695,22 @@ class CandidateAcquisitionServer:
                     {},
                     "UNKNOWN_DEVICE",
                 )
-            records = self.metadata.find_waveform_files(
-                storage_date_local=request.storage_date_local,
-                time_sec=request.time_sec,
-                device_ids=request.devices,
-            )
+            if request.command == FIND_WAVEFORM_FILES_BY_SEGMENT:
+                records = self.metadata.find_waveform_files_by_segment(
+                    capture_request_id=request.capture_request_id,
+                    capture_sequence=request.capture_sequence,
+                    device_ids=request.devices,
+                )
+            else:
+                records = self.metadata.find_waveform_files(
+                    storage_date_local=request.storage_date_local,
+                    time_sec=request.time_sec,
+                    device_ids=request.devices,
+                )
             files = [
                 {
                     "request_id": str(record["request_id"]),
+                    "capture_sequence": int(record.get("capture_sequence", 0)),
                     "device_id": str(record["device_id"]),
                     "path": str(record["file"]["path"]),
                     "storage_id": str(record["file"]["storage_id"]),

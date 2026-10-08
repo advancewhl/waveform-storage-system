@@ -5,7 +5,9 @@ from __future__ import annotations
 import os
 import shutil
 import math
+from collections.abc import Mapping
 from datetime import date
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from uuid import uuid4
 
@@ -18,6 +20,7 @@ from waveform_storage.application.communication_service import (
 from waveform_storage.application.retrieval_service import RetrievalService, StorageQuery
 from waveform_storage.config.settings import AppSettings
 from waveform_storage.gui.operator_contract import OperatorMode
+from waveform_storage.metadata.history import CaptureRunSummary, CaptureSegment
 from waveform_storage.processing.alignment import SkippedDevice
 from waveform_storage.transport.ssh_storage import download_device_series, save_files
 from waveform_storage.transport.zmq_transport import ZmqTimeout, ZmqTransport
@@ -28,6 +31,10 @@ class _CatalogStorageGateway:
         self.backend = backend
 
     def find_files(self, query: StorageQuery) -> tuple[tuple[str, str], ...]:
+        if query.request_id is not None:
+            return self.backend._candidate_segment_file_pairs(
+                query.request_id, query.capture_sequence, query.device_ids,
+            )
         run_id = query.run_id
         selected_date = date(int(run_id[:4]), int(run_id[4:6]), int(run_id[6:8]))
         return self.backend._candidate_file_pairs(
@@ -142,6 +149,76 @@ class CandidateOperatorBackend:
     def get_capture_status(self, request_id: str):
         return self._candidate_transport().get_status(request_id)
 
+    def retrieve_runs(self, selected_date: date) -> tuple[CaptureRunSummary, ...]:
+        reply = self._candidate_transport().list_capture_runs(
+            str(uuid4()), selected_date.isoformat(),
+        )
+        items = self._metadata_items(reply, "runs", "capture runs")
+        try:
+            runs = tuple(CaptureRunSummary.from_payload(item) for item in items)
+            if len({run.request_id for run in runs}) != len(runs):
+                raise ValueError("duplicate capture IDs")
+            return runs
+        except (KeyError, TypeError, ValueError, AttributeError, OverflowError) as exc:
+            raise RuntimeError("candidate service returned invalid capture runs") from exc
+
+    def retrieve_segments(self, capture_request_id: str) -> tuple[CaptureSegment, ...]:
+        reply = self._candidate_transport().list_capture_segments(str(uuid4()), capture_request_id)
+        items = self._metadata_items(reply, "segments", "capture segments")
+        try:
+            segments = tuple(CaptureSegment.from_payload(item) for item in items)
+            if any(item.request_id != capture_request_id for item in segments):
+                raise ValueError("mismatched capture ID")
+            if len({item.capture_sequence for item in segments}) != len(segments):
+                raise ValueError("duplicate capture sequences")
+            return tuple(sorted(segments, key=lambda item: item.capture_sequence))
+        except (KeyError, TypeError, ValueError, AttributeError, OverflowError) as exc:
+            raise RuntimeError("candidate service returned invalid capture segments") from exc
+
+    @staticmethod
+    def _segment_query(segment: CaptureSegment, device_ids) -> StorageQuery:
+        return StorageQuery(
+            "mongodb-catalog", (segment.storage_date_local.replace("-", "")
+                                if segment.storage_date_local else segment.captured_at.astimezone(
+                                    ZoneInfo("Asia/Shanghai")).strftime("%Y%m%d")),
+            segment.time_sec, tuple(device_ids), segment.request_id,
+            segment.capture_sequence, segment.captured_at.isoformat(),
+        )
+
+    def align_segment(self, segment: CaptureSegment, device_ids):
+        return self._retrieval.retrieve(self._segment_query(segment, device_ids))
+
+    def export_segment_alignment(self, result, segment: CaptureSegment, destination) -> Path:
+        return self._retrieval.export(result, self._segment_query(segment, result.device_ids),
+                                      destination, "v2")
+
+    def download_segment_raw(self, segment: CaptureSegment, device_ids, destination):
+        query = self._segment_query(segment, device_ids)
+        local_path = (Path(destination) / query.run_id / segment.request_id
+                      / f"S{segment.capture_sequence:05d}")
+        pairs = self._candidate_segment_file_pairs(
+            segment.request_id, segment.capture_sequence, tuple(device_ids),
+        )
+        return self._save_raw_pairs(pairs, local_path)
+
+    def _candidate_segment_file_pairs(self, capture_request_id, capture_sequence, device_ids):
+        reply = self._candidate_transport().find_waveform_files_by_segment(
+            str(uuid4()), capture_request_id, capture_sequence, tuple(device_ids),
+        )
+        files = self._metadata_items(reply, "files", "segment files")
+        pairs = []
+        for item in files:
+            if (not isinstance(item, Mapping) or item.get("request_id") != capture_request_id
+                    or type(item.get("capture_sequence")) is not int
+                    or item.get("capture_sequence") != capture_sequence
+                    or item.get("device_id") not in device_ids
+                    or not isinstance(item.get("path"), str) or not item["path"]):
+                raise RuntimeError("candidate service returned a mismatched segment file")
+            pairs.append((item["path"], item["device_id"]))
+        if len({item[1] for item in pairs}) != len(pairs):
+            raise RuntimeError("candidate service returned duplicate segment devices")
+        return tuple(pairs)
+
     def retrieve_times(self, selected_date: date) -> tuple[str, ...]:
         reply = self._candidate_transport().list_capture_times(
             str(uuid4()), selected_date.isoformat()
@@ -196,6 +273,9 @@ class CandidateOperatorBackend:
     ) -> tuple[Path, ...]:
         local_path = Path(destination) / selected_date.strftime("%Y%m%d") / time_sec
         pairs = self._candidate_file_pairs(selected_date, time_sec, device_ids)
+        return self._save_raw_pairs(pairs, local_path)
+
+    def _save_raw_pairs(self, pairs, local_path):
         if self.candidate_local_files:
             local_path.mkdir(parents=True, exist_ok=True)
             return tuple(
@@ -242,6 +322,17 @@ class CandidateOperatorBackend:
             self.candidate_endpoint,
             timeout_ms=timeout_ms or max(10000, self.settings.zmq_receive_timeout_ms),
         )
+
+    @classmethod
+    def _metadata_items(cls, reply, key: str, label: str) -> list:
+        cls._require_metadata_reply(reply)
+        payload = reply.payload
+        if not isinstance(payload, Mapping) or not isinstance(payload.get(key), list):
+            raise RuntimeError(f"candidate service returned invalid {label}")
+        items = payload[key]
+        if any(not isinstance(item, Mapping) for item in items):
+            raise RuntimeError(f"candidate service returned invalid {label}")
+        return items
 
     @staticmethod
     def _require_metadata_reply(reply) -> None:

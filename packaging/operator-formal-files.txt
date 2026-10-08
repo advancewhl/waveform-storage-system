@@ -41,3 +41,11 @@ src/waveform_storage/processing/alignment.py
 src/waveform_storage/transport/__init__.py
 src/waveform_storage/transport/ssh_storage.py
 src/waveform_storage/transport/zmq_transport.py
+src/waveform_storage/metadata/__init__.py
+src/waveform_storage/metadata/history.py
+src/waveform_storage/metadata/models.py
+src/waveform_storage/metadata/memory_repository.py
+src/waveform_storage/metadata/repository.py
+src/waveform_storage/metadata/service.py
+src/waveform_storage/metadata/settings.py
+src/waveform_storage/gui/history_smoke.py

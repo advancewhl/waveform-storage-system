@@ -107,8 +107,24 @@ class RetrievalServiceTests(unittest.TestCase):
                 "20260725",
                 "120000",
                 ("BPM_A", "BPM_B", "BPM_C"),
+                None, None,
             ),
         )
+
+    def test_segment_identity_separates_cache_even_at_same_time(self):
+        from dataclasses import replace
+        queries = [replace(self.query, request_id="run-a", capture_sequence=0),
+                   replace(self.query, request_id="run-b", capture_sequence=0),
+                   replace(self.query, request_id="run-b", capture_sequence=3)]
+        for query in queries:
+            self.service.retrieve(query)
+            self.service.retrieve(query)
+        self.assertEqual(self.storage.find_calls, 3)
+        for fields in ({"request_id": "run-a"}, {"capture_sequence": 0},
+                       {"request_id": "run-a", "capture_sequence": True},
+                       {"request_id": "run-a", "capture_sequence": -1}):
+            with self.assertRaises(ValueError):
+                replace(self.query, **fields)
 
     def test_no_intersection_remains_a_structured_empty_result(self):
         class DisjointStorage(FakeStorage):

@@ -381,6 +381,39 @@ class PersistentServerTests(unittest.TestCase):
         completed = self.wait_for_status(request.request_id, "cancelled")
         self.assertEqual(completed.status, "cancelled")
 
+    def test_run_segment_and_precise_file_routes(self):
+        from unittest.mock import Mock
+        from datetime import datetime, timezone
+        from waveform_storage.acquisition.protocol import CaptureSegmentQueryRequest
+        from waveform_storage.metadata.history import CaptureRunSummary, CaptureSegment
+        catalog = Mock()
+        now = datetime(2026, 10, 8, tzinfo=timezone.utc)
+        capture_id = str(uuid4())
+        run = CaptureRunSummary(capture_id, now, now, now, 1000, 600, "failed", 1, 1, 1, True)
+        segment = CaptureSegment(capture_id, 3, "080000", now,
+                                 ("AC_LA_TEST_BI_SBPM01",), "2026-10-08")
+        catalog.list_capture_runs.return_value = (run,)
+        catalog.list_capture_segments.return_value = (segment,)
+        catalog.find_waveform_files_by_segment.return_value = ({"request_id": capture_id,
+            "capture_sequence": 3, "device_id": "AC_LA_TEST_BI_SBPM01",
+            "file": {"path": "/raw.h5", "storage_id": "primary"}},)
+        self.server.metadata = catalog
+        requests = (
+            MetadataQueryRequest(2, str(uuid4()), "list_capture_runs", "2026-10-08"),
+            CaptureSegmentQueryRequest(2, str(uuid4()), "list_capture_segments", capture_id),
+            CaptureSegmentQueryRequest(2, str(uuid4()), "find_waveform_files_by_segment",
+                                       capture_id, 3, ("AC_LA_TEST_BI_SBPM01",)),
+        )
+        for request, key in zip(requests, ("runs", "segments", "files")):
+            response = self.server.handle_message(encode_metadata_query_request(request))
+            self.assertTrue(response.accepted, response.message)
+            self.assertEqual(response.request_id, request.request_id)
+            self.assertEqual(response.payload[key][0]["request_id"], capture_id)
+        catalog.find_waveform_files_by_segment.assert_called_once_with(
+            capture_request_id=capture_id, capture_sequence=3,
+            device_ids=("AC_LA_TEST_BI_SBPM01",))
+        catalog.find_waveform_files.assert_not_called()
+
     def test_metadata_queries_are_served_without_directory_scans(self):
         class Catalog:
             def list_capture_times(self, storage_date_local):

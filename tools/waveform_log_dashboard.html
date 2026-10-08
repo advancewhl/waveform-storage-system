@@ -89,9 +89,9 @@
       <section class="panel"><h2>设置的采集时长</h2><p class="sub">按请求时长统计；任务失败时也计入</p><div id="durationChart"></div></section>
       <section class="panel"><h2>任务时间线</h2><p class="sub">每根柱代表一个任务；红色表示失败、拒绝或取消</p><div id="timeline"></div></section>
     </div>
-    <section class="panel" style="margin-bottom:18px"><h2>服务端采集任务</h2><p class="sub">时间显示为 Asia/Shanghai；任务详情在表格下方展开</p><div class="table-wrap"><table><thead><tr><th>开始时间</th><th>请求时长</th><th class="task-col-secondary">实际耗时</th><th>状态</th><th>设备</th><th class="task-col-secondary">周期已保存</th><th class="task-col-secondary">频率</th><th>详情</th></tr></thead><tbody id="tasksBody"></tbody></table></div></section>
+    <section class="panel" style="margin-bottom:18px"><h2>服务端采集任务</h2><p class="sub">时间显示为 Asia/Shanghai；任务详情在表格下方展开</p><div class="table-wrap"><table><thead><tr><th>开始时间</th><th>请求时长</th><th class="task-col-secondary">实际耗时</th><th>状态</th><th>设备</th><th>数据段</th><th class="task-col-secondary">设备-段保存</th><th class="task-col-secondary">频率</th><th>详情</th></tr></thead><tbody id="tasksBody"></tbody></table></div></section>
     <section class="panel" id="eventPanel" style="margin-bottom:18px"><h2>操作界面记录</h2><p class="sub">来自本机 logs/operator-ui.jsonl；只显示所选日期的记录</p><div class="table-wrap"><table><thead><tr><th>时间</th><th>环节</th><th>结果</th><th>说明</th></tr></thead><tbody id="eventsBody"></tbody></table></div></section>
-    <footer>数据来源：服务端 MongoDB capture_tasks（只读）；本机模式还显示本机操作日志。采集时长是请求设置；实际耗时由服务端开始与结束时间计算。</footer>
+    <footer>数据来源：服务端 MongoDB capture_tasks 与 waveform_files（只读）；本机模式还显示本机操作日志。采集时长是请求设置；实际耗时由服务端开始与结束时间计算。</footer>
   </main>
   <script>
     const $ = id => document.getElementById(id);
@@ -105,6 +105,7 @@
     function el(tag,text,cls){ const node=document.createElement(tag); if(text!==undefined)node.textContent=String(text); if(cls)node.className=cls; return node; }
     function clear(node){ node.replaceChildren(); }
     function time(value){ return value ? timeFmt.format(new Date(value)) : '—'; }
+    function fullTime(value){ return value ? `${dateFmt.format(new Date(value))} ${time(value)}` : '—'; }
     function duration(seconds){ if(seconds==null)return '—'; return seconds%60===0 ? `${seconds/60} 分钟` : `${seconds} 秒`; }
     function elapsed(task){ if(!task.started_at||!task.completed_at)return '—'; return `${Math.round((Date.parse(task.completed_at)-Date.parse(task.started_at))/1000)} 秒`; }
     function status(value){ return ({succeeded:'成功',failed:'失败',cancelled:'已取消',rejected:'已拒绝',running:'运行中',accepted:'已接受'})[value] || value || '未知'; }
@@ -148,16 +149,21 @@
         const tr=el('tr');tr.append(el('td',time(task.started_at||task.created_at)),el('td',duration(task.duration_seconds)),el('td',elapsed(task),'task-col-secondary'));
         const state=el('td');state.append(el('span',status(task.status),`pill ${task.status||''}`));tr.append(state);
         tr.append(el('td',`${task.result_summary?.succeeded??0} / ${task.device_ids?.length??task.result_summary?.requested??0}`));
+        tr.append(el('td',task.segment_count??'—'));
         tr.append(el('td',`${task.result_summary?.saved_cycles??'—'} / ${task.result_summary?.attempted_cycles??'—'}`,'task-col-secondary'));
         tr.append(el('td',task.frequency_hz==null?'—':`${task.frequency_hz} Hz`,'task-col-secondary'));
         const detailCell=el('td'),toggle=el('button','查看','detail-toggle');toggle.type='button';toggle.setAttribute('aria-expanded','false');detailCell.append(toggle);tr.append(detailCell);
-        const detailRow=el('tr',undefined,'detail-row'),fullCell=el('td');fullCell.colSpan=8;
+        const detailRow=el('tr',undefined,'detail-row'),fullCell=el('td');fullCell.colSpan=9;
         const box=el('div',undefined,'detail-box');
         const field=(name,value,cls='')=>{const p=el('p',undefined,cls);p.append(el('strong',name),el('span',value));return p;};
         box.append(field('请求 ID',task._id||'—'));
         box.append(field('区域',(task.area_ids||[]).join('、')||'—'));
         box.append(field('实际耗时',elapsed(task)));
-        box.append(field('周期已保存',`${task.result_summary?.saved_cycles??'—'} / ${task.result_summary?.attempted_cycles??'—'}`));
+        box.append(field('数据段',String(task.segment_count??'—')));
+        box.append(field('已完成文件',String(task.completed_file_count??'—')));
+        box.append(field('首段时间',fullTime(task.first_capture_at)));
+        box.append(field('末段时间',fullTime(task.last_capture_at)));
+        box.append(field('设备-段保存',`${task.result_summary?.saved_cycles??'—'} / ${task.result_summary?.attempted_cycles??'—'}`));
         box.append(field('采集频率',task.frequency_hz==null?'—':`${task.frequency_hz} Hz`));
         if(task.error)box.append(field('错误',`${task.error.code||''} ${task.error.message||''}`.trim(),'error'));
         const devices=task.device_results||[],deviceList=el('details',undefined,'device-list');

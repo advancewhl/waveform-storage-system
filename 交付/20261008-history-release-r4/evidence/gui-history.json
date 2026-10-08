@@ -1,0 +1,82 @@
+{
+  "started_at": "2026-10-08T15:57:13.878847+08:00",
+  "pid": 355716,
+  "frozen": true,
+  "executable": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-history-release-r4/waveform-operator/waveform-operator",
+  "current_binary": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-history-release-r4/waveform-operator/waveform-operator",
+  "binary_sha256": "8e50fd5e623113ae40aa19a03e9c912182691c80145269e2f849d69a306cf416",
+  "desktop_file": "/home/whloong/桌面/波形存储.desktop",
+  "inherited_desktop_file": "/home/whloong/.local/share/applications/chatgpt.desktop",
+  "launcher_pid": 355698,
+  "launcher_command": [
+    "bash",
+    "/home/whloong/waveform-storage/waveform-storage-system/tools/launch_operator_desktop.sh"
+  ],
+  "endpoint": "tcp://127.0.0.1:5001",
+  "date": "2026-10-06",
+  "file_queries": [
+    {
+      "request_id": "a4d92ba9-553f-4652-a821-353c6d830942",
+      "capture_sequence": 1,
+      "device_ids": [
+        "AC_LA_INJ1_BI_SBPM01"
+      ],
+      "file_count": 1
+    },
+    {
+      "request_id": "a4d92ba9-553f-4652-a821-353c6d830942",
+      "capture_sequence": 1,
+      "device_ids": [
+        "AC_LA_INJ1_BI_SBPM01"
+      ],
+      "file_count": 1
+    }
+  ],
+  "steps": {
+    "task_loading": true,
+    "segment_switching": true,
+    "bpm_selection": true,
+    "alignment": true,
+    "raw_download": true,
+    "export": true
+  },
+  "capture_requests": 0,
+  "data_directory": "/home/whloong/waveform-storage/waveform-storage-system/outputs/release-pairs/20261008-history-release-r4/data-77e74afe-c2cc-4c72-ae80-7ecc370ac782",
+  "task_count": 3,
+  "run_text": "16:02:35 | 1000 Hz | 10 分钟 | 当日 21 段",
+  "segment_count": 21,
+  "partial_segment_present": false,
+  "available_bpm_count": 20,
+  "identity": [
+    "segment",
+    "a4d92ba9-553f-4652-a821-353c6d830942",
+    1
+  ],
+  "selected_devices": [
+    "AC_LA_INJ1_BI_SBPM01"
+  ],
+  "aligned_sample_count": 20000,
+  "raw_files": [
+    "/home/whloong/waveform-storage/waveform-storage-system/outputs/release-pairs/20261008-history-release-r4/data-77e74afe-c2cc-4c72-ae80-7ecc370ac782/20261006/a4d92ba9-553f-4652-a821-353c6d830942/S00001/RAW-160304-AC_LA_INJ1_BI_SBPM01-S00001.h5"
+  ],
+  "raw_sha256": {
+    "/home/whloong/waveform-storage/waveform-storage-system/outputs/release-pairs/20261008-history-release-r4/data-77e74afe-c2cc-4c72-ae80-7ecc370ac782/20261006/a4d92ba9-553f-4652-a821-353c6d830942/S00001/RAW-160304-AC_LA_INJ1_BI_SBPM01-S00001.h5": "f65f0db36be0541bd5a85f5c6d3373733fe05df2a700e2dc5a7467eb60c7e45a"
+  },
+  "export_file": "/home/whloong/waveform-storage/waveform-storage-system/outputs/release-pairs/20261008-history-release-r4/data-77e74afe-c2cc-4c72-ae80-7ecc370ac782/20261006_160304_S00001_a4d92ba9-553f-4652-a821-353c6d830942_BPMdata_v2.h5",
+  "export_sha256": "d313c29282d7e85edcecd050e19f9e946208b8d8e32f19b52b79b9bc42b51135",
+  "export_metadata": {
+    "capture_sequence": 1,
+    "captured_at": "2026-10-06T08:03:04.358000+00:00",
+    "request_id": "a4d92ba9-553f-4652-a821-353c6d830942",
+    "run_id": "20261006",
+    "time_sec": "160304"
+  },
+  "status": "passed",
+  "finished_at": "2026-10-08T15:57:15.955797+08:00",
+  "desktop_invocation": [
+    "gio",
+    "launch",
+    "/home/whloong/桌面/波形存储.desktop"
+  ],
+  "desktop_sha256": "a7e9f4e010216037d43daa0f6cbee711a6d64a5dcf21121f0832f86b240a1888"
+}

@@ -25,6 +25,23 @@ DASHBOARD_SPEC.loader.exec_module(DASHBOARD)
 
 
 class DashboardTaskDetailsTests(unittest.TestCase):
+    def test_tasks_date_uses_one_task_wide_segment_aggregation(self):
+        script = QUERY._query_script("tasks-date", "2026-10-06", 20, "mongodb://example", "waveforms")
+        self.assertEqual(script.count("waveform_files.aggregate("), 1)
+        self.assertIn('request_id: {$in: tasks.map(task => task._id)}', script)
+        self.assertIn('status: "completed"', script)
+        self.assertIn('$addToSet: {$ifNull: ["$capture_sequence", 0]}', script)
+        self.assertIn('task.segment_count = group ? group.sequences.length : 0', script)
+        self.assertIn('completed_file_count: {$sum: 1}', script)
+        self.assertNotIn('storage_date_local:', script)
+        html = (ROOT / "tools/waveform_log_dashboard.html").read_text()
+        self.assertIn('<th>数据段</th>', html)
+        self.assertIn('设备-段保存', html)
+        self.assertIn('首段时间', html)
+        self.assertIn('末段时间', html)
+        self.assertIn('capture_tasks 与 waveform_files', html)
+        self.assertNotIn('周期已保存', html)
+
     def test_server_mode_queries_local_mongodb_without_ssh(self):
         with patch.object(DASHBOARD.subprocess, "run") as run:
             run.return_value.returncode = 0

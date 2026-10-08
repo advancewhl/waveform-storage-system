@@ -161,6 +161,22 @@ const tasks = data.capture_tasks.find(filter, {{
   duration_seconds: 1, frequency_hz: 1, status: 1,
   area_ids: 1, device_ids: 1, result_summary: 1, error: 1
 }}).sort({{created_at: 1}}).toArray();
+const segmentGroups = data.waveform_files.aggregate([
+  {{$match: {{request_id: {{$in: tasks.map(task => task._id)}}, status: "completed"}}}},
+  {{$group: {{_id: "$request_id",
+    sequences: {{$addToSet: {{$ifNull: ["$capture_sequence", 0]}}}},
+    completed_file_count: {{$sum: 1}},
+    first_capture_at: {{$min: "$captured_at"}}, last_capture_at: {{$max: "$captured_at"}}
+  }}}}
+]).toArray();
+const segmentsByTask = new Map(segmentGroups.map(group => [group._id, group]));
+for (const task of tasks) {{
+  const group = segmentsByTask.get(task._id);
+  task.segment_count = group ? group.sequences.length : 0;
+  task.completed_file_count = group ? group.completed_file_count : 0;
+  task.first_capture_at = group ? group.first_capture_at : null;
+  task.last_capture_at = group ? group.last_capture_at : null;
+}}
 const result = {{date: {json.dumps(value)}, timezone: "Asia/Shanghai",
   total: tasks.length, tasks: tasks}};
 """

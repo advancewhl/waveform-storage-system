@@ -20,6 +20,9 @@ CANCEL = "cancel"
 GET_TIMING_FREQUENCY = "get_timing_frequency"
 LIST_CAPTURE_TIMES = "list_capture_times"
 FIND_WAVEFORM_FILES = "find_waveform_files"
+LIST_CAPTURE_RUNS = "list_capture_runs"
+LIST_CAPTURE_SEGMENTS = "list_capture_segments"
+FIND_WAVEFORM_FILES_BY_SEGMENT = "find_waveform_files_by_segment"
 DEVICE_ID_PATTERN = re.compile(r"^[A-Z0-9_]+$")
 LOCAL_DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 TIME_FIELD_PATTERN = re.compile(r"^\d{6}$")
@@ -176,7 +179,7 @@ class ControlRequest:
 class MetadataQueryRequest:
     version: int
     request_id: str
-    command: Literal["list_capture_times", "find_waveform_files"]
+    command: Literal["list_capture_times", "list_capture_runs", "find_waveform_files"]
     storage_date_local: str
     time_sec: str | None = None
     devices: tuple[str, ...] = ()
@@ -184,7 +187,7 @@ class MetadataQueryRequest:
     def __post_init__(self) -> None:
         _validate_version(self.version)
         _validate_request_id(self.request_id)
-        if self.command not in {LIST_CAPTURE_TIMES, FIND_WAVEFORM_FILES}:
+        if self.command not in {LIST_CAPTURE_TIMES, LIST_CAPTURE_RUNS, FIND_WAVEFORM_FILES}:
             raise ProtocolValidationError(
                 f"unsupported metadata query command: {self.command!r}"
             )
@@ -200,7 +203,7 @@ class MetadataQueryRequest:
             raise ProtocolValidationError(
                 "storage_date_local is not a valid calendar date"
             ) from exc
-        if self.command == LIST_CAPTURE_TIMES:
+        if self.command in {LIST_CAPTURE_TIMES, LIST_CAPTURE_RUNS}:
             if self.time_sec is not None or self.devices:
                 raise ProtocolValidationError(
                     "list_capture_times does not accept time_sec or devices"
@@ -224,6 +227,38 @@ class MetadataQueryRequest:
             raise ProtocolValidationError(
                 f"devices contains invalid IDs: {invalid!r}"
             )
+
+
+@dataclass(frozen=True)
+class CaptureSegmentQueryRequest:
+    """The target capture ID is independent of this query's correlation ID."""
+
+    version: int
+    request_id: str
+    command: Literal["list_capture_segments", "find_waveform_files_by_segment"]
+    capture_request_id: str
+    capture_sequence: int | None = None
+    devices: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        _validate_version(self.version)
+        _validate_request_id(self.request_id)
+        _validate_request_id(self.capture_request_id)
+        if self.command == LIST_CAPTURE_SEGMENTS:
+            if self.capture_sequence is not None or self.devices:
+                raise ProtocolValidationError("list_capture_segments accepts only capture_request_id")
+            return
+        if self.command != FIND_WAVEFORM_FILES_BY_SEGMENT:
+            raise ProtocolValidationError("unsupported segment query command")
+        if (isinstance(self.capture_sequence, bool)
+                or not isinstance(self.capture_sequence, Integral)
+                or self.capture_sequence < 0):
+            raise ProtocolValidationError("capture_sequence must be a nonnegative integer")
+        if not self.devices or any(not isinstance(item, str)
+                or not DEVICE_ID_PATTERN.fullmatch(item) for item in self.devices):
+            raise ProtocolValidationError("devices must contain valid device IDs")
+        if len(set(self.devices)) != len(self.devices):
+            raise ProtocolValidationError("devices contains duplicates")
 
 
 @dataclass(frozen=True)
@@ -322,9 +357,15 @@ def encode_control_request(request: ControlRequest) -> str:
     return _encode(asdict(request))
 
 
-def encode_metadata_query_request(request: MetadataQueryRequest) -> str:
+def encode_metadata_query_request(request: MetadataQueryRequest | CaptureSegmentQueryRequest) -> str:
     payload = asdict(request)
-    if request.command == LIST_CAPTURE_TIMES:
+    if isinstance(request, CaptureSegmentQueryRequest):
+        if request.command == LIST_CAPTURE_SEGMENTS:
+            payload.pop("capture_sequence")
+            payload.pop("devices")
+        else:
+            payload["devices"] = list(request.devices)
+    elif request.command in {LIST_CAPTURE_TIMES, LIST_CAPTURE_RUNS}:
         payload.pop("time_sec")
         payload.pop("devices")
     else:
@@ -334,7 +375,7 @@ def encode_metadata_query_request(request: MetadataQueryRequest) -> str:
 
 def decode_service_request(
     message: str | bytes,
-) -> CaptureRequest | ControlRequest | MetadataQueryRequest:
+) -> CaptureRequest | ControlRequest | MetadataQueryRequest | CaptureSegmentQueryRequest:
     """Decode any request understood by the deployable v2 service."""
 
     payload = _decode_object(message)
@@ -363,7 +404,18 @@ def decode_service_request(
             request_id=payload["request_id"],
             command=payload["command"],
         )
-    if command == LIST_CAPTURE_TIMES:
+    if command in {LIST_CAPTURE_SEGMENTS, FIND_WAVEFORM_FILES_BY_SEGMENT}:
+        fields = _CONTROL_REQUEST_FIELDS | {"capture_request_id"}
+        if command == FIND_WAVEFORM_FILES_BY_SEGMENT:
+            fields |= {"capture_sequence", "devices"}
+        _require_exact_fields(payload, fields)
+        values = dict(payload)
+        if "devices" in values:
+            if not isinstance(values["devices"], list):
+                raise ProtocolValidationError("devices must be a JSON array")
+            values["devices"] = tuple(values["devices"])
+        return CaptureSegmentQueryRequest(**values)
+    if command in {LIST_CAPTURE_TIMES, LIST_CAPTURE_RUNS}:
         _require_exact_fields(payload, _LIST_CAPTURE_TIMES_FIELDS)
         return MetadataQueryRequest(
             version=payload["version"],
