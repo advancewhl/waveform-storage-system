@@ -1,0 +1,18 @@
+{
+  "release_id": "20261009-spectrum-ui-r2",
+  "operator_path": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator",
+  "source_state": "working-tree",
+  "source_state_is_working_tree": true,
+  "binary_sha256": "86c7b1e4722f92706eec986073bfd614a9f16449090005054f3eaade0909773f",
+  "binary_sha256_matches_build_info": true,
+  "source_manifest_sha256_matches_build_info": true,
+  "source_manifest_matches_current_operator_inputs": true,
+  "manifest_verified": true,
+  "binary_help_smoke_passed_without_opening_gui": true,
+  "previous_current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-spectrum-ui-r1/waveform-operator",
+  "rollback_target_is_r1": true,
+  "desktop_entry": "/home/whloong/\u684c\u9762/\u6ce2\u5f62\u5b58\u50a8.desktop",
+  "desktop_exec_is_launcher": true,
+  "launcher_prefers_resolved_current_binary": true,
+  "launcher_executable": true
+}

@@ -15,6 +15,7 @@ from waveform_storage.analysis.engine import analyze_channel
 from waveform_storage.analysis.loaders import load_request
 from waveform_storage.analysis.models import AnalysisConfig, AnalysisRequest, ChannelSeries
 from waveform_storage.analysis.service import AnalysisJobs, run_analysis
+from waveform_storage.analysis.status import display_status_for
 
 
 def hdf_fixture(path, fs=1000, points=20000, *, kind="merged", missing_rate=False):
@@ -53,6 +54,7 @@ class SpectrumNumericsTests(unittest.TestCase):
             x = np.sin(2 * np.pi * 47.6 * t) + np.random.default_rng(12).normal(0, .1, len(t))
             result = analyze_channel(ChannelSeries("BPM_X", t, x, "memory", rate), AnalysisConfig())
             self.assertEqual(result.classification, "stable_candidate", result.reason)
+            self.assertEqual(result.display_status, "clear_peak")
             self.assertAlmostEqual(result.peak_hz, 47.6, places=5)
             self.assertAlmostEqual(result.resolution_hz, .2)
             self.assertEqual(result.block_count, blocks)
@@ -71,6 +73,101 @@ class SpectrumNumericsTests(unittest.TestCase):
                     self.assertAlmostEqual(original[key], value, places=7, msg=key)
                 else:
                     self.assertEqual(original[key], value, key)
+            self.assertEqual(result.display_status, "clear_peak")
+
+    def test_display_status_policy_covers_all_five_states_and_keeps_invalid_separate(self):
+        cases = [
+            ("stable_candidate", False, "clear_peak"),
+            ("observation", True, "probable_peak"),
+            ("observation", False, "watch"),
+            ("reject", False, "no_significant_peak"),
+            ("invalid", True, "unanalysable"),
+        ]
+        for classification, overall_hit, expected in cases:
+            with self.subTest(classification=classification, overall_hit=overall_hit):
+                self.assertEqual(
+                    display_status_for(classification, overall_hit=overall_hit), expected
+                )
+
+    def test_low_frequency_display_status_separates_peak_evidence_from_v2_stability(self):
+        from unittest.mock import patch
+        from waveform_storage.analysis.pv_engine.models import SpectrumAnalysisResult
+
+        t = np.arange(1800, dtype=float)
+        x = np.sin(2 * np.pi * .152 * t)
+        cases = [
+            ("low_v1", ["stable_block_count"], "probable_peak"),
+            ("low_v2", ["stable_block_count", "stability_ratio"], "probable_peak"),
+            ("low_v2", ["real_local_maximum", "stable_block_count"], "watch"),
+        ]
+        for profile, failed_rules, expected in cases:
+            with self.subTest(profile=profile, failed_rules=failed_rules):
+                analysis = SpectrumAnalysisResult(
+                    pv_name="reference", classification="observation",
+                    clean_peak_to_background_db=12.0, stable_block_count=2,
+                    total_block_count=6, stability_ratio=1 / 3,
+                    failed_rules=failed_rules, decision_reason="deterministic test evidence",
+                )
+                with patch(
+                    "waveform_storage.analysis.pv_engine.spectrum.analyze_single_pv",
+                    return_value=analysis,
+                ):
+                    result = analyze_channel(
+                        ChannelSeries("reference", t, x, "memory", 1),
+                        AnalysisConfig.for_profile(profile),
+                    )
+                self.assertEqual(result.classification, "observation")
+                self.assertEqual(result.display_status, expected)
+
+    def test_high_frequency_evidence_flows_into_display_status_deterministically(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        rate = 1000
+        times = np.arange(20000, dtype=float) / rate
+        values = np.ones(len(times), dtype=float)
+        spectrum = SimpleNamespace(
+            frequency=np.arange(61, dtype=float),
+            psd=np.ones(61, dtype=float),
+            delta_f_hz=1.0,
+            actual_window_seconds=5.0,
+        )
+        hit = {"peak_hz": 47.6, "peak_to_background_db": 8.0,
+               "is_local_maximum": True, "prominence_db": 4.0}
+        miss = {"peak_hz": 47.6, "peak_to_background_db": 5.0,
+                "is_local_maximum": True, "prominence_db": 4.0}
+        cases = [
+            ("整体谱峰明显但重复性不足", hit, [hit, hit, miss, miss],
+             "observation", True, 2, "probable_peak"),
+            ("整体不命中但有分块支持", miss, [hit, miss, miss, miss],
+             "observation", False, 1, "watch"),
+            ("没有显著谱峰或分块命中", miss, [miss, miss, miss, miss],
+             "reject", False, 0, "no_significant_peak"),
+        ]
+        for label, overall, blocks, classification, overall_hit, block_hits, display in cases:
+            with self.subTest(case=label):
+                metrics = [dict(overall), *(dict(block) for block in blocks)]
+                with patch(
+                    "waveform_storage.analysis.engine._prepare",
+                    return_value=(times, values, rate),
+                ), patch(
+                    "waveform_storage.analysis.engine.welch_density",
+                    return_value=spectrum,
+                ), patch(
+                    "waveform_storage.analysis.engine._band_metrics",
+                    side_effect=metrics,
+                ):
+                    result = analyze_channel(
+                        ChannelSeries(label, times, values, "memory", rate),
+                        AnalysisConfig(),
+                    )
+
+                self.assertEqual(result.classification, classification)
+                self.assertEqual(result.block_hits, block_hits)
+                evidence = result.details["status_evidence"]
+                self.assertEqual(evidence["overall_hit"], overall_hit)
+                self.assertFalse(evidence["repeated"])
+                self.assertEqual(result.display_status, display)
 
     def test_long_gap_and_nyquist_and_constant_are_invalid(self):
         t = np.arange(20000) / 1000
@@ -184,14 +281,33 @@ class SpectrumTaskTests(unittest.TestCase):
                     time.sleep(.01)
                 state = jobs.get(job_id)
                 self.assertEqual(state["status"], "succeeded", state)
+                self.assertEqual(state["counts"]["stable_candidate"], 4)
+                self.assertEqual(state["display_counts"]["clear_peak"], 4)
                 result = jobs.result(job_id)
                 self.assertEqual(len(result.channels), 4)
                 manifest = json.loads((result.directory / "run-manifest.json").read_text())
                 self.assertEqual(manifest["config"]["block_seconds"], 5)
+                self.assertEqual(manifest["result_schema_version"], 2)
+                self.assertEqual(manifest["display_status_schema_version"], 1)
+                self.assertEqual(manifest["display_status_labels"]["clear_peak"], "谱峰明显")
                 self.assertTrue(manifest["source_files"][0]["sha256"])
                 with ZipFile(result.directory / "results.zip") as archive:
-                    self.assertIn("data-quality.csv", archive.namelist())
-                    self.assertIn("spectra.npz", archive.namelist())
+                    self.assertEqual(
+                        set(archive.namelist()),
+                        {"run-manifest.json", "results.json", "spectrum-summary.csv",
+                         "data-quality.csv", "spectrum-blocks.csv", "spectra.npz", "report.md"},
+                    )
+                    records = json.loads(archive.read("results.json"))
+                    self.assertEqual(records[0]["classification"], "stable_candidate")
+                    self.assertEqual(records[0]["display_status"], "clear_peak")
+                    report = archive.read("report.md").decode("utf-8")
+                    self.assertIn("谱峰明显", report)
+                    self.assertIn("谱峰（Hz）", report)
+                    summary_csv = archive.read("spectrum-summary.csv").decode("utf-8-sig")
+                    quality_csv = archive.read("data-quality.csv").decode("utf-8-sig")
+                    self.assertIn("display_status", summary_csv.splitlines()[0])
+                    self.assertIn("clear_peak", summary_csv)
+                    self.assertIn("stable_candidate,clear_peak", quality_csv)
                 with np.load(result.directory / "spectra.npz", allow_pickle=False) as arrays:
                     self.assertEqual(len(arrays), 8)
             finally:
@@ -232,6 +348,44 @@ class SpectrumTaskTests(unittest.TestCase):
                 self.assertEqual(len(restored.channels), 4)
                 self.assertAlmostEqual(restored.channels[0].peak_hz, 47.6)
                 self.assertTrue(len(restored.channels[0].frequency))
+            finally:
+                reopened.shutdown()
+
+    def test_pre_v2_results_reload_with_conservative_legacy_observation_status(self):
+        with TemporaryDirectory() as d:
+            p = Path(d) / "input.h5"
+            hdf_fixture(p)
+            output = Path(d) / "results"
+            jobs = AnalysisJobs(output)
+            try:
+                job_id = jobs.submit(AnalysisRequest("hdf5", (str(p),)))
+                deadline = time.monotonic() + 10
+                while jobs.get(job_id)["status"] in {"accepted", "running"} and time.monotonic() < deadline:
+                    time.sleep(.01)
+                self.assertEqual(jobs.get(job_id)["status"], "succeeded")
+            finally:
+                jobs.shutdown()
+
+            result_directory = output / job_id
+            manifest_path = result_directory / "run-manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            for key in ("result_schema_version", "display_status_schema_version",
+                        "display_status_labels", "classification_compatibility"):
+                manifest.pop(key, None)
+            manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+
+            results_path = result_directory / "results.json"
+            rows = json.loads(results_path.read_text(encoding="utf-8"))
+            rows[0]["classification"] = "observation"
+            rows[0].pop("display_status", None)
+            rows[0]["details"].pop("status_evidence", None)
+            results_path.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
+
+            reopened = AnalysisJobs(output)
+            try:
+                restored = reopened.result(job_id)
+                self.assertEqual(restored.channels[0].classification, "observation")
+                self.assertEqual(restored.channels[0].display_status, "watch")
             finally:
                 reopened.shutdown()
 

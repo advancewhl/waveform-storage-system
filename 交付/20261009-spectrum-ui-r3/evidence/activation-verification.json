@@ -1,0 +1,23 @@
+{
+  "release_id": "20261009-spectrum-ui-r3",
+  "previous_operator_release": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator",
+  "new_current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator",
+  "current_binary": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator/waveform-operator",
+  "binary_sha256": "384b824a79327381e2ecb93a2fcca4d0fec6c44b04f89e99ef221f533870865c",
+  "readlink_verified": true,
+  "previous_release_unchanged": true,
+  "rollback_target": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator",
+  "desktop_entry": "/home/whloong/桌面/波形存储.desktop",
+  "desktop_sha256": "a7e9f4e010216037d43daa0f6cbee711a6d64a5dcf21121f0832f86b240a1888",
+  "launcher": "/home/whloong/waveform-storage/waveform-storage-system/tools/launch_operator_desktop.sh",
+  "desktop_exec_is_launcher": true,
+  "launcher_prefers_current": true,
+  "launcher_resolves_new_binary": true,
+  "real_desktop_gui_launch_attempted": false,
+  "manual_desktop_validation": "WAITING FOR USER MANUAL VALIDATION",
+  "server": "unchanged",
+  "systemd": "unchanged",
+  "MongoDB": "unchanged",
+  "dashboard": "unchanged",
+  "site_operator": "unchanged"
+}

@@ -1,0 +1,27 @@
+{
+  "release_id": "20261008-spectrum-ui-r1",
+  "operator_path": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-spectrum-ui-r1/waveform-operator",
+  "kind": "operator",
+  "source_revision": "dbbc0d6ddfdaaf6d438783d7e7378134538f855c",
+  "source_state": "working-tree",
+  "source_manifest_sha256": "288118222d6b9d20af59e96c2844cc4d093ad15917e5d4658b31b2afd20299b4",
+  "binary_sha256": "e75423b9dd6d38f6e68f93338f8fdccc3186be642665a1d7392872c4682b717e",
+  "manifest_entries": 8368,
+  "status_py_sha256": "68073d839f7c6b3ace2f7c36459a1a517fa52a81c784d3a1683879a85d571384",
+  "runtime_versions": {
+    "python": "3.10.20 | packaged by conda-forge | (main, Jun 11 2026, 03:31:56) [GCC 14.3.0]",
+    "dependencies": {
+      "PyInstaller": "6.22.3",
+      "PyQt5": "5.15.11",
+      "h5py": "3.16.0",
+      "numpy": "2.2.6",
+      "matplotlib": "3.10.9",
+      "pandas": "2.3.3",
+      "scipy": "1.15.3",
+      "paramiko": "5.0.0",
+      "pyzmq": "27.1.0",
+      "caproto": "1.3.0",
+      "cryptography": "49.0.0"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "release_id": "20261009-spectrum-ui-r2",
+  "previous_current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-spectrum-ui-r1/waveform-operator",
+  "new_current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator",
+  "expected_current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator",
+  "current_matches_new_release": true,
+  "binary_sha256": "86c7b1e4722f92706eec986073bfd614a9f16449090005054f3eaade0909773f",
+  "binary_sha256_matches_build_info": true,
+  "desktop_entry": "/home/whloong/\u684c\u9762/\u6ce2\u5f62\u5b58\u50a8.desktop",
+  "desktop_exec": "/home/whloong/waveform-storage/waveform-storage-system/tools/launch_operator_desktop.sh",
+  "desktop_exec_is_launcher": true,
+  "desktop_sha256": "a7e9f4e010216037d43daa0f6cbee711a6d64a5dcf21121f0832f86b240a1888",
+  "launcher_sha256": "5870593351bfa8c05dec4557fa1f6a9012bc38c4d0b0c261e6fc6b93a18c8174",
+  "launcher_reads_resolved_current": true,
+  "launcher_resolves_to_new_binary": true,
+  "operator_override_set_in_check_environment": false,
+  "gui_launch_attempted_by_codex": false
+}

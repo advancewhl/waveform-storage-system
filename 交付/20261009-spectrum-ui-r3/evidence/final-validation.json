@@ -1,0 +1,89 @@
+{
+  "release_id": "20261009-spectrum-ui-r3",
+  "source_revision": "dbbc0d6ddfdaaf6d438783d7e7378134538f855c",
+  "source_state": "working-tree",
+  "binary_sha256": "384b824a79327381e2ecb93a2fcca4d0fec6c44b04f89e99ef221f533870865c",
+  "manifest_entries": 8368,
+  "manifest_verified": true,
+  "source_manifest_verified": true,
+  "focused_tests": {
+    "count": 27,
+    "status": "passed",
+    "initial_sandbox_failure": "HTTP loopback socket EPERM; all other focused tests passed"
+  },
+  "history_tests": {
+    "count": 5,
+    "status": "passed"
+  },
+  "full_quality": {
+    "count": 216,
+    "status": "passed"
+  },
+  "git_diff_check": "passed",
+  "offscreen_binary_startup": "passed",
+  "offscreen_screenshots_visual_review": "passed",
+  "packaged_gui_checks": "passed",
+  "activation": {
+    "release_id": "20261009-spectrum-ui-r3",
+    "previous_operator_release": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator",
+    "new_current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator",
+    "current_binary": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator/waveform-operator",
+    "binary_sha256": "384b824a79327381e2ecb93a2fcca4d0fec6c44b04f89e99ef221f533870865c",
+    "readlink_verified": true,
+    "previous_release_unchanged": true,
+    "rollback_target": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator",
+    "desktop_entry": "/home/whloong/桌面/波形存储.desktop",
+    "desktop_sha256": "a7e9f4e010216037d43daa0f6cbee711a6d64a5dcf21121f0832f86b240a1888",
+    "launcher": "/home/whloong/waveform-storage/waveform-storage-system/tools/launch_operator_desktop.sh",
+    "desktop_exec_is_launcher": true,
+    "launcher_prefers_current": true,
+    "launcher_resolves_new_binary": true,
+    "real_desktop_gui_launch_attempted": false,
+    "manual_desktop_validation": "WAITING FOR USER MANUAL VALIDATION",
+    "server": "unchanged",
+    "systemd": "unchanged",
+    "MongoDB": "unchanged",
+    "dashboard": "unchanged",
+    "site_operator": "unchanged"
+  },
+  "scope_review": {
+    "changed_existing_files_relative_to_task_baseline": [
+      "docs/CURRENT_STATUS.md",
+      "src/waveform_storage/gui/operator_window.py",
+      "src/waveform_storage/gui/spectrum_panel.py",
+      "tests/test_formal_history_bpm_selection.py",
+      "tests/test_spectrum_gui.py"
+    ],
+    "added_delivery_directory": "交付/20261009-spectrum-ui-r3/",
+    "self_review_completed": true,
+    "review_findings": [],
+    "review_checks": [
+      "显示偏好仅连接 setColumnHidden，不进入模板或分析参数。",
+      "历史率来自当前 CaptureRunSummary.frequency_hz，检查 segment.request_id 相符。",
+      "历史日期、任务和 segment 切换沿用 generation 与 reset_history_context 清理。",
+      "合法采样率检查数值类型、布尔值、finite 和正值。",
+      "保留缺失率人工输入；HDF5 冲突和 Archiver 时间戳逻辑未修改。",
+      "完整结果包、数值排序、5 种状态和自适应 PNG 逻辑未修改。"
+    ],
+    "protected_untracked_files": {
+      "analysis/high_frequency/数据结果/spectrum-results.zip": {
+        "sha256": "2df1b2cdac4c8c7c8fce6f35ecb378f8461a918db4c8532f859f5b40dcd598d5",
+        "unchanged": true,
+        "untracked": true
+      },
+      "tools/deploy_candidate_release.py": {
+        "sha256": "e46b317bba2da62b41fd1fdbca4d6f83c0c5f69814fce8bb4096f538cacd46a0",
+        "unchanged": true,
+        "untracked": true
+      }
+    },
+    "all_other_existing_hashed_files_unchanged": true,
+    "commit": false,
+    "push": false,
+    "tag": false,
+    "deploy_candidate_release_executed": false
+  },
+  "archive_sha256": "775cd6adc718b11cbf3f68a9023e054272e036d53ace45bb4411f29256407b83",
+  "archive_verified": true,
+  "final_status": "LOCAL OPERATOR UPDATED — WAITING FOR USER MANUAL VALIDATION"
+}

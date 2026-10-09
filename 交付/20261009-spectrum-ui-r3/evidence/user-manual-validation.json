@@ -1,0 +1,12 @@
+{
+  "release_id": "20261009-spectrum-ui-r3",
+  "date_local": "2026-10-09",
+  "timezone": "Asia/Shanghai",
+  "validation_status": "passed",
+  "evidence_source": "direct user confirmation in task commit-and-push-spectrum-ui-r3",
+  "user_statement": "当前 waveform-storage 本机频谱分析 r3 已完成人工验证。",
+  "verified_by": "user",
+  "codex_launched_real_desktop_gui": false,
+  "current_unchanged": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator",
+  "automated_build_evidence_preserved": true
+}

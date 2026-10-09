@@ -1,0 +1,13 @@
+{
+  "release_id": "20261008-spectrum-ui-r1",
+  "binary_sha256_matches_build_info": true,
+  "manifest_entries_verified": 8368,
+  "source_state": "working-tree",
+  "source_revision": "dbbc0d6ddfdaaf6d438783d7e7378134538f855c",
+  "source_manifest_sha256": "288118222d6b9d20af59e96c2844cc4d093ad15917e5d4658b31b2afd20299b4",
+  "status_py_sha256": "68073d839f7c6b3ace2f7c36459a1a517fa52a81c784d3a1683879a85d571384",
+  "offscreen_startup_and_hdf_analysis": "passed",
+  "module_not_found_error": false,
+  "current_before": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-history-release-r4/waveform-operator",
+  "activation_staging_path_clear": true
+}

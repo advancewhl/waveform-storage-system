@@ -1,0 +1,5 @@
+{
+  "previous_operator_release": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator",
+  "current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator",
+  "binary_sha256": "384b824a79327381e2ecb93a2fcca4d0fec6c44b04f89e99ef221f533870865c"
+}

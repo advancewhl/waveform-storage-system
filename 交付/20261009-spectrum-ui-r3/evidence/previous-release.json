@@ -1,0 +1,9 @@
+{
+  "previous_current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator",
+  "release_files": {
+    "waveform-operator": "86c7b1e4722f92706eec986073bfd614a9f16449090005054f3eaade0909773f",
+    "BUILD-INFO": "2009a5ff77c98e5522c25feb5184a5864364aca57a99693e464da58a89ae49c5",
+    "SOURCE-MANIFEST.json": "f02edd22dabd80a6ef9e81a4f89d1addcf8624e137c3d6dbfce0c6cd6aa1f9d0",
+    "MANIFEST.sha256": "6f448df3e53e0ec17ab460774e521a38043da3445739c6d326747933faaf530f"
+  }
+}

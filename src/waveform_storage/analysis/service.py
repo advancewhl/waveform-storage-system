@@ -20,6 +20,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 import numpy as np
 
 from .models import AnalysisRequest, AnalysisRun, ChannelResult
+from .status import DISPLAY_STATUS_LABELS
 
 
 class AnalysisCancelled(Exception):
@@ -122,6 +123,12 @@ def run_analysis(request: AnalysisRequest, output_root, *, job_id=None,
             else:
                 sources.append({"path": value, "kind": "in_memory_alignment"})
         manifest = {"job_id": job_id, "created_at": _now(), "algorithm_version": ALGORITHM_VERSION,
+                    "result_schema_version": 2, "display_status_schema_version": 1,
+                    "display_status_labels": DISPLAY_STATUS_LABELS,
+                    "classification_compatibility": (
+                        "classification retains its legacy values; display_status carries the "
+                        "current five-state presentation code"
+                    ),
                     "source_type": request.source_type, "source_files": sources,
                     "sample_rate_hz_supplied": request.sample_rate_hz,
                     "config": asdict(request.config), "beam_status": "unknown",
@@ -141,6 +148,7 @@ def run_analysis(request: AnalysisRequest, output_root, *, job_id=None,
         _write_csv(stage / "spectrum-summary.csv", flat)
         _write_csv(stage / "data-quality.csv", [
             {"channel": c.channel, "source": c.source, "status": c.classification,
+             "display_status": c.display_status,
              "reason": c.reason, **c.quality, "warnings": c.warnings} for c in channels])
         _write_csv(stage / "spectrum-blocks.csv", [
             {"channel": c.channel, "source": c.source, **block} for c in channels for block in c.blocks])
@@ -152,13 +160,16 @@ def run_analysis(request: AnalysisRequest, output_root, *, job_id=None,
         lines = ["# 频谱分析结果", "", f"运行 ID：`{job_id}`。",
                  f"分析模板：`{request.config.profile}`；通道数：{len(channels):,}。", "",
                  "结果为统计筛选。高频重复性仅适用于本次记录，束流状态和物理原因需要另行核对。", "",
-                 "| 通道 | 状态 | 峰值（Hz） | 峰与背景比（dB） | 分块命中 |",
+                 "| 通道 | 状态 | 谱峰（Hz） | 谱峰背景比（dB） | 分块命中 |",
                  "| --- | --- | ---: | ---: | ---: |"]
         for c in channels:
             name = c.channel.replace("|", "\\|").replace("\n", " ")
             peak = "—" if c.peak_hz is None else f"{c.peak_hz:.6g}"
             snr = "—" if c.peak_to_background_db is None else f"{c.peak_to_background_db:.2f}"
-            lines.append(f"| {name} | {c.classification} | {peak} | {snr} | {c.block_hits}/{c.block_count} |")
+            lines.append(
+                f"| {name} | {DISPLAY_STATUS_LABELS[c.display_status]} | {peak} | "
+                f"{snr} | {c.block_hits}/{c.block_count} |"
+            )
         lines.extend(["", "配置与来源见 `run-manifest.json`；无效原因见 `data-quality.csv`。",
                       "HDF5 的相对时间与填入的采样率均记录在来源字段中。"])
         (stage / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -238,7 +249,12 @@ class AnalysisJobs:
                     del self._results[next(iter(self._results))]
             counts = {name: sum(c.classification == name for c in result.channels)
                       for name in ["invalid", "stable_candidate", "observation", "reject"]}
-            self._update(job_id, status="succeeded", result_directory=str(result.directory), counts=counts)
+            display_counts = {
+                name: sum(c.display_status == name for c in result.channels)
+                for name in DISPLAY_STATUS_LABELS
+            }
+            self._update(job_id, status="succeeded", result_directory=str(result.directory),
+                         counts=counts, display_counts=display_counts)
         except AnalysisCancelled:
             self._update(job_id, status="cancelled")
         except Exception as exc:

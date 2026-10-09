@@ -11,6 +11,7 @@ from scipy.signal import find_peaks, peak_prominences
 
 from .models import AnalysisConfig, ChannelResult, ChannelSeries
 from .numerics import welch_density
+from .status import display_status_for
 
 
 ALGORITHM_VERSION = "unified-spectrum-1.0"
@@ -141,12 +142,13 @@ def _high_frequency(values, rate, config, result):
     result.classification = "stable_candidate" if overall_hit and repeated else (
         "observation" if overall_hit or result.block_hits else "reject")
     result.reason = {
-        "stable_candidate": "整体峰显著，且在本次记录的独立秒级分块中重复出现",
-        "observation": "整体或部分分块命中，需增加采集复核",
+        "stable_candidate": "整体谱峰显著，且在本次记录的独立秒级分块中重复出现",
+        "observation": "整体或部分分块谱峰命中，需增加采集复核",
         "reject": "本次未通过所设频谱门槛",
     }[result.classification]
     result.details = {**overall, "actual_welch_seconds": spectrum.actual_window_seconds,
-                      "scope": "within_capture", "prominence_threshold_db": 3.0}
+                      "scope": "within_capture", "prominence_threshold_db": 3.0,
+                      "status_evidence": {"overall_hit": overall_hit, "repeated": repeated}}
 
 
 def _low_frequency(grid, values, rate, config, result):
@@ -179,8 +181,24 @@ def _low_frequency(grid, values, rate, config, result):
     result.block_ratio = analysis.stability_ratio
     result.warnings.extend(analysis.warnings)
     result.blocks = [block.to_dict() for block in analysis.block_results]
+    spectral_failures = {
+        "local_6db", "real_local_maximum", "detrended_prominence", "peak_width",
+        "global_robust_z", "global_peak_percentile",
+    }
+    overall_hit = (
+        not spectral_failures.intersection(analysis.failed_rules)
+        if config.profile == "low_v2"
+        else analysis.clean_peak_to_background_db is not None
+        and analysis.clean_peak_to_background_db >= config.threshold_db
+    )
+    repeated = (
+        analysis.stable_block_count >= config.minimum_blocks
+        and analysis.stability_ratio is not None
+        and analysis.stability_ratio >= config.minimum_block_ratio
+    )
     result.details = {"original_metrics": analysis.to_dict(), "effective_parameters": params,
-                      "scope": "within_record", "time_labels": "relative_duration"}
+                      "scope": "within_record", "time_labels": "relative_duration",
+                      "status_evidence": {"overall_hit": overall_hit, "repeated": repeated}}
     if analysis.plot_data:
         result.frequency = analysis.plot_data["clean_frequency"]
         result.psd = analysis.plot_data["clean_psd"]
@@ -202,4 +220,9 @@ def analyze_channel(series: ChannelSeries, config: AnalysisConfig) -> ChannelRes
     except Exception as exc:
         result.classification = "invalid"
         result.reason = f"{type(exc).__name__}：{exc}"
+    evidence = result.details.get("status_evidence", {})
+    result.display_status = display_status_for(
+        result.classification,
+        overall_hit=bool(evidence.get("overall_hit", False)),
+    )
     return result

@@ -1,0 +1,37 @@
+{
+  "changed_existing_files_relative_to_task_baseline": [
+    "docs/CURRENT_STATUS.md",
+    "src/waveform_storage/gui/operator_window.py",
+    "src/waveform_storage/gui/spectrum_panel.py",
+    "tests/test_formal_history_bpm_selection.py",
+    "tests/test_spectrum_gui.py"
+  ],
+  "added_delivery_directory": "交付/20261009-spectrum-ui-r3/",
+  "self_review_completed": true,
+  "review_findings": [],
+  "review_checks": [
+    "显示偏好仅连接 setColumnHidden，不进入模板或分析参数。",
+    "历史率来自当前 CaptureRunSummary.frequency_hz，检查 segment.request_id 相符。",
+    "历史日期、任务和 segment 切换沿用 generation 与 reset_history_context 清理。",
+    "合法采样率检查数值类型、布尔值、finite 和正值。",
+    "保留缺失率人工输入；HDF5 冲突和 Archiver 时间戳逻辑未修改。",
+    "完整结果包、数值排序、5 种状态和自适应 PNG 逻辑未修改。"
+  ],
+  "protected_untracked_files": {
+    "analysis/high_frequency/数据结果/spectrum-results.zip": {
+      "sha256": "2df1b2cdac4c8c7c8fce6f35ecb378f8461a918db4c8532f859f5b40dcd598d5",
+      "unchanged": true,
+      "untracked": true
+    },
+    "tools/deploy_candidate_release.py": {
+      "sha256": "e46b317bba2da62b41fd1fdbca4d6f83c0c5f69814fce8bb4096f538cacd46a0",
+      "unchanged": true,
+      "untracked": true
+    }
+  },
+  "all_other_existing_hashed_files_unchanged": true,
+  "commit": false,
+  "push": false,
+  "tag": false,
+  "deploy_candidate_release_executed": false
+}

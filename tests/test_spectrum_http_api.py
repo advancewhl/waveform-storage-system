@@ -50,10 +50,18 @@ class SpectrumApiTests(unittest.TestCase):
                         break
                     time.sleep(.01)
                 self.assertEqual(state["status"], "succeeded", state)
+                self.assertEqual(state["display_counts"]["clear_peak"], 4)
                 status, data = request("GET", path + "/artifacts/results.zip")
                 self.assertEqual(status, 200)
                 with ZipFile(BytesIO(data)) as archive:
-                    self.assertIn("spectrum-summary.csv", archive.namelist())
+                    self.assertEqual(
+                        set(archive.namelist()),
+                        {"run-manifest.json", "results.json", "spectrum-summary.csv",
+                         "data-quality.csv", "spectrum-blocks.csv", "spectra.npz", "report.md"},
+                    )
+                    rows = json.loads(archive.read("results.json"))
+                    self.assertEqual(rows[0]["classification"], "stable_candidate")
+                    self.assertEqual(rows[0]["display_status"], "clear_peak")
                 status, _ = request("POST", "/api/analysis/jobs", {
                     "source_type": "hdf5", "paths": [str(outside)]})
                 self.assertEqual(status, 403)

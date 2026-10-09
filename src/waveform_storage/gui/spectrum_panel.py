@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import math
+from numbers import Real
 from pathlib import Path
+import re
 import shutil
 
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import (
-    QAbstractItemView, QComboBox, QDoubleSpinBox, QFileDialog, QFrame,
+    QAbstractItemView, QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QFrame,
     QGridLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QMessageBox,
     QProgressBar, QPushButton, QSpinBox, QSplitter, QTableWidget,
     QTableWidgetItem, QVBoxLayout, QWidget,
@@ -18,10 +21,10 @@ import numpy as np
 
 from waveform_storage.analysis.models import AnalysisConfig, AnalysisRequest
 from waveform_storage.analysis.service import AnalysisJobs
+from waveform_storage.analysis.status import DISPLAY_STATUS_LABELS
 
 
-LABELS = {"invalid": "无法分析", "stable_candidate": "重复候选",
-          "observation": "观察项", "reject": "未通过门槛"}
+LABELS = DISPLAY_STATUS_LABELS
 
 
 class NumericResultItem(QTableWidgetItem):
@@ -129,11 +132,11 @@ class SpectrumPanel(QWidget):
             ("分析模板", self.profile_combo), ("本次采样率", self.sample_rate), ("零值策略", self.zero_combo),
             ("搜索下限（Hz）", self.low), ("搜索上限（Hz）", self.high), ("窗口（秒）", self.window_seconds),
             ("背景下限（Hz）", self.background_low), ("背景上限（Hz）", self.background_high), ("分块（秒）", self.block_seconds),
-            ("峰背景比（dB）", self.threshold), ("最少命中块", self.minimum_blocks), ("命中比例", self.block_ratio),
-            ("峰匹配（Hz）", self.peak_match),
+            ("谱峰背景比（dB）", self.threshold), ("最少命中块", self.minimum_blocks), ("命中比例", self.block_ratio),
+            ("谱峰匹配（Hz）", self.peak_match),
             ("最短记录（秒）", self.minimum_seconds), ("最少有效点", self.minimum_points),
         ]
-        for index, (label, widget) in enumerate(fields[:9]):
+        for index, (label, widget) in enumerate(fields[:2]):
             row, pair = divmod(index, 3)
             grid.addWidget(self._parameter_field(label, widget), row, pair)
         for column in range(3):
@@ -145,11 +148,13 @@ class SpectrumPanel(QWidget):
         advanced_grid = QGridLayout(self.advanced_frame)
         advanced_grid.setContentsMargins(0, 0, 0, 0)
         advanced_grid.setHorizontalSpacing(20)
-        for index, (label, widget) in enumerate(fields[9:]):
+        for index, (label, widget) in enumerate(fields[2:]):
             row, pair = divmod(index, 3)
             advanced_grid.addWidget(self._parameter_field(label, widget), row, pair)
         for column in range(3):
             advanced_grid.setColumnStretch(column, 1)
+        self.show_block_hits = QCheckBox("显示命中块列")
+        advanced_grid.addWidget(self.show_block_hits, advanced_grid.rowCount(), 0)
         self.advanced_frame.hide()
         form.addWidget(self.advanced_frame)
         action = QHBoxLayout()
@@ -160,9 +165,10 @@ class SpectrumPanel(QWidget):
         self.export_button.setEnabled(False)
         self.plot_export_button = QPushButton("保存频谱图")
         self.plot_export_button.setEnabled(False)
-        self.advanced_button = QPushButton("筛选参数")
+        self.advanced_button = QPushButton("高级分析参数")
         self.advanced_button.setCheckable(True)
         self.advanced_button.toggled.connect(self.advanced_frame.setVisible)
+        self.parameter_widgets.append(self.advanced_button)
         for widget in (self.run_button, self.cancel_button, self.export_button,
                        self.plot_export_button, self.advanced_button):
             action.addWidget(widget)
@@ -186,7 +192,7 @@ class SpectrumPanel(QWidget):
         self.plane_filter.setFixedWidth(75)
         self.state_filter = QComboBox()
         self.state_filter.addItem("全部状态", "")
-        for value in ("stable_candidate", "observation", "reject", "invalid"):
+        for value in DISPLAY_STATUS_LABELS:
             self.state_filter.addItem(LABELS[value], value)
         self.state_filter.setFixedWidth(130)
         self.result_count = QLabel("显示 0 个")
@@ -199,7 +205,9 @@ class SpectrumPanel(QWidget):
         filters.addWidget(self.result_count)
         table_layout.addLayout(filters)
         self.table = QTableWidget(0, 5)
-        self.table.setHorizontalHeaderLabels(("通道", "状态", "峰值（Hz）", "峰背景比", "命中块"))
+        self.table.setHorizontalHeaderLabels(("通道", "状态", "谱峰（Hz）", "谱峰背景比", "命中块"))
+        self.table.setColumnHidden(4, True)
+        self.show_block_hits.toggled.connect(lambda checked: self.table.setColumnHidden(4, not checked))
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -208,13 +216,25 @@ class SpectrumPanel(QWidget):
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.horizontalHeader().setSortIndicator(0, Qt.AscendingOrder)
         self.table.setSortingEnabled(True)
-        self.table.horizontalHeader().setToolTip("点击表头切换升序或降序；峰值、峰背景比和命中块按数值排序")
+        self.table.horizontalHeader().setToolTip("点击表头切换升序或降序；谱峰、谱峰背景比和命中块按数值排序")
         self.table.setMinimumWidth(300)
         table_layout.addWidget(self.table, 1)
         splitter.addWidget(table_host)
         plot_host = QWidget()
         plot_layout = QVBoxLayout(plot_host)
         plot_layout.setContentsMargins(0, 0, 0, 0)
+        plot_controls = QHBoxLayout()
+        self.display_mode = QComboBox()
+        self.display_mode.addItem("原始", "linear")
+        self.display_mode.addItem("Log", "log")
+        self.display_mode.setToolTip(
+            "原始：PSD 原始数值，使用线性 Y 轴；不是原始时间域波形。\n"
+            "Log：同一份 PSD 数据，使用对数 Y 轴。"
+        )
+        plot_controls.addWidget(QLabel("显示模式"))
+        plot_controls.addWidget(self.display_mode)
+        plot_controls.addStretch(1)
+        plot_layout.addLayout(plot_controls)
         self.figure = Figure(figsize=(7, 4), facecolor="white", constrained_layout=True)
         self.canvas = FigureCanvas(self.figure)
         plot_layout.addWidget(self.canvas, 1)
@@ -234,6 +254,7 @@ class SpectrumPanel(QWidget):
         self.export_button.clicked.connect(self._export)
         self.plot_export_button.clicked.connect(self._export_plot)
         self.table.itemSelectionChanged.connect(self._render_selection)
+        self.display_mode.currentIndexChanged.connect(self._render_selection)
         self.plane_filter.currentIndexChanged.connect(self._refresh_result_table)
         self.state_filter.currentIndexChanged.connect(self._refresh_result_table)
         self._apply_profile()
@@ -257,6 +278,7 @@ class SpectrumPanel(QWidget):
         self.alignment = None
         self.path_edit.clear()
         self.sample_rate.setValue(0)
+        self.sample_rate.setSpecialValueText("读取文件记录")
         archiver = self.source_combo.currentData() == "archiver"
         self.sample_rate.setEnabled(not archiver)
         self.zero_combo.setEnabled(not archiver)
@@ -269,6 +291,7 @@ class SpectrumPanel(QWidget):
     def _clear_alignment(self, *_args):
         self.alignment = None
         self.sample_rate.setValue(0)
+        self.sample_rate.setSpecialValueText("读取文件记录")
 
     def _choose_file(self):
         filters = ("HDF5 (*.h5 *.hdf5)" if self.source_combo.currentData() == "hdf5"
@@ -296,6 +319,7 @@ class SpectrumPanel(QWidget):
         self.last_run = None
         self.path_edit.clear()
         self.sample_rate.setValue(0)
+        self.input_note.setText("历史数据段已切换，请重新接收当前历史对齐结果。")
         self.table.setRowCount(0)
         self.result_count.setText("显示 0 个")
         self.figure.clear()
@@ -310,14 +334,23 @@ class SpectrumPanel(QWidget):
         self.progress.setValue(0)
         self.status_label.setText("历史数据段已切换，请重新选择分析输入。")
 
-    def use_alignment(self, result):
+    def use_alignment(self, result, *, sample_rate_hz=None):
         if self.job_id:
             raise ValueError("当前分析仍在运行，请先等待完成或取消")
         self.source_combo.setCurrentIndex(0)
         self.alignment = result
         self.path_edit.setText(f"当前历史对齐结果：{len(result.device_ids)} 台 BPM")
-        self.sample_rate.setValue(0)
-        self.input_note.setText("已接收历史对齐结果。请填写该次历史采集的实际采样率。")
+        self.sample_rate.setSpecialValueText("未提供")
+        if (isinstance(sample_rate_hz, Real) and not isinstance(sample_rate_hz, bool)
+                and math.isfinite(sample_rate_hz) and sample_rate_hz > 0):
+            self.sample_rate.setMaximum(max(self.sample_rate.maximum(), sample_rate_hz))
+            self.sample_rate.setValue(sample_rate_hz)
+            self.input_note.setText(
+                f"已接收当前历史对齐结果；本次采样率已从历史任务记录读取：{sample_rate_hz:g} Hz。")
+        else:
+            self.sample_rate.setValue(0)
+            self.input_note.setText(
+                "已接收当前历史对齐结果；历史记录没有可用采样率，请填写该次采集的实际采样率。")
 
     def _config(self):
         return AnalysisConfig.for_profile(
@@ -401,8 +434,12 @@ class SpectrumPanel(QWidget):
         run = self.last_run
         self._refresh_result_table()
         valid = sum(c.classification != "invalid" for c in run.channels)
-        candidates = sum(c.classification == "stable_candidate" for c in run.channels)
-        self.status_label.setText(f"分析完成：{valid}/{len(run.channels)} 个通道可分析，{candidates} 个重复候选。可保存本次结果包。")
+        clear_peaks = sum(c.display_status == "clear_peak" for c in run.channels)
+        probable_peaks = sum(c.display_status == "probable_peak" for c in run.channels)
+        self.status_label.setText(
+            f"分析完成：{valid}/{len(run.channels)} 个通道可分析，其中 {clear_peaks} 个谱峰明显，"
+            f"{probable_peaks} 个谱峰较明显。可保存本次结果包。"
+        )
         self.status_label.setToolTip(str(run.directory))
         self.export_button.setEnabled(True)
 
@@ -421,13 +458,14 @@ class SpectrumPanel(QWidget):
         selected = current.data(Qt.UserRole) if current is not None else None
         plane, state = self.plane_filter.currentData(), self.state_filter.currentData()
         rows = [(index, c) for index, c in enumerate(self.last_run.channels)
-                if (not plane or self._plane(c) == plane) and (not state or c.classification == state)]
+                if (not plane or self._plane(c) == plane)
+                and (not state or c.display_status == state)]
         self.table.blockSignals(True)
         self.table.setSortingEnabled(False)
         self.table.clearContents()
         self.table.setRowCount(len(rows))
         for row, (index, channel) in enumerate(rows):
-            values = [channel.channel, LABELS[channel.classification],
+            values = [channel.channel, LABELS[channel.display_status],
                       "—" if channel.peak_hz is None else f"{channel.peak_hz:.5g}",
                       "—" if channel.peak_to_background_db is None else f"{channel.peak_to_background_db:.2f} dB",
                       f"{channel.block_hits}/{channel.block_count}"]
@@ -462,16 +500,23 @@ class SpectrumPanel(QWidget):
         self.figure.clear()
         axis = self.figure.add_subplot(111)
         if len(channel.frequency):
-            axis.semilogy(channel.frequency, np.maximum(channel.psd, np.finfo(float).tiny),
-                          color="#357fb5", linewidth=1.4)
+            psd = np.asarray(channel.psd)
+            logarithmic = self.display_mode.currentData() == "log"
+            if logarithmic:
+                axis.set_yscale("log")
+                plot_psd = np.ma.masked_where(~np.isfinite(psd) | (psd <= 0), psd)
+            else:
+                plot_psd = psd
+            axis.plot(channel.frequency, plot_psd, color="#357fb5", linewidth=1.4)
             cfg = self.last_run.manifest["config"]
             axis.axvspan(cfg["search_low_hz"], cfg["search_high_hz"], color="#458cc4", alpha=0.12)
             axis.set_xlim(cfg["background_low_hz"], cfg["background_high_hz"])
             if channel.peak_hz is not None:
                 axis.axvline(channel.peak_hz, color="#c78136", linewidth=1, linestyle="--")
                 peak_power = float(np.interp(channel.peak_hz, channel.frequency, channel.psd))
-                axis.scatter([channel.peak_hz], [max(peak_power, np.finfo(float).tiny)],
-                             color="#c78136", s=22, zorder=4)
+                if not logarithmic or (np.isfinite(peak_power) and peak_power > 0):
+                    axis.scatter([channel.peak_hz], [peak_power],
+                                 color="#c78136", s=22, zorder=4)
                 left = channel.peak_hz <= (cfg["background_low_hz"] + cfg["background_high_hz"]) / 2
                 axis.annotate(rf"$f_{{\mathrm{{peak}}}}={channel.peak_hz:.5g}\;\mathrm{{Hz}}$",
                               xy=(channel.peak_hz, .97), xycoords=("data", "axes fraction"),
@@ -507,12 +552,34 @@ class SpectrumPanel(QWidget):
                 QMessageBox.warning(self, "保存失败", str(exc))
 
     def _export_plot(self):
-        path, _ = QFileDialog.getSaveFileName(self, "保存当前通道频谱图", "spectrum.png", "PNG (*.png)")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "保存当前通道频谱图", self._default_plot_filename(), "PNG (*.png)"
+        )
         if path:
             try:
                 self.figure.savefig(path, dpi=180, bbox_inches="tight")
             except OSError as exc:
                 QMessageBox.warning(self, "保存失败", str(exc))
+
+    def _default_plot_filename(self):
+        if self.last_run is None:
+            return "spectrum.png"
+        row = self.table.currentRow()
+        item = self.table.item(row, 0) if row >= 0 else None
+        if item is None:
+            return "spectrum.png"
+        index = item.data(Qt.UserRole)
+        if not isinstance(index, int) or not 0 <= index < len(self.last_run.channels):
+            return "spectrum.png"
+        channel = self.last_run.channels[index].channel
+        if channel is None:
+            return "spectrum.png"
+        safe_name = re.sub(r'[\x00-\x1f\\/:*?"<>|]', "_", str(channel).strip())
+        safe_name = safe_name.rstrip(" .")
+        if not safe_name or safe_name in {".", ".."}:
+            return "spectrum.png"
+        suffix = "_Log" if self.display_mode.currentData() == "log" else "_原始"
+        return f"{safe_name}{suffix}.png"
 
     def shutdown(self):
         self._closed = True

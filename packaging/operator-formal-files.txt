@@ -23,6 +23,7 @@ src/waveform_storage/gui/workers.py
 src/waveform_storage/gui/spectrum_panel.py
 src/waveform_storage/analysis/__init__.py
 src/waveform_storage/analysis/models.py
+src/waveform_storage/analysis/status.py
 src/waveform_storage/analysis/loaders.py
 src/waveform_storage/analysis/numerics.py
 src/waveform_storage/analysis/engine.py

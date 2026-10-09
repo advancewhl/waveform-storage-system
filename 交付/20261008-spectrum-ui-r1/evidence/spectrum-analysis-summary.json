@@ -1,0 +1,56 @@
+{
+  "release_id": "20261008-spectrum-ui-r1",
+  "binary": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-spectrum-ui-r1/waveform-operator/waveform-operator",
+  "binary_sha256": "e75423b9dd6d38f6e68f93338f8fdccc3186be642665a1d7392872c4682b717e",
+  "input_file": "/home/whloong/waveform-storage/waveform-storage-system/analysis/high_frequency/inputs/20261006_155512_BPMdata.h5",
+  "input_sample_rate_hz": 1000,
+  "sample_rate_source": "manually supplied from the known capture record; not read from the HDF5 file",
+  "analysis_run_directory": "/home/whloong/waveform-storage/waveform-storage-system/交付/20261008-spectrum-ui-r1/evidence/runtime-state/spectrum-runs/c8d45dd7-04e8-4892-9c1d-1643e4233bcd",
+  "channel_count": 40,
+  "display_status_counts": {
+    "clear_peak": 4,
+    "probable_peak": 7,
+    "watch": 25,
+    "no_significant_peak": 4
+  },
+  "checks": [
+    {
+      "check": "startup",
+      "command": [
+        "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-spectrum-ui-r1/waveform-operator/waveform-operator",
+        "--ui-only",
+        "--page",
+        "spectrum",
+        "--screenshot",
+        "/home/whloong/waveform-storage/waveform-storage-system/交付/20261008-spectrum-ui-r1/evidence/offscreen-spectrum-startup.png"
+      ],
+      "exit_code": 0,
+      "log": "/home/whloong/waveform-storage/waveform-storage-system/交付/20261008-spectrum-ui-r1/evidence/startup.log",
+      "screenshot": "/home/whloong/waveform-storage/waveform-storage-system/交付/20261008-spectrum-ui-r1/evidence/offscreen-spectrum-startup.png",
+      "screenshot_bytes": 92083
+    },
+    {
+      "check": "hdf-analysis",
+      "command": [
+        "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-spectrum-ui-r1/waveform-operator/waveform-operator",
+        "--ui-only",
+        "--page",
+        "spectrum",
+        "--spectrum-input",
+        "/home/whloong/waveform-storage/waveform-storage-system/analysis/high_frequency/inputs/20261006_155512_BPMdata.h5",
+        "--spectrum-source",
+        "hdf5",
+        "--spectrum-sample-rate-hz",
+        "1000",
+        "--spectrum-profile",
+        "high_band",
+        "--screenshot",
+        "/home/whloong/waveform-storage/waveform-storage-system/交付/20261008-spectrum-ui-r1/evidence/offscreen-hdf-analysis.png"
+      ],
+      "exit_code": 0,
+      "log": "/home/whloong/waveform-storage/waveform-storage-system/交付/20261008-spectrum-ui-r1/evidence/hdf-analysis.log",
+      "screenshot": "/home/whloong/waveform-storage/waveform-storage-system/交付/20261008-spectrum-ui-r1/evidence/offscreen-hdf-analysis.png",
+      "screenshot_bytes": 152631
+    }
+  ]
+}

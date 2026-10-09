@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import time
 import unittest
+from dataclasses import replace
 from datetime import date, datetime, timezone
 from waveform_storage.metadata.history import CaptureRunSummary, CaptureSegment
 from pathlib import Path
@@ -243,12 +244,14 @@ class FormalHistorySelectionTests(unittest.TestCase):
                 [(date(2026, 10, 2), ("run-10min", 0), (FIRST,))],
             )
             self.assertEqual(window.alignment_result.device_ids, (FIRST,))
-            window.spectrum_panel.use_alignment(window.alignment_result)
+            window.history_spectrum_button.click()
+            self.assertEqual(window.spectrum_panel.sample_rate.value(), 1000)
             window.segment_index.setValue(7)
             self.assertIn("S00008", window.segment_label.text())
             self.assertEqual(window.history_selected_devices, ())
             self.assertIsNone(window.alignment_result)
             self.assertIsNone(window.spectrum_panel.alignment)
+            self.assertEqual(window.spectrum_panel.sample_rate.value(), 0)
             def choose_partial(dialog):
                 self.assertEqual(dialog.list_widget.count(), 1)
                 return QDialog.Accepted
@@ -257,6 +260,8 @@ class FormalHistorySelectionTests(unittest.TestCase):
             window.align_button.click()
             self.wait_for_workers(window)
             self.assertEqual(backend.align_calls[-1][1], ("run-10min", 8))
+            window.history_spectrum_button.click()
+            self.assertEqual(window.spectrum_panel.sample_rate.value(), 1000)
             window._request_device_waveform(FIRST)
             self.wait_for_workers(window)
             self.assertEqual(backend.align_calls[-1][1], ("run-10min", 8))
@@ -265,7 +270,66 @@ class FormalHistorySelectionTests(unittest.TestCase):
             self.assertEqual(window.history_selected_devices, ())
             self.assertIsNone(window.alignment_result)
             self.assertEqual(window.plot_device.count(), 0)
+            self.assertEqual(window.spectrum_panel.sample_rate.value(), 0)
             window.close()
+
+    def test_history_spectrum_handoff_tracks_task_rate_and_real_segment_identity(self):
+        class MultiRunBackend(Backend):
+            def retrieve_runs(self, selected_date):
+                run = super().retrieve_runs(selected_date)[0]
+                return (run, replace(run, request_id="task-500", frequency_hz=500),
+                        replace(run, request_id="task-missing", frequency_hz=None,
+                                has_task_metadata=False))
+
+        backend = MultiRunBackend()
+        with TemporaryDirectory() as temporary:
+            window = OperatorMainWindow(
+                load_registry(ROOT / "config/devices.operator.json"), backend=backend,
+                capture_registry=load_registry(ROOT / "config/devices.probe47.json"),
+                journal_path=Path(temporary) / "journal.jsonl")
+            try:
+                window.history_date.setDate(QDate(2026, 10, 2))
+                window.retrieve_button.click()
+                self.wait_for_workers(window)
+                for position, rate in enumerate((1000, 500, None)):
+                    window.history_time.setCurrentIndex(position)
+                    self.wait_for_workers(window)
+                    self.assertIsNone(window.alignment_result)
+                    self.assertIsNone(window.spectrum_panel.alignment)
+                    self.assertEqual(window.spectrum_panel.sample_rate.value(), 0)
+                    self.assertNotIn("历史任务记录读取", window.spectrum_panel.input_note.text())
+                    window.segment_index.setValue(7)
+                    segment = window.current_history_segment
+                    self.assertEqual(segment.capture_sequence, 8)
+                    self.assertEqual(segment.request_id, window.current_history_run.request_id)
+                    with patch.object(BpmSelectionDialog, "exec_", return_value=QDialog.Accepted):
+                        window.select_bpm_button.click()
+                    window.align_button.click()
+                    self.wait_for_workers(window)
+                    self.assertEqual(backend.align_calls[-1][1], (segment.request_id, 8))
+                    with patch.object(window.spectrum_panel, "use_alignment",
+                                      wraps=window.spectrum_panel.use_alignment) as handoff, \
+                         patch.object(backend, "retrieve_runs") as query_runs, \
+                         patch.object(backend, "retrieve_segments") as query_segments, \
+                         patch.object(backend, "align_segment") as align:
+                        window.history_spectrum_button.click()
+                        handoff.assert_called_once_with(window.alignment_result, sample_rate_hz=rate)
+                        query_runs.assert_not_called()
+                        query_segments.assert_not_called()
+                        align.assert_not_called()
+                    self.assertEqual(window.pages.currentIndex(), 2)
+                    self.assertEqual(window.spectrum_panel.sample_rate.value(), rate or 0)
+                    if rate:
+                        self.assertIn(f"历史任务记录读取：{rate} Hz", window.spectrum_panel.input_note.text())
+                    else:
+                        self.assertIn("历史记录没有可用采样率", window.spectrum_panel.input_note.text())
+
+                # A task cannot supply a rate for a segment belonging to another request.
+                window.current_history_run = backend.retrieve_runs(date(2026, 10, 2))[0]
+                window.history_spectrum_button.click()
+                self.assertEqual(window.spectrum_panel.sample_rate.value(), 0)
+            finally:
+                window.close()
 
 
 if __name__ == "__main__":

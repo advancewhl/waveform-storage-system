@@ -9,6 +9,8 @@ import math
 
 import numpy as np
 
+from .status import display_status_for
+
 
 @dataclass(frozen=True)
 class AnalysisConfig:
@@ -48,7 +50,7 @@ class AnalysisConfig:
         if not 0 <= self.minimum_block_ratio <= 1 or self.max_gap_factor <= 1:
             raise ValueError("命中比例或缺口参数无效")
         if self.threshold_db < 0 or self.peak_match_hz <= 0:
-            raise ValueError("峰值门槛与频率匹配范围无效")
+            raise ValueError("谱峰门槛与频率匹配范围无效")
         if self.zero_policy not in {"keep", "mask_double_zero"}:
             raise ValueError("未知的零值策略")
 
@@ -128,6 +130,15 @@ class ChannelResult:
     details: dict[str, Any] = field(default_factory=dict)
     frequency: np.ndarray = field(default_factory=lambda: np.array([]), repr=False)
     psd: np.ndarray = field(default_factory=lambda: np.array([]), repr=False)
+    display_status: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.display_status is None:
+            evidence = self.details.get("status_evidence", {})
+            self.display_status = display_status_for(
+                self.classification,
+                overall_hit=bool(evidence.get("overall_hit", False)),
+            )
 
     def summary(self) -> dict[str, Any]:
         return {key: value for key, value in vars(self).items()

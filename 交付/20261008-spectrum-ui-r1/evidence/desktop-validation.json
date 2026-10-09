@@ -1,0 +1,23 @@
+{
+  "desktop_file": "/home/whloong/桌面/波形存储.desktop",
+  "exec_target": "/home/whloong/waveform-storage/waveform-storage-system/tools/launch_operator_desktop.sh",
+  "desktop_file_sha256": "a7e9f4e010216037d43daa0f6cbee711a6d64a5dcf21121f0832f86b240a1888",
+  "launcher_sha256": "5870593351bfa8c05dec4557fa1f6a9012bc38c4d0b0c261e6fc6b93a18c8174",
+  "attempts": [
+    {
+      "path": "gio launch in sandbox",
+      "result": "failed",
+      "observation": "launcher selected UI-only mode; Qt could not connect to DISPLAY=:1 and exited with status 134"
+    },
+    {
+      "path": "gio launch in user session",
+      "result": "unverified",
+      "observation": "gio returned 0, but no r1 /proc executable match or operator window appeared in the subsequent checks"
+    }
+  ],
+  "launched_pid": null,
+  "proc_exe": null,
+  "running_binary_sha256": null,
+  "desktop_verified": false,
+  "desktop_capture_retained": false
+}

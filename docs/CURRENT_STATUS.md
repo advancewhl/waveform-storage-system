@@ -1,18 +1,26 @@
-# 波形存储当前状态（2026-10-08）
+# 波形存储当前状态（2026-10-09）
 
-本机前端与现场采集服务已发布 `20261008-history-release-r4` 版本对。源码、二进制、current、真实桌面入口、systemd 实际进程和历史数据处理链路已验证。构建来自工作目录，标记 `source_state=working-tree`。
+按 2026-10-08 发布记录，现场 acquisition server 使用 `20261008-history-release-r4`。当日的本机前端、server、真实桌面入口、systemd 实际进程和历史数据处理链路已按该版本对完成验证。本次未检查或修改现场 server。
+
+2026-10-08 曾构建本机频谱 UI operator `20261008-spectrum-ui-r1`。源码清单、二进制校验和、offscreen 页面启动及本地 HDF5 分析均通过，但真实桌面入口未能发现对应进程或窗口，未通过桌面验收。随后已将本机 `current` 原子回滚至 `20261008-history-release-r4`；r1 release 保留但未激活。现场 acquisition server、systemd、现场 operator 均未修改。验收记录见[频谱 UI r1 回滚记录](../交付/20261008-spectrum-ui-r1/README.md)。
+
+2026-10-09 已构建并激活本机频谱 UI operator `20261009-spectrum-ui-r2`。`outputs/operator-local/current` 已指向 r2；桌面入口与 launcher 解析路径已核实，Codex 未尝试打开 GUI。当前等待用户从桌面“波形存储”图标手动验证。现场 acquisition server、systemd、MongoDB、dashboard 和现场 operator 均未修改。构建与激活记录见[频谱 UI r2 交付记录](../交付/20261009-spectrum-ui-r2/README.md)。
+
+2026-10-09 本机 operator 已更新为 `20261009-spectrum-ui-r3`，`current` 已原子切换至 r3。结果表默认隐藏“命中块”列，显示选项位于折叠的高级分析参数区域。历史频谱入口从当前任务的 `CaptureRunSummary.frequency_hz` 读取采样率；缺失时仍需填写，切换任务或数据段时清空旧值。完整质量门 216 项测试、release 清单校验和二进制 offscreen 页面检查均通过。同日，用户确认 r3 已完成人工桌面验证。现场 server、systemd、MongoDB、dashboard 和现场 operator 本轮均未修改。记录见[频谱 UI r3 交付记录](../交付/20261009-spectrum-ui-r3/README.md)。
+
+本机状态：`LOCAL OPERATOR ACTIVATED / USER MANUAL VALIDATION CONFIRMED`。验证结论来自用户确认；自动化构建与启动证据仍保留当时的状态。
 
 ## 当前版本与部署
 
 | 组件 | 当前 release | current 或部署位置 | 状态 | 验证日期 |
 | --- | --- | --- | --- | --- |
-| 本机 operator | `20261008-history-release-r4` | `outputs/operator-local/current → releases/20261008-history-release-r4/waveform-operator` | 新入口和真实桌面 GUI 验收通过 | 2026-10-08 |
+| 本机 operator | `20261009-spectrum-ui-r3` | `outputs/operator-local/current → releases/20261009-spectrum-ui-r3/waveform-operator` | 已构建并激活；用户确认人工桌面验证通过 | 2026-10-09 |
 | 现场 operator（桌面机） | 最近记录为 2026-10-05 | `waveform-operator-direct-offline-20261004` | 本次未部署新前端；旧现场窗口不作为本次验收证据 | 最近记录 2026-10-05 |
 | 现场 acquisition server | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/current → releases/20261008-history-release-r4` | packaged/current 模式，systemd active | 2026-10-08 |
 | 日志 dashboard | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/dashboard/tools/` | HTML 和只读查询已更新，真实 HTTP/Mongo 验证通过 | 2026-10-08 |
 | MongoDB | `mongo:8.0.29` | 现有 `waveform-mongodb` 容器 | running，采集服务已连接，历史查询正常 | 2026-10-08 |
 
-已打开的旧窗口继续使用旧代码。重新打开真实桌面图标后加载当前 release。验收窗口按计划退出；没有关闭用户既有窗口。
+已有窗口继续使用启动时加载的版本。用户从桌面图标重新启动时，launcher 会解析当前 `current`。本次 Codex 未打开或关闭 GUI 窗口。
 
 ## 当前入口
 
@@ -29,7 +37,7 @@
 
 ## 版本对与验收证据
 
-协议为 `v2 + history-run-segment extension`。此 operator 需要同时支持下列命令的 server。前后端必须按版本对部署并验证，不能只更新源码或其中一端。
+2026-10-08 发布的 r4 版本对使用 `v2 + history-run-segment extension`。该 operator 需要同时支持下列命令的 server。前后端必须按版本对部署并验证，不能只更新源码或其中一端。
 
 - `list_capture_runs`
 - `list_capture_segments`
@@ -49,12 +57,12 @@
 
 ## 回滚版本
 
-- previous_operator_release：`outputs/operator-local/releases/20261008-history-release-r3/waveform-operator/`。
+- 本机 operator 的回滚目标：`outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator/`。
 - previous_server_release：`/home/storage-user/waveform-storage-v2/releases/20261008-history-release-r3/`。
 - 日志页旧 HTML：`dashboard/release-backups/20261008-history-release-r4/`。
 - 日志页旧查询脚本：`dashboard/release-backups/20261008-history-release-r2/`。
 
-r3 已通过真实桌面与服务验收。前端原子切回 previous_operator_release；服务端切回 previous_server_release，重启服务并重新验证 active 和 health。保留新旧 release。
+r3 桌面手动验证若失败，可将本机 `current` 原子切回 r2。现场 acquisition server 最近记录为 r4；此前 r4 发布的服务端回滚目标为 r3。本次没有检查、切换或回滚 server。保留新旧 release。
 
 ## 架构与范围
 
@@ -62,7 +70,7 @@ r3 已通过真实桌面与服务验收。前端原子切回 previous_operator_r
 
 整任务分析留待后续。整任务频谱应先逐段计算，再按明确方法汇总。现有单段频谱功能继续使用当前对齐结果，日志页继续直接只读 MongoDB。
 
-本次本机、服务端及日志页发布范围内，未解决问题为 None。现场桌面机新前端尚未部署，这一状态已在表中明确标注。
+用户已确认本机 r3 的人工桌面验证通过。现场桌面机和 server 未随本次发布更新；2026-10-08 的现场验收记录保留为当日状态。本次 Git 保存与推送保持本机 r3 current 不变。
 
 ## 历史记录
 

@@ -1,0 +1,49 @@
+{
+  "command": [
+    "/home/whloong/miniconda3/envs/waveform-storage/bin/python",
+    "-m",
+    "PyInstaller",
+    "--noconfirm",
+    "--clean",
+    "--distpath",
+    "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r3",
+    "--workpath",
+    "/tmp/waveform-spectrum-ui-r3-build",
+    "packaging/operator-executable.spec"
+  ],
+  "operator": {
+    "kind": "operator",
+    "built_local_date": "2026-10-09",
+    "built_at": "2026-10-09T09:38:27.435229+08:00",
+    "release_id": "20261009-spectrum-ui-r3",
+    "source_revision": "dbbc0d6ddfdaaf6d438783d7e7378134538f855c",
+    "source_state": "working-tree",
+    "source_manifest_sha256": "f7a38ccbd2ae627629c38a938c00dbca46bd100882af6dd1d9e7139c58452f9a",
+    "binary_sha256": "384b824a79327381e2ecb93a2fcca4d0fec6c44b04f89e99ef221f533870865c",
+    "runtime_versions": {
+      "python": "3.10.20 | packaged by conda-forge | (main, Jun 11 2026, 03:31:56) [GCC 14.3.0]",
+      "dependencies": {
+        "PyInstaller": "6.22.3",
+        "PyQt5": "5.15.11",
+        "h5py": "3.16.0",
+        "numpy": "2.2.6",
+        "matplotlib": "3.10.9",
+        "pandas": "2.3.3",
+        "scipy": "1.15.3",
+        "paramiko": "5.0.0",
+        "pyzmq": "27.1.0",
+        "caproto": "1.3.0",
+        "cryptography": "49.0.0"
+      }
+    },
+    "protocol_capabilities": [
+      "health",
+      "list_capture_runs",
+      "list_capture_segments",
+      "find_waveform_files_by_segment"
+    ]
+  },
+  "server_built": false,
+  "source_manifest_unchanged_during_build": true,
+  "deployment_status": "BUILD COMPLETE; ACTIVATION PENDING"
+}

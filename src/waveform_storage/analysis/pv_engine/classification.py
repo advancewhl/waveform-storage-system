@@ -51,7 +51,7 @@ def classify_spectrum(
     if config.algorithm_version == "v2":
         result.failed_rules = v2_failed_rules(result, config)
         if not result.failed_rules:
-            result.decision_reason = f"通过局部 {config.exploratory_peak_threshold_db:g} dB、去趋势峰形、全局显著性和时间稳定性条件"
+            result.decision_reason = f"通过局部 {config.exploratory_peak_threshold_db:g} dB、去趋势谱峰形状、全局显著性和时间稳定性条件"
             return "stable_candidate"
         spectral_failures = {
             "local_6db",
@@ -65,7 +65,7 @@ def classify_spectrum(
         if overall_hit or result.stable_block_count > 0 or spectral_hits >= 4:
             result.decision_reason = "部分V2条件通过，需观察：" + ",".join(result.failed_rules)
             return "observation"
-        result.decision_reason = "V2关键峰形或显著性条件未通过：" + ",".join(result.failed_rules)
+        result.decision_reason = "V2 关键谱峰形状或显著性条件未通过：" + ",".join(result.failed_rules)
         return "reject"
 
     stable = (

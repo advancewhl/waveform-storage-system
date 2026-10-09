@@ -163,7 +163,7 @@ def _peak_metrics(
         raise ValueError("局部背景频带没有有效 PSD")
     background_power = float(np.median(background_values))
     if not np.isfinite(peak_power) or peak_power <= 0:
-        raise ValueError("目标峰功率无效")
+        raise ValueError("目标谱峰功率无效")
     peak_to_background_db = float(10.0 * np.log10(peak_power / background_power))
 
     prominence: float | None = None
@@ -187,7 +187,7 @@ def _peak_metrics(
         else:
             notes.append("目标候选不是可测量 prominence/width 的局部极大值")
     except Exception as exc:
-        notes.append(f"峰特征计算失败：{type(exc).__name__}: {exc}")
+        notes.append(f"谱峰特征计算失败：{type(exc).__name__}: {exc}")
 
     return (
         _PeakMetrics(
@@ -285,7 +285,7 @@ def _detrended_peak_metrics(
             width_bins = float(widths[0])
             width_hz = width_bins * delta_f
         else:
-            notes.append("去趋势后目标峰的 prominence/width 不可测")
+            notes.append("去趋势后目标谱峰的 prominence/width 不可测")
 
     global_mask = (
         np.isfinite(residual_db)

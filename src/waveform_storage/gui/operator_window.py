@@ -751,7 +751,11 @@ class OperatorMainWindow(QMainWindow):
         try:
             if self.alignment_result is None:
                 raise ValueError("请先选择 BPM 并生成历史对齐结果")
-            self.spectrum_panel.use_alignment(self.alignment_result)
+            run = self.current_history_run
+            segment = self.current_history_segment
+            sample_rate_hz = (run.frequency_hz if run is not None and segment is not None
+                              and segment.request_id == run.request_id else None)
+            self.spectrum_panel.use_alignment(self.alignment_result, sample_rate_hz=sample_rate_hz)
             self._show_page(2)
         except ValueError as exc:
             QMessageBox.warning(self, "尚无法分析", str(exc))

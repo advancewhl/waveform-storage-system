@@ -1,0 +1,12 @@
+{
+  "rollback_required": true,
+  "rollback_target": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-history-release-r4/waveform-operator",
+  "current_after_rollback": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-history-release-r4/waveform-operator",
+  "current_matches_target": true,
+  "restored_release_id": "20261008-history-release-r4",
+  "restored_binary_sha256": "8e50fd5e623113ae40aa19a03e9c912182691c80145269e2f849d69a306cf416",
+  "restored_manifest_entries_verified": 8368,
+  "failed_release_retained": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261008-spectrum-ui-r1/waveform-operator",
+  "failed_release_binary_sha256": "e75423b9dd6d38f6e68f93338f8fdccc3186be642665a1d7392872c4682b717e",
+  "verified_at": "2026-10-08T18:31:01.600061+08:00"
+}
