@@ -73,16 +73,11 @@ outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator
 
 ## 证据与归档
 
-- [完整质量门](evidence/full-quality.log)
-- [最终频谱专项](evidence/spectrum-focused.log)
-- [首次 sandbox 环境限制](evidence/spectrum-focused-sandbox.log)
-- [历史专项](evidence/history-focused.log)
-- [本轮差异](evidence/task-changes.diff)
+以下链接指向已纳入 Git 的证据文件。
+
 - [自审与修改范围](evidence/scope-review.json)
-- [PyInstaller 构建日志](evidence/operator-build.log)
 - [构建记录](evidence/build-record.json)
 - [构建前源码快照](evidence/source-manifest-before-build.json)
-- [完整 release 清单校验](evidence/manifest-check.log)
 - [激活前校验](evidence/pre-activation-checks.json)
 - [新二进制 offscreen 截图](evidence/spectrum-page.png)
 - [封装代码高级区域截图](evidence/packaged-advanced-page.png)
@@ -91,14 +86,29 @@ outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator
 - [本机与现场版本记录](release-record.json)
 - [用户人工验证确认](evidence/user-manual-validation.json)
 - [最终校验](evidence/final-validation.json)
-- [二进制归档](waveform-operator-20261009-spectrum-ui-r3.tar.gz)
-- [归档 SHA-256](waveform-operator-20261009-spectrum-ui-r3.tar.gz.sha256)
+- [BUILD-INFO](BUILD-INFO)
+- [MANIFEST.sha256](MANIFEST.sha256)
+- [SOURCE-MANIFEST.json](SOURCE-MANIFEST.json)
 
-`BUILD-INFO`、`MANIFEST.sha256` 和 `SOURCE-MANIFEST.json` 同时保存在本目录，原件位于不可变 release 目录。
+上述构建元数据同时保存在本目录，原件位于不可变 release 目录。以下本机证据与归档未纳入 Git：
+
+- 完整质量门日志 `evidence/full-quality.log`：仅保留于本机交付目录。
+- 最终频谱专项日志 `evidence/spectrum-focused.log`：仅保留于本机交付目录。
+- 首次 sandbox 环境限制日志 `evidence/spectrum-focused-sandbox.log`：仅保留于本机交付目录。
+- 历史专项日志 `evidence/history-focused.log`：仅保留于本机交付目录。
+- 本轮差异 `evidence/task-changes.diff`：仅保留于本机交付目录。
+- PyInstaller 构建日志 `evidence/operator-build.log`：仅保留于本机交付目录。
+- release 清单校验日志 `evidence/manifest-check.log`：仅保留于本机交付目录。
+- 二进制归档 `waveform-operator-20261009-spectrum-ui-r3.tar.gz`：仅保留于本机交付目录。
+- 归档 SHA-256 文件 `waveform-operator-20261009-spectrum-ui-r3.tar.gz.sha256`：仅保留于本机交付目录。
 
 ## Git 与回滚
 
-本轮未执行 commit、push 或 tag。原有未跟踪的 `analysis/high_frequency/数据结果/spectrum-results.zip` 和 `tools/deploy_candidate_release.py` 均保持未跟踪，SHA-256 与任务开始时一致。未执行部署脚本。
+r3 构建与本机激活任务本身未执行 Git commit、push，也未创建 release tag。随后由 `TASK_ID: commit-and-push-spectrum-ui-r3` 将源码、测试、文档及适合纳入版本管理的交付记录正式提交，并推送到 `origin/whloong/communication-v2-experiment`。
+
+该提交为 `b19f12c87bb6431ec73d801a7c5ab6ab1922f549`，主题为 `feat: improve spectrum analysis UI and history handoff`。改造前 checkpoint 的 archive tag `archive/pre-spectrum-analysis-ui-20261008` 已单独推送到 origin；未创建新的 release tag。
+
+原有未跟踪的 `analysis/high_frequency/数据结果/spectrum-results.zip` 和 `tools/deploy_candidate_release.py` 均保持未跟踪，SHA-256 与任务开始时一致。未执行部署脚本。
 
 如需回滚，使用正式激活工具将本机 current 指回 r2。保留 r2 和 r3；回滚不涉及现场组件。
 
