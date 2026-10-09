@@ -1,0 +1,10 @@
+Target: desktop-user-a@192.0.2.3
+Direct TCP/SSH: timed out from this environment.
+Configured route: waveform-oneclick (storage-user@192.0.2.2) via waveform-jump-user-oneclick (jump-user@198.51.100.128), then target user desktop-user-a.
+Jump authentication: both hosts accepted /home/whloong/.ssh/id_ed25519_waveform_oneclick, ED25519 SHA256:JQEJbbxnVAEkxyhOgACSRH4btmK1TL+Ev/fzalTykGs.
+Target authentication, strict host-key checking: rejected /home/whloong/.ssh/id_ed25519, ED25519 SHA256:gVxCH/riLPFlHuu0VaXD2sWLSyWA1E2AVTnLV+FCxzc.
+A second strict check explicitly offering /home/whloong/.ssh/id_ed25519_waveform_oneclick, ED25519 SHA256:JQEJbbxnVAEkxyhOgACSRH4btmK1TL+Ev/fzalTykGs was also rejected.
+SSH agent contained those two fingerprints. No other public key files were present in ~/.ssh. No private key contents were read or changed.
+Root cause established: the target rejected both available public keys for user desktop-user-a. These diagnostics cannot distinguish missing target authorization from an account/username mismatch. Password authentication was not attempted.
+No target preflight commands completed. No files transferred. No target state changed. No capture request sent.
+SSH configuration and active known_hosts were not modified during the verbose probes; strict host-key checking used the saved host-key file.

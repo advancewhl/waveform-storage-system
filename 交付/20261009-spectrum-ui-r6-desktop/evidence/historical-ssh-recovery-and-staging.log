@@ -1,0 +1,38 @@
+现场桌面机 r6：历史 SSH 恢复与 staging 验收
+日期：2026-10-09
+
+## SSH 恢复
+
+- 目标：desktop-user-a@192.0.2.3；hostname：AC-GT-CN-S2-OPI21。
+- 路由：waveform-oneclick（storage-user@192.0.2.2）经 waveform-jump-user-oneclick（jump-user@198.51.100.128），再连接目标。
+- 历史成功方式：目标端 password、keyboard-interactive；通过本机现有 SSH_ASKPASS helper 的 desktop 角色提供凭据。没有读取或记录密码。
+- 跳板身份：/home/whloong/.ssh/id_ed25519_waveform_oneclick，SHA256:JQEJbbxnVAEkxyhOgACSRH4btmK1TL+Ev/fzalTykGs。
+- 目标 host key：ED25519 SHA256:WraHgRffV0jnG5UBC03670GhIp84qIO8QHcOTYUOkgE。使用现有 known_hosts.old 并启用 StrictHostKeyChecking=yes。
+- 历史根因：之前的重试只用了本机 agent 公钥；历史成功依赖目标密码认证。本机 agent 的两把公钥不是目标登录身份。活动 known_hosts 中没有目标密钥，既有备份保留了已验证密钥。
+- 前端到服务器的身份方向不同：/home/desktop-user-a/.ssh/id_ed25519_waveform_operator，SHA256:jdYBfp4R4yOK/rKUBgUghrOKpx2gjwzOUzbd8lo5SYI。该身份只用于 desktop-user-a 到 storage-user。
+
+## 目标预检与活动基线
+
+- 系统：Anolis OS 8.8，x86_64，GLIBC 2.28；目标 Python 3.10.8 仍可用。
+- 旧活动目录：/home/site-user/work/StreamDataPro_new/waveform-operator-direct-offline-20261004。
+- 旧二进制 SHA-256：85e715ecd53c224d99b040d254c96aaee0d171fd94fb735dd83d33941bb45874，与 2026-10-04 历史记录相同。
+- 桌面入口 /home/desktop-user-a/Desktop/waveform_data.desktop 仍调用 /home/site-user/bin/startWaveform.sh；该脚本仍调用旧目录的 run-operator.sh。
+- GUI 进程在 XFCE 会话中运行。/home 可用空间约 4.3 TB。
+- 活动 connection.env 指定 waveform server 192.0.2.2、用户 storage-user、端口 22、QT_SCALE_FACTOR=1.5 和共享状态目录。新 staging 通过符号链接复用该配置及旧 credentials 目录。
+
+## 软件包与 staging
+
+- 本地归档 SHA-256：ea78a3301fe7f79311648874f996f870c222511101a65947358362fecb4f2bae。
+- 目标归档：/home/desktop-user-a/waveform-operator-r6-20261009.tar.gz；目标 SHA-256 与本地一致。
+- staging 目录：/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009。
+- MANIFEST.sha256 全部通过。staging 二进制 SHA-256：c305b9f804e3cef40eb7d2a90fc36cc60a28d715d4fb8bac17cdc87145024b93。
+- ELF 数量：667；最高 GLIBC 要求：2.28；高于 2.28 的文件：0。主程序为 x86-64，ldd 没有缺失依赖。
+- 使用独立 /tmp 状态和 Qt offscreen 模式时，UI-only 与连接模式启动均持续运行至 18 秒测试超时；进程在第 5 秒仍运行。连接模式输出 direct SSH ready；目标直连 ZMQ health 返回 accepted=true。自动审批前端 runner 状态目录、配置和凭据未被覆盖。
+- 现有服务为 active。2026-10-06 只读历史协议查询通过：3 个有数据任务、87 个分段、1740 个精确文件关联；Legacy 日期查询通过。
+
+## HDF5 阻塞与生产状态
+
+- 数据库元数据指向一个已存在的真实 HDF5 文件，服务器 stat 确认文件可读。没有读取文件内容。
+- 自动审批审查拒绝将该真实 HDF5 内容复制到 desktop-user-a 临时目录，理由是当前授权未明确允许将生产波形数据导出到该目的地。没有改用其他路径、UI 或隧道绕过拒绝。
+- staging 保留供续作使用。活动二进制、launcher、桌面入口和旧 GUI 未改变。没有修改 acquisition server、systemd、MongoDB、HDF5 数据或 dashboard。采集请求数：0。
+- 状态：BLOCKED BEFORE ACTIVATION。

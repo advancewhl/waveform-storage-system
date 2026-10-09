@@ -1,0 +1,49 @@
+Target: AC-GT-CN-S2-OPI21, Anolis 8.8 x86_64, GLIBC 2.28
+Release: /home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009
+Expected and observed binary SHA-256: c305b9f804e3cef40eb7d2a90fc36cc60a28d715d4fb8bac17cdc87145024b93
+Old release preserved: /home/site-user/work/StreamDataPro_new/waveform-operator-direct-offline-20261004
+Old binary SHA-256: 85e715ecd53c224d99b040d254c96aaee0d171fd94fb735dd83d33941bb45874
+Common launcher backup: /home/site-user/bin/startWaveform.sh.backup-20261009-r6
+Common launcher now resolves through /home/site-user/bin/startWaveform.sh to the r6 run-operator.sh.
+desktop-user-a desktop entry remains unchanged and Exec=/home/site-user/bin/startWaveform.sh.
+
+desktop-user-a:
+- Actual identity: uid=1001(desktop-user-a), host AC-GT-CN-S2-OPI21.
+- Started from unchanged desktop entry with gio launch in the existing :1 session.
+- First GUI attempt used the wrong Xauthority and exited; retry used /run/user/1001/gdm/Xauthority.
+- Live r6 GUI PID 723490 remained in state Sl. /proc/723490/exe hash matched the expected r6 SHA-256.
+- r6 launcher log: direct SSH ready. SSH tunnel command uses the desktop-user-a per-user runtime SSH identity path; no desktop-user-b credentials accessed.
+- ZMQ health over tcp://127.0.0.1:21001 returned accepted=true, status=succeeded.
+- Read-only list_capture_runs for 2026-10-06 returned accepted=true and 3 runs.
+- Capture requests: 0.
+
+desktop-user-b:
+- Independent validation remains pending. No desktop-user-b GUI session was active. desktop-user-a has no passwordless sudo, and /home/desktop-user-b is not readable by desktop-user-a.
+- Expected historical public-key fingerprint: SHA256:7ntUrhAwEqqDzQg+S1JftSLZ0mnOL7yqryJZT7uZbeM. This run did not access the desktop-user-b private key or independently verify the fingerprint.
+- User will run acceptance from the actual desktop-user-b session.
+
+Server modified: false.
+Real-HDF5 spectrum functional acceptance: PENDING USER ON-SITE ACCEPTANCE. No HDF5 contents read or copied.
+
+desktop-user-a frontend identity:
+- Configured frontend public-key fingerprint: SHA256:jdYBfp4R4yOK/rKUBgUghrOKpx2gjwzOUzbd8lo5SYI.
+- Runtime identity used by the live r6 tunnel fingerprint: SHA256:jdYBfp4R4yOK/rKUBgUghrOKpx2gjwzOUzbd8lo5SYI.
+- Fingerprint only was emitted; no private-key contents were displayed.
+
+Spectrum page evidence:
+- The shared r6 binary loaded in desktop-user-a.
+- Source defines the “频谱分析” navigation and page title in src/waveform_storage/gui/operator_window.py; the accepted release GUI test asserts page_title.text() == “频谱分析”.
+- Interactive real-HDF5 analysis remains deferred to user on-site acceptance.
+
+desktop-user-b on-site acceptance update (user-confirmed, 2026-10-09):
+- User reports completing acceptance and confirms both desktop-user-a and desktop-user-b can use the activated shared frontend.
+- This confirms successful use from the actual desktop-user-b user environment by user report.
+- This task did not receive desktop-user-b shell command output, live process SHA-256, health/history response, or a machine-read public-key fingerprint. The private key was not read or exposed, and no change was made to the desktop-user-b key or account configuration.
+- Release completion is recorded based on the user's on-site acceptance. Real-HDF5 spectrum functional acceptance remains deferred.
+
+Final acceptance update (user-confirmed, 2026-10-09):
+- User reports completing on-site functional acceptance and confirms both desktop-user-a and desktop-user-b can use the activated shared r6 frontend.
+- Real-HDF5 spectrum functional acceptance: USER-CONFIRMED PASSED.
+- This is user-confirmed on-site evidence, not captured machine telemetry. No HDF5 path, contents, spectrum values, desktop-user-b shell output, live process hash, health/history response, or machine-read desktop-user-b fingerprint is asserted here.
+- Automated pre-activation HDF5 export/copy was not performed. The production server was not modified, and deployment capture requests remained 0.
+- Historical desktop-user-b fingerprint remains SHA256:7ntUrhAwEqqDzQg+S1JftSLZ0mnOL7yqryJZT7uZbeM; the private key was not read or exposed.

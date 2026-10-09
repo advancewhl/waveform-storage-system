@@ -1,0 +1,103 @@
+{
+  "task_id": "spectrum-r6-final-acceptance-review-git-archive-and-push",
+  "final_status": "PRODUCTION ACTIVATED AND VERIFIED",
+  "production": {
+    "target_host": "AC-GT-CN-S2-OPI21",
+    "accounts": ["desktop-user-a", "desktop-user-b"],
+    "shared_frontend": true,
+    "active_release": "/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009",
+    "active_binary_sha256": "c305b9f804e3cef40eb7d2a90fc36cc60a28d715d4fb8bac17cdc87145024b93",
+    "previous_preserved_release": "/home/site-user/work/StreamDataPro_new/waveform-operator-direct-offline-20261004",
+    "previous_binary_sha256": "85e715ecd53c224d99b040d254c96aaee0d171fd94fb735dd83d33941bb45874",
+    "archive_sha256": "ea78a3301fe7f79311648874f996f870c222511101a65947358362fecb4f2bae",
+    "server_modified": false,
+    "capture_requests": 0
+  },
+  "acceptance": {
+    "desktop-user-a": {
+      "status": "r6 verified",
+      "evidence_class": "machine-recorded technical validation",
+      "desktop_entry_unchanged": true,
+      "gui_process_remained_alive": true,
+      "binary_sha256": "c305b9f804e3cef40eb7d2a90fc36cc60a28d715d4fb8bac17cdc87145024b93",
+      "frontend_ssh_identity_fingerprint": "SHA256:jdYBfp4R4yOK/rKUBgUghrOKpx2gjwzOUzbd8lo5SYI",
+      "ssh_tunnel": "connected",
+      "zmq_health": "accepted=true; status=succeeded",
+      "history_query": "list_capture_runs for 2026-10-06 succeeded; 3 runs",
+      "spectrum_analysis_page": "present in r6 application"
+    },
+    "desktop-user-b": {
+      "status": "user-confirmed on-site acceptance passed",
+      "confirmation_date": "2026-10-09",
+      "evidence_class": "user-confirmed on-site acceptance; machine-side desktop-user-b output was not captured",
+      "historical_public_key_fingerprint": "SHA256:7ntUrhAwEqqDzQg+S1JftSLZ0mnOL7yqryJZT7uZbeM",
+      "fingerprint_machine_verified_in_this_task": false,
+      "private_key_read_or_exposed": false,
+      "identity_or_account_configuration_changed": false
+    },
+    "real_hdf5_spectrum": {
+      "status": "USER-CONFIRMED PASSED",
+      "evidence_class": "user-confirmed on-site functional acceptance",
+      "confirmation_date": "2026-10-09",
+      "automated_pre_activation_export_or_copy": "not performed",
+      "hdf5_path_contents_or_spectrum_values_recorded": false
+    }
+  },
+  "target": {
+    "hostname": "AC-GT-CN-S2-OPI21",
+    "os": "Anolis OS 8.8",
+    "architecture": "x86_64",
+    "glibc": "2.28",
+    "shared_install_root": "/home/site-user/work/StreamDataPro_new",
+    "common_launcher": "/home/site-user/bin/startWaveform.sh",
+    "common_launcher_target": "/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009/run-operator.sh",
+    "launcher_backup": {
+      "path": "/home/site-user/bin/startWaveform.sh.backup-20261009-r6",
+      "sha256": "bd707fd1b37a308f8dd247b21a6f4b06cec9109230046a36c178c2c415e09006"
+    },
+    "ssh": {
+      "jump_identity": "/home/whloong/.ssh/id_ed25519_waveform_oneclick",
+      "target_login_method": "existing local SSH_ASKPASS helper using password authentication",
+      "development_agent_public_keys_were_target_login_identity": false,
+      "target_host_ed25519_fingerprint": "SHA256:WraHgRffV0jnG5UBC03670GhIp84qIO8QHcOTYUOkgE",
+      "root_cause": "The historical target login used password authentication through the existing local SSH_ASKPASS helper; development-machine agent public keys were not the target login identity.",
+      "password_or_private_key_contents_recorded": false
+    },
+    "frontend_permissions": "shared application is readable/executable by both accounts; desktop-user-a credentials were not made broadly readable; desktop-user-b retains its own per-user SSH identity",
+    "pre_activation_hdf5_export_or_copy": false,
+    "spectrum_analysis_page": "included in the r6 application"
+  },
+  "quality": {
+    "full_gate": "passed",
+    "tests": 225,
+    "initial_sandbox_run": "blocked by PermissionError binding the local test HTTP server to 127.0.0.1",
+    "authorized_rerun": "passed",
+    "log": "evidence/quality-gate-committed-escalated.log",
+    "compatibility_build": "python:3.10-buster; Python 3.10.12; PyInstaller 6.11.1",
+    "platform_glibc": "2.28",
+    "elf_files_scanned": 667,
+    "maximum_glibc_requirement": "2.28",
+    "build_log": "evidence/debian10-build-escalated.log"
+  },
+  "historical_intermediate_evidence": {
+    "path": "evidence/historical-ssh-recovery-and-staging.log",
+    "status_at_that_time": "BLOCKED BEFORE ACTIVATION",
+    "note": "Chronological staging snapshot retained as history; later activation and acceptance supersede its intermediate status."
+  },
+  "evidence": {
+    "account_validation_summary": "evidence/account-validation-20261009.log",
+    "user_on_site_acceptance": "evidence/user-on-site-acceptance-20261009.md",
+    "package_manifest_verification": "evidence/package-manifest-verify.log",
+    "binary_hash": "evidence/production-binary.sha256",
+    "package_verification": "evidence/package-verification.txt",
+    "target_connection_attempts": "evidence/target-connection-attempts.log",
+    "historical_ssh_recovery_and_staging": "evidence/historical-ssh-recovery-and-staging.log",
+    "history_test": "evidence/test-formal-history.log",
+    "spectrum_analysis_test": "evidence/test-spectrum-analysis.log",
+    "spectrum_gui_test": "evidence/test-spectrum-gui.log",
+    "phy01_validation_instructions": "evidence/desktop-user-b-on-site-validation.md",
+    "phy01_validation_script": "evidence/validate-desktop-user-b-session.sh",
+    "raw_verbose_ssh_diagnostics": "local-only; not included in the curated release archive"
+  },
+  "permanent_release_rule": "Production desktop frontend releases apply to both desktop-user-a and desktop-user-b user environments on AC-GT-CN-S2-OPI21. The shared frontend release is incomplete until both accounts are validated."
+}

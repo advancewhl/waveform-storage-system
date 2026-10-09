@@ -1,0 +1,12 @@
+/home/whloong/.config/matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /tmp/matplotlib-hkbuzmyy because there was an issue with the default path (/home/whloong/.config/matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+test_frequency_is_displayed_after_startup_query (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_history_selection_ignores_capture_area_selection (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_history_spectrum_handoff_tracks_task_rate_and_real_segment_identity (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_offline_window_marks_frequency_unavailable (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_two_runs_and_stale_history_callbacks (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.901s
+
+OK

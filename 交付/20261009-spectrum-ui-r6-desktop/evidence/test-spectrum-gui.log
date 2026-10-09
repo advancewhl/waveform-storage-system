@@ -1,0 +1,21 @@
+/home/whloong/.config/matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /tmp/matplotlib-fet9d2jv because there was an issue with the default path (/home/whloong/.config/matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+test_block_hits_toggle_only_changes_visibility_and_preserves_results (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_common_parameters_and_collapsed_advanced_parameters (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_filters_combine_and_empty_results_clear_the_previous_plot (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_history_rate_validation_reset_and_rehandoff (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_history_reset_without_alignment_clears_metadata_but_keeps_file_results (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_history_result_package_name_uses_real_capture_sequence_and_resets (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_known_history_rate_auto_handoff_and_uses_shared_service (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_missing_history_rate_requires_manual_input_and_uses_shared_service (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_numeric_sorting_preserves_channel_identity_and_peak_annotation (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_peak_display_uses_resolution_and_preserves_raw_sort_and_plot_values (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_plot_export_default_name_tracks_channel_and_display_mode_without_analysis (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_resolution_aware_peak_table_and_annotation_examples (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_result_package_filename_adapts_to_input_and_sanitizes_names (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_third_navigation_runs_file_analysis_and_exports_results (test_spectrum_gui.SpectrumGuiTests) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 3.054s
+
+OK

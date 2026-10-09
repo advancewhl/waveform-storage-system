@@ -1,0 +1,26 @@
+test_bom_value_fallback_and_zip_use_real_utc_times (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_id_gap_is_not_compressed_and_bad_row_labels_fail (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_old_hdf_requires_rate_and_conflicting_rate_fails (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_three_hdf_layouts_keep_all_channels_and_rate (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_display_status_policy_covers_all_five_states_and_keeps_invalid_separate (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_drifting_block_peaks_do_not_become_repeated_candidate (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_explicit_double_zero_policy_preserves_time_axis (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_high_band_welch_uses_20_seconds_overall_and_five_second_blocks (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_high_frequency_evidence_flows_into_display_status_deterministically (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_long_gap_and_nyquist_and_constant_are_invalid (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_low_frequency_display_status_separates_peak_evidence_from_v2_stability (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_low_frequency_matches_original_algorithm_golden (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_resolution_aware_peak_formatter (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_same_peak_and_physical_windows_at_500_and_1000_hz (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_shorter_record_uses_available_welch_data_with_20_second_request (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_empty_input_and_cancelled_run_leave_no_partial_result (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_live_manager_cannot_be_mistaken_for_a_restarted_service (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_pre_v2_results_reload_with_conservative_legacy_observation_status (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_report_rounds_peak_for_people_but_machine_outputs_keep_full_precision (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_restart_retains_completed_results_and_marks_interrupted_jobs (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_result_manifest_and_files_and_async_status (test_spectrum_analysis.SpectrumTaskTests) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 0.479s
+
+OK

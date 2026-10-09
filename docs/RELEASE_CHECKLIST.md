@@ -29,6 +29,9 @@
 - [ ] `.desktop` 引用 `tools/launch_operator_desktop.sh`，启动器优先解析 current，旧包只作后备。
 - [ ] 从真实桌面入口启动，记录运行进程的 `/proc/<pid>/exe`、SHA-256 和 BUILD-INFO。
 
+- [ ] 现场公共桌面前端发布覆盖同一主机 `AC-GT-CN-S2-OPI21` 上的 `desktop-user-a` 和 `desktop-user-b` 两个生产用户环境。共享前端只更新一次，但必须分别验证两个用户环境；缺一不可。
+- [ ] 前端 SSH identity 和私有凭据按用户隔离。`desktop-user-b` 使用自己的前端 SSH identity；不得扩大 `desktop-user-a` 私钥权限或让其他账号复用。新增桌面账号使用既有 `register-account.sh` / per-account authorization 流程。
+
 激活命令会校验二进制与整个清单。
 
 ```bash

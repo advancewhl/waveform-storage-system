@@ -1,0 +1,4 @@
+ELF files scanned: 667
+Maximum GLIBC symbol requirement: GLIBC_2.28
+Requirements above GLIBC_2.28: none
+Inspection: readelf --version-info on each ELF file under dist/operator-debian10/waveform-operator

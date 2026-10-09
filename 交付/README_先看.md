@@ -1,7 +1,7 @@
 # 交付版本索引
 
-当前前端使用 [前端更新-20261005](前端更新-20261005/README.md)。2026-10-05 的明确更新记录指定包尾标识为 `0643957c5c96`；本次整理校验通过，并将包与校验文件集中在该目录。
+当前生产桌面前端为 [20261009-spectrum-ui-r6-desktop](20261009-spectrum-ui-r6-desktop/README.md)，目标为 `AC-GT-CN-S2-OPI21` 上的 `desktop-user-a` 与 `desktop-user-b` 共享环境。发布记录和验收证据见 [r6 桌面发布记录](20261009-spectrum-ui-r6-desktop/README.md)。当前 acquisition server 基线为 [20261008-history-release-r4](20261008-history-release-r4/README.md)。
 
-`前端安装-20261004/` 和 `服务端留档-20261004/` 保留为当时交付快照。旧前端包已被 10 月 5 日可执行更新取代，旧安装说明用于追溯此前部署；服务器版本仍需结合当前部署记录核对。
+`前端更新-20261005/`、`前端安装-20261004/` 和 `服务端留档-20261004/` 保留为历史部署快照，不代表当前生产桌面版本。后续部署应以各版本目录中的验收记录及 `docs/CURRENT_STATUS.md` 为准。
 
 `outputs/` 保留当前明确前端、构建基线；中间修改但未使用的版本集中在 [archive/build-artifacts](../archive/build-artifacts/README.md)，本次未删除任何包。
