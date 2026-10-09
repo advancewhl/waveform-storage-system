@@ -19,7 +19,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
 
-from waveform_storage.analysis.models import AnalysisConfig, AnalysisRequest
+from waveform_storage.analysis.models import AnalysisConfig, AnalysisRequest, format_peak_frequency
 from waveform_storage.analysis.service import AnalysisJobs
 from waveform_storage.analysis.status import DISPLAY_STATUS_LABELS
 
@@ -46,6 +46,8 @@ class SpectrumPanel(QWidget):
         self.job_id = None
         self.last_run = None
         self.alignment = None
+        self.history_request_id = None
+        self.history_capture_sequence = None
         self._closed = False
         self._build_ui()
         self.timer = QTimer(self)
@@ -155,6 +157,9 @@ class SpectrumPanel(QWidget):
             advanced_grid.setColumnStretch(column, 1)
         self.show_block_hits = QCheckBox("显示命中块列")
         advanced_grid.addWidget(self.show_block_hits, advanced_grid.rowCount(), 0)
+        self.welch_diagnostic = QLabel("Welch 信息：—")
+        self.welch_diagnostic.setWordWrap(True)
+        advanced_grid.addWidget(self.welch_diagnostic, advanced_grid.rowCount(), 0, 1, 3)
         self.advanced_frame.hide()
         form.addWidget(self.advanced_frame)
         action = QHBoxLayout()
@@ -276,6 +281,8 @@ class SpectrumPanel(QWidget):
 
     def _source_changed(self, *_args):
         self.alignment = None
+        self.history_request_id = None
+        self.history_capture_sequence = None
         self.path_edit.clear()
         self.sample_rate.setValue(0)
         self.sample_rate.setSpecialValueText("读取文件记录")
@@ -290,6 +297,8 @@ class SpectrumPanel(QWidget):
 
     def _clear_alignment(self, *_args):
         self.alignment = None
+        self.history_request_id = None
+        self.history_capture_sequence = None
         self.sample_rate.setValue(0)
         self.sample_rate.setSpecialValueText("读取文件记录")
 
@@ -310,12 +319,16 @@ class SpectrumPanel(QWidget):
     def reset_history_context(self):
         """Discard history analysis, including late results of a cancelled job."""
         if self.alignment is None:
+            self.history_request_id = None
+            self.history_capture_sequence = None
             return
         if self.job_id:
             self.jobs.cancel(self.job_id)
             self.job_id = None
             self.timer.stop()
         self.alignment = None
+        self.history_request_id = None
+        self.history_capture_sequence = None
         self.last_run = None
         self.path_edit.clear()
         self.sample_rate.setValue(0)
@@ -334,11 +347,14 @@ class SpectrumPanel(QWidget):
         self.progress.setValue(0)
         self.status_label.setText("历史数据段已切换，请重新选择分析输入。")
 
-    def use_alignment(self, result, *, sample_rate_hz=None):
+    def use_alignment(self, result, *, sample_rate_hz=None, history_request_id=None,
+                      capture_sequence=None):
         if self.job_id:
             raise ValueError("当前分析仍在运行，请先等待完成或取消")
         self.source_combo.setCurrentIndex(0)
         self.alignment = result
+        self.history_request_id = history_request_id
+        self.history_capture_sequence = capture_sequence
         self.path_edit.setText(f"当前历史对齐结果：{len(result.device_ids)} 台 BPM")
         self.sample_rate.setSpecialValueText("未提供")
         if (isinstance(sample_rate_hz, Real) and not isinstance(sample_rate_hz, bool)
@@ -466,7 +482,7 @@ class SpectrumPanel(QWidget):
         self.table.setRowCount(len(rows))
         for row, (index, channel) in enumerate(rows):
             values = [channel.channel, LABELS[channel.display_status],
-                      "—" if channel.peak_hz is None else f"{channel.peak_hz:.5g}",
+                      format_peak_frequency(channel.peak_hz, channel.resolution_hz),
                       "—" if channel.peak_to_background_db is None else f"{channel.peak_to_background_db:.2f} dB",
                       f"{channel.block_hits}/{channel.block_count}"]
             keys = [None, None, channel.peak_hz, channel.peak_to_background_db,
@@ -491,12 +507,14 @@ class SpectrumPanel(QWidget):
             return
         item = self.table.item(row, 0) if row >= 0 else None
         if item is None:
+            self._refresh_welch_diagnostic(None)
             self.figure.clear()
             self.canvas.draw_idle()
             self.detail_label.setText("当前筛选条件下没有通道。")
             self.plot_export_button.setEnabled(False)
             return
         channel = self.last_run.channels[item.data(Qt.UserRole)]
+        self._refresh_welch_diagnostic(channel)
         self.figure.clear()
         axis = self.figure.add_subplot(111)
         if len(channel.frequency):
@@ -518,7 +536,8 @@ class SpectrumPanel(QWidget):
                     axis.scatter([channel.peak_hz], [peak_power],
                                  color="#c78136", s=22, zorder=4)
                 left = channel.peak_hz <= (cfg["background_low_hz"] + cfg["background_high_hz"]) / 2
-                axis.annotate(rf"$f_{{\mathrm{{peak}}}}={channel.peak_hz:.5g}\;\mathrm{{Hz}}$",
+                peak_display = format_peak_frequency(channel.peak_hz, channel.resolution_hz)
+                axis.annotate(rf"$f_{{\mathrm{{peak}}}}={peak_display}\;\mathrm{{Hz}}$",
                               xy=(channel.peak_hz, .97), xycoords=("data", "axes fraction"),
                               xytext=(6 if left else -6, 0), textcoords="offset points",
                               ha="left" if left else "right", va="top", fontsize=10, color="#a96822",
@@ -535,21 +554,77 @@ class SpectrumPanel(QWidget):
         metrics = ""
         if channel.sample_rate_hz is not None:
             duration = "—" if channel.duration_seconds is None else f"{channel.duration_seconds:.3f}"
-            resolution = "—" if channel.resolution_hz is None else f"{channel.resolution_hz:.6g}"
-            metrics = f"采样率 {channel.sample_rate_hz:g} Hz；记录跨度 {duration} 秒；分辨率 {resolution} Hz。\n"
+            metrics = f"采样率 {channel.sample_rate_hz:g} Hz；记录跨度 {duration} 秒。\n"
         self.detail_label.setText(metrics + channel.reason)
         self.detail_label.setToolTip("\n".join(channel.warnings))
+
+    @staticmethod
+    def _diagnostic_number(value, *, decimals=6):
+        if isinstance(value, bool):
+            return "—"
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return "—"
+        if not math.isfinite(number) or number <= 0:
+            return "—"
+        return f"{number:.{decimals}f}".rstrip("0").rstrip(".")
+
+    def _refresh_welch_diagnostic(self, channel):
+        config = self.last_run.manifest.get("config", {}) if self.last_run else {}
+        requested = self._diagnostic_number(config.get("welch_seconds"))
+        details = (channel.details if channel is not None
+                   and isinstance(channel.details, dict) else {})
+        actual = self._diagnostic_number(details.get("actual_welch_seconds"))
+        resolution = self._diagnostic_number(channel.resolution_hz if channel is not None else None)
+        self.welch_diagnostic.setText(
+            f"设置 Welch 窗口：{requested} s；实际 Welch 窗口：{actual} s；"
+            f"频率分辨率：{resolution} Hz"
+        )
 
     def _export(self):
         if self.last_run is None:
             return
-        path, _ = QFileDialog.getSaveFileName(self, "保存本次分析结果包", "spectrum-results.zip", "ZIP (*.zip)")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "保存本次分析结果包", self._default_results_filename(), "ZIP (*.zip)"
+        )
         if path:
             try:
                 shutil.copy2(self.last_run.directory / "results.zip", path)
                 self.status_label.setText("结果包已保存：" + path)
             except OSError as exc:
                 QMessageBox.warning(self, "保存失败", str(exc))
+
+    @staticmethod
+    def _safe_export_stem(value):
+        safe = re.sub(r'[\x00-\x1f\x7f-\x9f\\/:*?"<>|]', "_", str(value).strip())
+        safe = safe.rstrip(" .")
+        return "" if not safe or safe in {".", ".."} else safe
+
+    def _default_results_filename(self):
+        fallback = "spectrum-results.zip"
+        if self.last_run is None:
+            return fallback
+        request_id = self.history_request_id
+        sequence = self.history_capture_sequence
+        if (self.alignment is not None and request_id is not None and str(request_id).strip()
+                and isinstance(sequence, int) and not isinstance(sequence, bool) and sequence >= 0):
+            stem = self._safe_export_stem(f"{request_id}_S{sequence:05d}")
+        else:
+            raw_path = self.path_edit.text().strip()
+            if not raw_path:
+                return fallback
+            source = Path(raw_path).expanduser()
+            try:
+                if source.is_file():
+                    stem = self._safe_export_stem(source.stem)
+                elif source.is_dir():
+                    stem = self._safe_export_stem(source.name)
+                else:
+                    return fallback
+            except OSError:
+                return fallback
+        return f"{stem}_频谱结果.zip" if stem else fallback
 
     def _export_plot(self):
         path, _ = QFileDialog.getSaveFileName(

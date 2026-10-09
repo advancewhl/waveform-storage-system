@@ -1,0 +1,37 @@
+{
+  "release_id": "20261009-spectrum-ui-r4",
+  "kind": "operator",
+  "operator_path": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r4/waveform-operator",
+  "source_revision": "694021fcc47909759a174e86d947391f8ba0f7bf",
+  "source_state": "working-tree",
+  "binary_sha256": "2097939a783a741cccbd2d5e8db750d6a1670ddd5ac64bc3a22719d319366b37",
+  "source_manifest_sha256": "d9951c3ca436a8a2ab55f08b48582c8d586fb23996ffd90cadb506274e9756c4",
+  "manifest_verified": true,
+  "binary_offscreen_startup_verified": true,
+  "packaged_spectrum_page_verified": true,
+  "spectrum_focused_tests": {
+    "passed": 31,
+    "failed": 0
+  },
+  "history_focused_tests": {
+    "passed": 6,
+    "failed": 0
+  },
+  "full_quality_tests": {
+    "passed": 220,
+    "failed": 0
+  },
+  "git_diff_check": "passed",
+  "previous_current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator",
+  "current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r4/waveform-operator",
+  "rollback_target": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator",
+  "desktop_launcher_verified": true,
+  "real_desktop_gui_launched_by_codex": false,
+  "server_unchanged": true,
+  "commit": false,
+  "push": false,
+  "tag": false,
+  "final_status": "SUPERSEDED BEFORE USER MANUAL VALIDATION",
+  "binary_archive_sha256": "3af0c45927332ab764f25f0a8d8bfa924b485971cd9754f65a42beb3eea43888",
+  "superseded_by": "20261009-spectrum-ui-r5"
+}

@@ -313,7 +313,10 @@ class FormalHistorySelectionTests(unittest.TestCase):
                          patch.object(backend, "retrieve_segments") as query_segments, \
                          patch.object(backend, "align_segment") as align:
                         window.history_spectrum_button.click()
-                        handoff.assert_called_once_with(window.alignment_result, sample_rate_hz=rate)
+                        handoff.assert_called_once_with(
+                            window.alignment_result, sample_rate_hz=rate,
+                            history_request_id=segment.request_id, capture_sequence=segment.capture_sequence,
+                        )
                         query_runs.assert_not_called()
                         query_segments.assert_not_called()
                         align.assert_not_called()
@@ -328,6 +331,8 @@ class FormalHistorySelectionTests(unittest.TestCase):
                 window.current_history_run = backend.retrieve_runs(date(2026, 10, 2))[0]
                 window.history_spectrum_button.click()
                 self.assertEqual(window.spectrum_panel.sample_rate.value(), 0)
+                self.assertIsNone(window.spectrum_panel.history_request_id)
+                self.assertIsNone(window.spectrum_panel.history_capture_sequence)
             finally:
                 window.close()
 

@@ -12,6 +12,29 @@ import numpy as np
 from .status import display_status_for
 
 
+def format_peak_frequency(peak_hz: float | None, resolution_hz: float | None) -> str:
+    """Format a peak at the decimal place implied by its frequency resolution."""
+    if peak_hz is None or isinstance(peak_hz, (bool, np.bool_)):
+        return "—"
+    try:
+        peak = float(peak_hz)
+    except (TypeError, ValueError, OverflowError):
+        return "—"
+    if not math.isfinite(peak):
+        return "—"
+    try:
+        if isinstance(resolution_hz, (bool, np.bool_)):
+            raise ValueError("boolean is not a frequency resolution")
+        resolution = float(resolution_hz)
+    except (TypeError, ValueError, OverflowError):
+        resolution = math.nan
+    if not math.isfinite(resolution) or resolution <= 0:
+        # A compact significant-digit fallback avoids exposing binary float noise.
+        return f"{peak:.6g}"
+    decimals = min(12, max(0, math.ceil(-math.log10(resolution))))
+    return f"{peak:.{decimals}f}"
+
+
 @dataclass(frozen=True)
 class AnalysisConfig:
     profile: str = "high_band"
@@ -19,7 +42,7 @@ class AnalysisConfig:
     search_high_hz: float = 50.0
     background_low_hz: float = 30.0
     background_high_hz: float = 60.0
-    welch_seconds: float = 5.0
+    welch_seconds: float = 20.0
     block_seconds: float = 5.0
     threshold_db: float = 6.0
     minimum_points: int = 128

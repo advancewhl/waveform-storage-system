@@ -19,7 +19,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 import numpy as np
 
-from .models import AnalysisRequest, AnalysisRun, ChannelResult
+from .models import AnalysisRequest, AnalysisRun, ChannelResult, format_peak_frequency
 from .status import DISPLAY_STATUS_LABELS
 
 
@@ -164,7 +164,7 @@ def run_analysis(request: AnalysisRequest, output_root, *, job_id=None,
                  "| --- | --- | ---: | ---: | ---: |"]
         for c in channels:
             name = c.channel.replace("|", "\\|").replace("\n", " ")
-            peak = "—" if c.peak_hz is None else f"{c.peak_hz:.6g}"
+            peak = format_peak_frequency(c.peak_hz, c.resolution_hz)
             snr = "—" if c.peak_to_background_db is None else f"{c.peak_to_background_db:.2f}"
             lines.append(
                 f"| {name} | {DISPLAY_STATUS_LABELS[c.display_status]} | {peak} | "

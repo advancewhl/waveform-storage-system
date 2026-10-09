@@ -1,0 +1,24 @@
+{
+  "task_id": "spectrum-r6-adaptive-peak-precision-20s-welch-local-release",
+  "release_id": "20261009-spectrum-ui-r6",
+  "source_revision": "694021fcc47909759a174e86d947391f8ba0f7bf",
+  "source_state": "working-tree",
+  "previous_current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r5/waveform-operator",
+  "current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r6/waveform-operator",
+  "rollback_target": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator",
+  "binary_sha256": "fe98830a1a806c95e088d7070b86f97c444d35ff8dfbc1abe43aa11ee2ada6bb",
+  "archive_sha256": "4f03476c9c1c0c9d69344ea556b1f285c77dab982365b9eb839bcb17474f1b1a",
+  "manifest_entries": 8368,
+  "tests": {
+    "spectrum_focused": {"count": 35, "status": "passed"},
+    "history_focused": {"count": 6, "status": "passed"},
+    "full_quality_gate": {"count": 225, "status": "passed"},
+    "git_diff_check": "passed"
+  },
+  "packaged_verification": "passed",
+  "desktop_launcher_resolves_current": true,
+  "real_desktop_gui_launched": false,
+  "server_modified": false,
+  "git_commit_push_tag": false,
+  "final_status": "LOCAL OPERATOR UPDATED — WAITING FOR USER MANUAL VALIDATION"
+}

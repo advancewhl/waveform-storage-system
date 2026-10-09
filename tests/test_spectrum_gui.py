@@ -108,6 +108,8 @@ class SpectrumGuiTests(unittest.TestCase):
                     self.assertFalse(panel.table.isColumnHidden(4))
                 self.assertAlmostEqual(panel.low.value(), .142)
                 self.assertAlmostEqual(panel.high.value(), .162)
+                self.assertEqual(panel.window_seconds.value(), 300)
+                self.assertEqual(panel.block_seconds.value(), 300)
                 self.assertEqual(panel.zero_combo.currentData(), "mask_double_zero")
                 panel.show_block_hits.click()
                 self.assertTrue(panel.table.isColumnHidden(4))
@@ -151,8 +153,14 @@ class SpectrumGuiTests(unittest.TestCase):
                 self.app.processEvents()
                 self.assertTrue(panel.figure.axes[0].lines)
                 output = Path(d) / "saved.zip"
-                with patch("waveform_storage.gui.spectrum_panel.QFileDialog.getSaveFileName", return_value=(str(output), "")):
+                last_run = panel.last_run
+                with patch("waveform_storage.gui.spectrum_panel.QFileDialog.getSaveFileName",
+                           return_value=(str(output), "")) as save_dialog, \
+                     patch.object(panel.jobs, "submit", wraps=panel.jobs.submit) as submit:
                     panel.export_button.click()
+                    self.assertEqual(save_dialog.call_args.args[2], "input_频谱结果.zip")
+                    submit.assert_not_called()
+                self.assertIs(panel.last_run, last_run)
                 with ZipFile(output) as archive:
                     self.assertEqual(set(archive.namelist()),
                                      {"run-manifest.json", "results.json", "spectrum-summary.csv",
@@ -209,6 +217,8 @@ class SpectrumGuiTests(unittest.TestCase):
                 self.assertEqual(panel.sample_rate.value(), 1000)
                 self.assertEqual(panel.sample_rate.text(), "1000.000 Hz")
                 self.assertIn("历史任务记录读取：1000 Hz", panel.input_note.text())
+                self.assertEqual(panel.history_request_id, "task-1000")
+                self.assertEqual(panel.history_capture_sequence, 8)
                 panel.run_button.click()
                 self._wait(panel)
                 self.assertEqual(panel.last_run.manifest["source_type"], "alignment")
@@ -460,6 +470,147 @@ class SpectrumGuiTests(unittest.TestCase):
                 self.assertEqual(original_channel, "BPM1_X")
             finally:
                 self._close_window(window)
+
+    def test_result_package_filename_adapts_to_input_and_sanitizes_names(self):
+        with TemporaryDirectory() as d:
+            window = self._result_window(d)
+            try:
+                panel = window.spectrum_panel
+                hdf_file = Path(d) / "abc.h5"
+                hdf_file.touch()
+                panel.path_edit.setText(str(hdf_file))
+                self.assertEqual(panel._default_results_filename(), "abc_频谱结果.zip")
+
+                hdf_dir = Path(d) / "run001"
+                hdf_dir.mkdir()
+                panel.path_edit.setText(str(hdf_dir) + "/")
+                self.assertEqual(panel._default_results_filename(), "run001_频谱结果.zip")
+
+                archiver_file = Path(d) / "export.csv"
+                archiver_file.touch()
+                panel.path_edit.setText(str(archiver_file))
+                self.assertEqual(panel._default_results_filename(), "export_频谱结果.zip")
+
+                archiver_dir = Path(d) / "archiver_batch"
+                archiver_dir.mkdir()
+                panel.path_edit.setText(str(archiver_dir))
+                self.assertEqual(panel._default_results_filename(), "archiver_batch_频谱结果.zip")
+
+                special = Path(d) / 'ex:port?name.csv'
+                special.touch()
+                panel.path_edit.setText(str(special))
+                self.assertEqual(panel._default_results_filename(), "ex_port_name_频谱结果.zip")
+                self.assertEqual(panel._safe_export_stem(".."), "")
+                unsafe = 'a/b\\c:d*e?f"g<h>i|j\x00\x85 '
+                self.assertEqual(panel._safe_export_stem(unsafe), "a_b_c_d_e_f_g_h_i_j_")
+
+                panel.path_edit.clear()
+                self.assertEqual(panel._default_results_filename(), "spectrum-results.zip")
+                panel.path_edit.setText(str(Path(d) / "missing.h5"))
+                self.assertEqual(panel._default_results_filename(), "spectrum-results.zip")
+            finally:
+                self._close_window(window)
+
+    def test_history_result_package_name_uses_real_capture_sequence_and_resets(self):
+        with TemporaryDirectory() as d:
+            window = self._result_window(d)
+            try:
+                panel = window.spectrum_panel
+                # The history naming metadata is independent of the GUI's displayed segment position.
+                from waveform_storage.processing.alignment import DeviceSeries, align_devices
+                history_alignment = align_devices([DeviceSeries(
+                    "BPM1", np.arange(3, dtype=np.uint64), np.arange(3), np.arange(3))])
+                panel.use_alignment(history_alignment, sample_rate_hz=1000,
+                                    history_request_id="task-123", capture_sequence=8)
+                self.assertEqual(panel._default_results_filename(), "task-123_S00008_频谱结果.zip")
+                panel.use_alignment(history_alignment, history_request_id="task-456", capture_sequence=23)
+                self.assertEqual(panel._default_results_filename(), "task-456_S00023_频谱结果.zip")
+                panel.reset_history_context()
+                panel.last_run = AnalysisRun("fixture", Path(d), [], {})
+                self.assertIsNone(panel.history_request_id)
+                self.assertIsNone(panel.history_capture_sequence)
+                self.assertEqual(panel._default_results_filename(), "spectrum-results.zip")
+            finally:
+                self._close_window(window)
+
+    def test_history_reset_without_alignment_clears_metadata_but_keeps_file_results(self):
+        with TemporaryDirectory() as d:
+            window = self._result_window(d)
+            try:
+                panel = window.spectrum_panel
+                run = panel.last_run
+                panel.history_request_id = "stale-task"
+                panel.history_capture_sequence = 8
+                panel.reset_history_context()
+                self.assertIs(panel.last_run, run)
+                self.assertIsNone(panel.history_request_id)
+                self.assertIsNone(panel.history_capture_sequence)
+            finally:
+                self._close_window(window)
+
+    def test_peak_display_uses_resolution_and_preserves_raw_sort_and_plot_values(self):
+        with TemporaryDirectory() as d:
+            window = self._result_window(d)
+            try:
+                panel = window.spectrum_panel
+                channel = panel.last_run.channels[1]
+                channel.peak_hz = 47.59637
+                channel.resolution_hz = .01
+                channel.details = {"actual_welch_seconds": 19.544}
+                panel.last_run.manifest["config"]["welch_seconds"] = 20
+                panel._refresh_result_table()
+                row = next(row for row in range(panel.table.rowCount())
+                           if panel.table.item(row, 0).text() == "BPM1_Y")
+                self.assertEqual(panel.table.item(row, 2).text(), "47.60")
+                self.assertEqual(panel.table.item(row, 2).sort_key, (1, (47.59637,)))
+                panel.table.selectRow(row)
+                self.app.processEvents()
+                self.assertTrue(any("47.60" in text.get_text() for text in panel.figure.axes[0].texts))
+                peak_line = next(line for line in panel.figure.axes[0].lines
+                                 if len(line.get_xdata()) == 2 and
+                                 np.all(np.asarray(line.get_xdata()) == 47.59637))
+                np.testing.assert_array_equal(peak_line.get_xdata(), [47.59637, 47.59637])
+                self.assertEqual(channel.peak_hz, 47.59637)
+                self.assertIn("设置 Welch 窗口：20 s；实际 Welch 窗口：19.544 s；频率分辨率：0.01 Hz",
+                              panel.welch_diagnostic.text())
+                self.assertNotIn("Welch 窗口", panel.detail_label.text())
+                self.assertTrue(panel.advanced_frame.isHidden())
+                submit = Mock()
+                panel.jobs = Mock()
+                panel.jobs.submit = submit
+                other_channel = panel.last_run.channels[0]
+                other_channel.peak_hz = 47.550000000000004
+                other_channel.resolution_hz = .2
+                other_channel.details = {}
+                panel._refresh_result_table()
+                panel.table.selectRow(next(row for row in range(panel.table.rowCount())
+                                           if panel.table.item(row, 0).text() == other_channel.channel))
+                self.app.processEvents()
+                other_row = next(row for row in range(panel.table.rowCount())
+                                 if panel.table.item(row, 0).text() == other_channel.channel)
+                self.assertEqual(panel.table.item(other_row, 2).text(), "47.6")
+                panel.table.sortItems(2, Qt.AscendingOrder)
+                raw_sorted = [panel.table.item(index, 0).text()
+                              for index in range(panel.table.rowCount())
+                              if panel.table.item(index, 0).text() in
+                              {channel.channel, other_channel.channel}]
+                self.assertEqual(raw_sorted, [other_channel.channel, channel.channel])
+                self.assertIn("实际 Welch 窗口：— s；频率分辨率：0.2 Hz",
+                              panel.welch_diagnostic.text())
+                panel.advanced_button.click()
+                panel.show_block_hits.click()
+                panel.advanced_button.click()
+                submit.assert_not_called()
+                self.assertEqual(channel.peak_hz, 47.59637)
+            finally:
+                self._close_window(window)
+
+    def test_resolution_aware_peak_table_and_annotation_examples(self):
+        from waveform_storage.analysis.models import format_peak_frequency
+        examples = [(.2, 47.6, "47.6"), (.05, 47.55, "47.55"),
+                    (.0511666, 49.84, "49.84"), (.01, 49.8, "49.80")]
+        for resolution, peak, expected in examples:
+            self.assertEqual(format_peak_frequency(peak, resolution), expected)
 
 
 if __name__ == "__main__":

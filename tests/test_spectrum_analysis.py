@@ -6,6 +6,7 @@ from tempfile import TemporaryDirectory
 import json
 import time
 import unittest
+from unittest.mock import patch
 from zipfile import ZipFile
 
 import h5py
@@ -13,7 +14,9 @@ import numpy as np
 
 from waveform_storage.analysis.engine import analyze_channel
 from waveform_storage.analysis.loaders import load_request
-from waveform_storage.analysis.models import AnalysisConfig, AnalysisRequest, ChannelSeries
+from waveform_storage.analysis.models import (
+    AnalysisConfig, AnalysisRequest, ChannelResult, ChannelSeries, format_peak_frequency,
+)
 from waveform_storage.analysis.service import AnalysisJobs, run_analysis
 from waveform_storage.analysis.status import display_status_for
 
@@ -56,8 +59,65 @@ class SpectrumNumericsTests(unittest.TestCase):
             self.assertEqual(result.classification, "stable_candidate", result.reason)
             self.assertEqual(result.display_status, "clear_peak")
             self.assertAlmostEqual(result.peak_hz, 47.6, places=5)
-            self.assertAlmostEqual(result.resolution_hz, .2)
+            self.assertAlmostEqual(result.resolution_hz, .05)
             self.assertEqual(result.block_count, blocks)
+
+    def test_high_band_welch_uses_20_seconds_overall_and_five_second_blocks(self):
+        config = AnalysisConfig.for_profile("high_band")
+        self.assertEqual(config.welch_seconds, 20.0)
+        self.assertEqual(config.block_seconds, 5.0)
+        rate = 1000
+        times = np.arange(20 * rate, dtype=float) / rate
+        values = np.sin(2 * np.pi * 47.6 * times)
+        from waveform_storage.analysis import engine
+        original = engine.welch_density
+        observed = []
+
+        def recording_welch(segment, sample_rate, requested, overlap=0.5):
+            spectrum = original(segment, sample_rate, requested, overlap)
+            observed.append((len(segment) / sample_rate, requested, spectrum.actual_window_seconds,
+                             spectrum.delta_f_hz))
+            return spectrum
+
+        with patch("waveform_storage.analysis.engine.welch_density", side_effect=recording_welch):
+            result = analyze_channel(ChannelSeries("long", times, values, "memory", rate), config)
+        self.assertAlmostEqual(result.resolution_hz, .05, places=8)
+        self.assertAlmostEqual(result.details["actual_welch_seconds"], 20.0)
+        self.assertEqual(result.classification, "stable_candidate")
+        self.assertEqual(len(result.blocks), 4)
+        self.assertEqual(len(observed), 5)
+        self.assertEqual(observed[0][1:], (20.0, 20.0, .05))
+        for duration, requested, actual, resolution in observed[1:]:
+            self.assertAlmostEqual(duration, 5.0)
+            self.assertEqual(requested, 20.0)
+            self.assertAlmostEqual(actual, 5.0)
+            self.assertAlmostEqual(resolution, .2)
+        self.assertEqual(result.block_hits, 4)
+
+    def test_shorter_record_uses_available_welch_data_with_20_second_request(self):
+        rate = 1000
+        times = np.arange(10 * rate, dtype=float) / rate
+        values = np.sin(2 * np.pi * 47.6 * times)
+        result = analyze_channel(ChannelSeries("short", times, values, "memory", rate),
+                                 AnalysisConfig.for_profile("high_band"))
+        self.assertNotEqual(result.classification, "invalid")
+        self.assertAlmostEqual(result.details["actual_welch_seconds"], 10.0)
+        self.assertAlmostEqual(result.resolution_hz, .1)
+
+    def test_resolution_aware_peak_formatter(self):
+        cases = [
+            (47.6, .2, "47.6"),
+            (47.55, .05, "47.55"),
+            (49.84, .0511666, "49.84"),
+            (49.8, .01, "49.80"),
+            (47.400000000000006, .2, "47.4"),
+            (47.400000000000006, None, "47.4"),
+        ]
+        for peak, resolution, expected in cases:
+            with self.subTest(peak=peak, resolution=resolution):
+                rendered = format_peak_frequency(peak, resolution)
+                self.assertEqual(rendered, expected)
+                self.assertNotIn("000000000000", rendered)
 
     def test_low_frequency_matches_original_algorithm_golden(self):
         golden = json.loads((Path(__file__).parent / "fixtures/spectrum-low-frequency-golden.json").read_text())
@@ -324,6 +384,24 @@ class SpectrumTaskTests(unittest.TestCase):
             with self.assertRaises(AnalysisCancelled):
                 run_analysis(AnalysisRequest("hdf5", (str(p),)), Path(d) / "results", cancel=cancellation)
             self.assertFalse(list((Path(d) / "results").iterdir()))
+
+    def test_report_rounds_peak_for_people_but_machine_outputs_keep_full_precision(self):
+        with TemporaryDirectory() as d:
+            source = Path(d) / "input.h5"
+            hdf_fixture(source)
+            channel = ChannelResult("BPM1_X", "fixture", classification="observation",
+                                    peak_hz=47.59637, resolution_hz=.01,
+                                    frequency=np.array([47.0, 48.0]),
+                                    psd=np.array([1.0, 2.0]))
+            with patch("waveform_storage.analysis.engine.analyze_channel", return_value=channel):
+                run = run_analysis(AnalysisRequest("hdf5", (str(source),)), Path(d) / "results")
+            self.assertEqual(channel.peak_hz, 47.59637)
+            records = json.loads((run.directory / "results.json").read_text())
+            self.assertEqual(records[0]["peak_hz"], 47.59637)
+            summary_csv = (run.directory / "spectrum-summary.csv").read_text(encoding="utf-8-sig")
+            self.assertIn("47.59637", summary_csv)
+            report = (run.directory / "report.md").read_text(encoding="utf-8")
+            self.assertIn("47.60", report)
 
     def test_restart_retains_completed_results_and_marks_interrupted_jobs(self):
         with TemporaryDirectory() as d:

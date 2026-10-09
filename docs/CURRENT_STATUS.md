@@ -1,5 +1,13 @@
 # 波形存储当前状态（2026-10-09）
 
+2026-10-09 已构建并激活本机频谱 UI operator `20261009-spectrum-ui-r6`。`outputs/operator-local/current` 已切换至 r6，正式桌面 launcher 解析到 r6 二进制；offscreen 打包验收和完整性清单校验通过。
+
+峰值频率按实际 `resolution_hz` 决定显示小数位，表格、图注和 `report.md` 共用同一格式化规则，原始峰值及 JSON/CSV 数值不变。高频模板使用 20 秒整体 Welch 窗口和 5 秒重复性分块；实际窗口与分辨率只显示在默认折叠的高级参数区域。
+
+频谱 focused 35 项、历史 focused 6 项和全量质量门 225 项测试通过。Codex 未启动真实桌面 GUI；本机 r6 等待用户手动验证。激活前 `current` 指向 r5，保留已人工验证的 r3 作为回滚目标。
+
+现场 server、systemd、MongoDB、dashboard 和现场 operator 未修改；本次源码保存与远端同步记录见 Git 提交历史。交付记录见[频谱 UI r6 交付记录](../交付/20261009-spectrum-ui-r6/README.md)。
+
 按 2026-10-08 发布记录，现场 acquisition server 使用 `20261008-history-release-r4`。当日的本机前端、server、真实桌面入口、systemd 实际进程和历史数据处理链路已按该版本对完成验证。本次未检查或修改现场 server。
 
 2026-10-08 曾构建本机频谱 UI operator `20261008-spectrum-ui-r1`。源码清单、二进制校验和、offscreen 页面启动及本地 HDF5 分析均通过，但真实桌面入口未能发现对应进程或窗口，未通过桌面验收。随后已将本机 `current` 原子回滚至 `20261008-history-release-r4`；r1 release 保留但未激活。现场 acquisition server、systemd、现场 operator 均未修改。验收记录见[频谱 UI r1 回滚记录](../交付/20261008-spectrum-ui-r1/README.md)。
@@ -8,13 +16,15 @@
 
 2026-10-09 本机 operator 已更新为 `20261009-spectrum-ui-r3`，`current` 已原子切换至 r3。结果表默认隐藏“命中块”列，显示选项位于折叠的高级分析参数区域。历史频谱入口从当前任务的 `CaptureRunSummary.frequency_hz` 读取采样率；缺失时仍需填写，切换任务或数据段时清空旧值。完整质量门 216 项测试、release 清单校验和二进制 offscreen 页面检查均通过。同日，用户确认 r3 已完成人工桌面验证。现场 server、systemd、MongoDB、dashboard 和现场 operator 本轮均未修改。记录见[频谱 UI r3 交付记录](../交付/20261009-spectrum-ui-r3/README.md)。
 
-本机状态：`LOCAL OPERATOR ACTIVATED / USER MANUAL VALIDATION CONFIRMED`。验证结论来自用户确认；自动化构建与启动证据仍保留当时的状态。
+同日短暂构建并激活 r4。打包验收发现，清理历史 metadata 时可能影响独立文件分析结果。r4 未供用户手动验证，随后由修正后的 r5 替代。r4 release 保留，但不作为回滚目标。
+
+2026-10-09 r3 状态：用户已确认人工桌面验证通过。当前 r6 已激活，仍等待本轮人工验证。
 
 ## 当前版本与部署
 
 | 组件 | 当前 release | current 或部署位置 | 状态 | 验证日期 |
 | --- | --- | --- | --- | --- |
-| 本机 operator | `20261009-spectrum-ui-r3` | `outputs/operator-local/current → releases/20261009-spectrum-ui-r3/waveform-operator` | 已构建并激活；用户确认人工桌面验证通过 | 2026-10-09 |
+| 本机 operator | `20261009-spectrum-ui-r6` | `outputs/operator-local/current → releases/20261009-spectrum-ui-r6/waveform-operator` | 已构建并激活；等待用户人工桌面验证 | 2026-10-09 |
 | 现场 operator（桌面机） | 最近记录为 2026-10-05 | `waveform-operator-direct-offline-20261004` | 本次未部署新前端；旧现场窗口不作为本次验收证据 | 最近记录 2026-10-05 |
 | 现场 acquisition server | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/current → releases/20261008-history-release-r4` | packaged/current 模式，systemd active | 2026-10-08 |
 | 日志 dashboard | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/dashboard/tools/` | HTML 和只读查询已更新，真实 HTTP/Mongo 验证通过 | 2026-10-08 |
@@ -57,12 +67,12 @@
 
 ## 回滚版本
 
-- 本机 operator 的回滚目标：`outputs/operator-local/releases/20261009-spectrum-ui-r2/waveform-operator/`。
+- 本机 operator 的回滚目标：`outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator/`。r4 保留，但不作为回滚目标。
 - previous_server_release：`/home/storage-user/waveform-storage-v2/releases/20261008-history-release-r3/`。
 - 日志页旧 HTML：`dashboard/release-backups/20261008-history-release-r4/`。
 - 日志页旧查询脚本：`dashboard/release-backups/20261008-history-release-r2/`。
 
-r3 桌面手动验证若失败，可将本机 `current` 原子切回 r2。现场 acquisition server 最近记录为 r4；此前 r4 发布的服务端回滚目标为 r3。本次没有检查、切换或回滚 server。保留新旧 release。
+r6 桌面手动验证若失败，可将本机 `current` 原子切回已人工验证的 r3。现场 acquisition server 最近记录为 r4；此前 r4 发布的服务端回滚目标为 r3。本次没有检查、切换或回滚 server。保留各本机 release。
 
 ## 架构与范围
 
@@ -70,7 +80,7 @@ r3 桌面手动验证若失败，可将本机 `current` 原子切回 r2。现场
 
 整任务分析留待后续。整任务频谱应先逐段计算，再按明确方法汇总。现有单段频谱功能继续使用当前对齐结果，日志页继续直接只读 MongoDB。
 
-用户已确认本机 r3 的人工桌面验证通过。现场桌面机和 server 未随本次发布更新；2026-10-08 的现场验收记录保留为当日状态。本次 Git 保存与推送保持本机 r3 current 不变。
+用户已确认本机 r3 的人工桌面验证通过。现场桌面机和 server 未随本次发布更新；2026-10-08 的现场验收记录保留为当日状态。本机 `current` 已切换至 r6；本次源码保存与远端同步记录见 Git 提交历史。
 
 ## 历史记录
 
