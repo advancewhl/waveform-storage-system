@@ -70,3 +70,7 @@ dist/
 /outputs/server-history-*/
 /outputs/server-releases/
 /outputs/release-pairs/
+
+# AOCI agent host integration (machine-bound; do not commit)
+.codex/config.toml
+.codex/config.toml.backup.*

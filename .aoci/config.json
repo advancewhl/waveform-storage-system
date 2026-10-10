@@ -1,0 +1,442 @@
+{
+  "version": 2,
+  "locale": "zh-CN",
+  "index_path": "aoci.txt",
+  "exclude_dirs": [
+    "node_modules",
+    "vendor",
+    "dist",
+    "build",
+    "target",
+    ".next",
+    "coverage",
+    "tmp",
+    "uploads",
+    "backup",
+    "backups",
+    "artifacts",
+    ".output",
+    "__pycache__",
+    ".venv",
+    "venv",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".tox",
+    ".nox",
+    "htmlcov"
+  ],
+  "exclude_files": [
+    "*.backup.*",
+    "*.bak",
+    ".coverage"
+  ],
+  "exclude_exts": [],
+  "curation_exclude": [],
+  "hook_strict": false,
+  "ledger_enabled": true,
+  "line_ending_tolerance": true,
+  "cognition_refresh_threshold": 30,
+  "overview_delivery": {
+    "chunk_tokens": 7000
+  },
+  "managed_scope": {
+    "version": "managed-scope-policy/v2",
+    "profile": "production",
+    "observe_change_policy": "review_required",
+    "approval_mode": "inherit",
+    "approval_thresholds": {
+      "entry_removal_count": 25,
+      "entry_removal_percent": 25
+    },
+    "rules": [
+      {
+        "rule_id": "starter-vendored-static-libs",
+        "action": "observe",
+        "pattern": "**/static/**/libs/**",
+        "pattern_kind": "glob",
+        "reason": "vendored static assets and generated bundles are observed, not indexed; delete this rule before the first scan if the path holds your own code",
+        "source": "builtin",
+        "created_by": "aoci-init",
+        "order": 100,
+        "enabled": true
+      },
+      {
+        "rule_id": "starter-vendored-static-lib",
+        "action": "observe",
+        "pattern": "**/static/**/lib/**",
+        "pattern_kind": "glob",
+        "reason": "vendored static assets and generated bundles are observed, not indexed; delete this rule before the first scan if the path holds your own code",
+        "source": "builtin",
+        "created_by": "aoci-init",
+        "order": 101,
+        "enabled": true
+      },
+      {
+        "rule_id": "starter-vendored-static-plugins",
+        "action": "observe",
+        "pattern": "**/static/**/plugins/**",
+        "pattern_kind": "glob",
+        "reason": "vendored static assets and generated bundles are observed, not indexed; delete this rule before the first scan if the path holds your own code",
+        "source": "builtin",
+        "created_by": "aoci-init",
+        "order": 102,
+        "enabled": true
+      },
+      {
+        "rule_id": "starter-vendored-min-js",
+        "action": "observe",
+        "pattern": "**/*.min.js",
+        "pattern_kind": "glob",
+        "reason": "vendored static assets and generated bundles are observed, not indexed; delete this rule before the first scan if the path holds your own code",
+        "source": "builtin",
+        "created_by": "aoci-init",
+        "order": 103,
+        "enabled": true
+      },
+      {
+        "rule_id": "starter-vendored-min-css",
+        "action": "observe",
+        "pattern": "**/*.min.css",
+        "pattern_kind": "glob",
+        "reason": "vendored static assets and generated bundles are observed, not indexed; delete this rule before the first scan if the path holds your own code",
+        "source": "builtin",
+        "created_by": "aoci-init",
+        "order": 104,
+        "enabled": true
+      },
+      {
+        "rule_id": "starter-vendored-source-map",
+        "action": "observe",
+        "pattern": "**/*.map",
+        "pattern_kind": "glob",
+        "reason": "vendored static assets and generated bundles are observed, not indexed; delete this rule before the first scan if the path holds your own code",
+        "source": "builtin",
+        "created_by": "aoci-init",
+        "order": 105,
+        "enabled": true
+      },
+      {
+        "rule_id": "starter-vendored-fonts",
+        "action": "observe",
+        "pattern": "**/fonts/**",
+        "pattern_kind": "glob",
+        "reason": "vendored static assets and generated bundles are observed, not indexed; delete this rule before the first scan if the path holds your own code",
+        "source": "builtin",
+        "created_by": "aoci-init",
+        "order": 106,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-protected-deploy-script",
+        "action": "exclude",
+        "pattern": "tools/deploy_candidate_release.py",
+        "pattern_kind": "file",
+        "reason": "用户明确保护的未跟踪发布脚本；此轮不读取、不纳入认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 201,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-local-spectrum-results",
+        "action": "exclude",
+        "pattern": "analysis/high_frequency/数据结果",
+        "pattern_kind": "directory",
+        "reason": "本地频谱交付结果，排除受保护 ZIP 与机器结果",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 202,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-build-cache",
+        "action": "exclude",
+        "pattern": ".build-cache",
+        "pattern_kind": "directory",
+        "reason": "本地构建缓存，不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 203,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-logs",
+        "action": "exclude",
+        "pattern": "**/*.log",
+        "pattern_kind": "glob",
+        "reason": "运行与构建日志不属于高优先级代码认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 204,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-output-directories",
+        "action": "exclude",
+        "pattern": "**/outputs/**",
+        "pattern_kind": "glob",
+        "reason": "生成输出和交付产物不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 205,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-offline-packages",
+        "action": "exclude",
+        "pattern": "offline-packages",
+        "pattern_kind": "directory",
+        "reason": "离线安装包存档，不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 206,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-archive",
+        "action": "exclude",
+        "pattern": "archive",
+        "pattern_kind": "directory",
+        "reason": "历史归档不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 207,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-sample-data",
+        "action": "exclude",
+        "pattern": "data/samples",
+        "pattern_kind": "directory",
+        "reason": "样例原始数据不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 208,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-high-frequency-runs",
+        "action": "exclude",
+        "pattern": "analysis/high_frequency/runs",
+        "pattern_kind": "directory",
+        "reason": "分析运行产物不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 209,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-release-evidence",
+        "action": "exclude",
+        "pattern": "交付/**/evidence/**",
+        "pattern_kind": "glob",
+        "reason": "机器构建与发布证据不作为核心代码认知；交付说明文档保留原角色",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 210,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-zip-archives",
+        "action": "exclude",
+        "pattern": "**/*.zip",
+        "pattern_kind": "glob",
+        "reason": "压缩交付包不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 211,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-tar-archives",
+        "action": "exclude",
+        "pattern": "**/*.tar.gz",
+        "pattern_kind": "glob",
+        "reason": "压缩交付包不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 212,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-tgz-archives",
+        "action": "exclude",
+        "pattern": "**/*.tgz",
+        "pattern_kind": "glob",
+        "reason": "压缩交付包不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 213,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-wheel-packages",
+        "action": "exclude",
+        "pattern": "**/*.whl",
+        "pattern_kind": "glob",
+        "reason": "二进制安装包不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 214,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-binary-executables",
+        "action": "exclude",
+        "pattern": "**/*.exe",
+        "pattern_kind": "glob",
+        "reason": "二进制产物不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 215,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-binary-libraries",
+        "action": "exclude",
+        "pattern": "**/*.so",
+        "pattern_kind": "glob",
+        "reason": "二进制产物不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 216,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-binary-dll",
+        "action": "exclude",
+        "pattern": "**/*.dll",
+        "pattern_kind": "glob",
+        "reason": "二进制产物不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 217,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-hdf5-inputs",
+        "action": "exclude",
+        "pattern": "**/*.h5",
+        "pattern_kind": "glob",
+        "reason": "机器采集样例不读取且不纳入核心认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 218,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-hdf5-inputs-long",
+        "action": "exclude",
+        "pattern": "**/*.hdf5",
+        "pattern_kind": "glob",
+        "reason": "机器采集样例不读取且不纳入核心认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 219,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-root-outputs",
+        "action": "exclude",
+        "pattern": "outputs",
+        "pattern_kind": "directory",
+        "reason": "仓库生成输出目录不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 220,
+        "enabled": true
+      },
+      {
+        "rule_id": "pilot-root-logs",
+        "action": "exclude",
+        "pattern": "logs",
+        "pattern_kind": "directory",
+        "reason": "仓库运行日志目录不属于核心系统认知",
+        "source": "user",
+        "created_by": "whloong",
+        "order": 221,
+        "enabled": true
+      }
+    ]
+  },
+  "cognition_budget": {
+    "version": "cognition-budget-policy/v1",
+    "mode": "enforce",
+    "whole_index": {
+      "target_tokens": 200000,
+      "warning_tokens": 300000,
+      "max_tokens": 400000
+    },
+    "r": [
+      {
+        "min_c": 1,
+        "max_c": 4,
+        "target_tokens": 25,
+        "max_tokens": 50
+      },
+      {
+        "min_c": 5,
+        "max_c": 7,
+        "target_tokens": 45,
+        "max_tokens": 90
+      },
+      {
+        "min_c": 8,
+        "max_c": 8,
+        "target_tokens": 70,
+        "max_tokens": 140
+      },
+      {
+        "min_c": 9,
+        "max_c": 9,
+        "target_tokens": 90,
+        "max_tokens": 180
+      }
+    ],
+    "s": [
+      {
+        "min_c": 1,
+        "max_c": 4,
+        "target_tokens": 20,
+        "max_tokens": 40
+      },
+      {
+        "min_c": 5,
+        "max_c": 7,
+        "target_tokens": 40,
+        "max_tokens": 80
+      },
+      {
+        "min_c": 8,
+        "max_c": 8,
+        "target_tokens": 70,
+        "max_tokens": 140
+      },
+      {
+        "min_c": 9,
+        "max_c": 9,
+        "target_tokens": 100,
+        "max_tokens": 200
+      }
+    ]
+  },
+  "installed_agents": [
+    "codex"
+  ],
+  "automation": {
+    "mode": "auto"
+  },
+  "ai": {
+    "enabled": false,
+    "provider": "openai-compatible",
+    "base_url": "",
+    "model": "",
+    "api_key_env": "",
+    "timeout_seconds": 0,
+    "max_concurrency": 0,
+    "max_input_tokens": 0,
+    "token_accounting": "auto",
+    "prompt_snapshot": "redacted"
+  }
+}
