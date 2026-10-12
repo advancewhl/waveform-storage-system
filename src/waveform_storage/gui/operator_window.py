@@ -35,6 +35,8 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QSpinBox,
     QStackedWidget,
+    QTableWidget,
+    QTableWidgetItem,
     QTreeView,
     QVBoxLayout,
     QWidget,
@@ -269,6 +271,61 @@ class BpmSelectionDialog(QDialog):
         self.ok_button.setEnabled(count > 0)
 
 
+class AlignmentQualityDialog(QDialog):
+    """Show only quality facts carried by the current alignment result."""
+
+    def __init__(self, result, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle("对齐诊断详情")
+        self.resize(760, 420)
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel(
+            f"当前结果包含 {int(result.bunch_ids.size)} 个 bunchID，"
+            f"涉及 {len(result.device_ids)} 台 BPM。"
+        ))
+        self.table = QTableWidget(len(result.quality_report), 6, self)
+        self.table.setHorizontalHeaderLabels(
+            ("BPM", "状态", "原始点数", "可用点数", "bunchID 步进", "质量记录")
+        )
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table.verticalHeader().setVisible(False)
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(5, QHeaderView.Stretch)
+        for row, quality in enumerate(result.quality_report):
+            status = "参与对齐" if quality.status == "usable" else "已跳过"
+            steps = ", ".join(str(value) for value in quality.step_values) or "—"
+            notes = []
+            if quality.zero_count:
+                notes.append(f"零值 {quality.zero_count}")
+            if quality.duplicate_count:
+                notes.append(f"重复值 {quality.duplicate_count}")
+            if not quality.was_strictly_increasing:
+                notes.append("输入未严格递增（已排序）")
+            if quality.reason:
+                notes.append(quality.reason)
+            values = (
+                quality.device_id,
+                status,
+                str(quality.original_count),
+                str(quality.usable_count),
+                steps,
+                "；".join(notes) if notes else "无异常记录",
+            )
+            for column, value in enumerate(values):
+                self.table.setItem(row, column, QTableWidgetItem(value))
+        layout.addWidget(self.table, 1)
+        buttons = QDialogButtonBox(QDialogButtonBox.Close)
+        buttons.button(QDialogButtonBox.Close).setText("关闭")
+        buttons.rejected.connect(self.reject)
+        buttons.accepted.connect(self.accept)
+        layout.addWidget(buttons)
+
+
 class OperatorMainWindow(QMainWindow):
     """Formal operator UI backed by an explicit connected or read-only adapter."""
 
@@ -326,6 +383,7 @@ class OperatorMainWindow(QMainWindow):
         self._capture_timer.setInterval(2000)
         self._capture_timer.timeout.connect(self._poll_capture_status)
         self.alignment_result = None
+        self._quality_result = None
         self.history_selected_devices: tuple[str, ...] = ()
         self.history_selection_key: tuple | None = None
         self.history_runs = ()
@@ -514,62 +572,67 @@ class OperatorMainWindow(QMainWindow):
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(16)
+        layout.setSpacing(9)
 
         toolbar = self._card()
         form = QGridLayout(toolbar)
-        form.setContentsMargins(20, 16, 20, 16)
-        form.setHorizontalSpacing(12)
+        form.setContentsMargins(16, 11, 16, 11)
+        form.setHorizontalSpacing(8)
+        form.setVerticalSpacing(7)
         self.history_date = QDateEdit(QDate.currentDate())
         self.history_date.setCalendarPopup(True)
+        self.history_date.setDisplayFormat("yyyy-MM-dd")
+        self.history_date.setFixedWidth(142)
         self.history_time = QComboBox()
+        self.history_time.setMinimumContentsLength(34)
         self.history_time.addItem("先检索可用时刻")
         self.history_run_combo = self.history_time
         self.segment_index = QSpinBox()
         self.segment_index.setRange(0, 0)
-        self.previous_segment_button = QPushButton("上一段")
-        self.next_segment_button = QPushButton("下一段")
+        self.segment_index.setFixedWidth(88)
+        self.segment_index.setAlignment(Qt.AlignCenter)
+        self.segment_index.setToolTip("可直接编辑当前段号并回车跳转")
+        self.previous_segment_button = QPushButton("‹")
+        self.previous_segment_button.setFixedWidth(38)
+        self.previous_segment_button.setToolTip("上一段")
+        self.next_segment_button = QPushButton("›")
+        self.next_segment_button.setFixedWidth(38)
+        self.next_segment_button.setToolTip("下一段")
         self.segment_label = QLabel("尚未选择数据段")
+        self.segment_label.setObjectName("segmentSummary")
         self.previous_segment_button.setEnabled(False)
         self.next_segment_button.setEnabled(False)
         self.retrieve_button = QPushButton(
             "检索任务" if self.backend.mode is OperatorMode.CANDIDATE_V2 else "检索数据"
         )
-        self.select_bpm_button = QPushButton("选择BPM")
+        self.select_bpm_button = QPushButton("BPM 0/0")
+        self.select_bpm_button.setObjectName("bpmSelectButton")
+        self.select_bpm_button.setFixedWidth(116)
         self.align_button = QPushButton("确认并对齐")
+        self.align_button.setObjectName("primaryButton")
+        self.align_button.setFixedWidth(132)
         self.bunch_index = QSpinBox()
         self.bunch_index.setMaximum(9999)
-        self.bunch_index.setPrefix("序号 ")
+        self.bunch_index.setPrefix("定位序号 ")
+        self.bunch_index.setFixedWidth(102)
         self.bunch_index.setToolTip(
             "对齐结果中的位置序号；0 表示第一个 bunchID"
         )
-        self.show_id_button = QPushButton("定位并绘图")
-        for column, widget in enumerate(
-            (
-                self.history_date,
-                self.retrieve_button,
-                self.history_time,
-                self.select_bpm_button,
-                self.align_button,
-                self.bunch_index,
-                self.show_id_button,
-            )
-        ):
-            form.addWidget(widget, 0, column)
+        self.show_id_button = QPushButton("定位")
+        self.show_id_button.setFixedWidth(58)
+        form.addWidget(self.history_date, 0, 0)
+        form.addWidget(self.retrieve_button, 0, 1)
+        form.addWidget(self.history_time, 0, 2, 1, 5)
         self.retrieve_button.clicked.connect(self._retrieve_times)
         self.select_bpm_button.clicked.connect(self._select_history_devices)
         self.align_button.clicked.connect(self._align_selected)
         if self.backend.mode is OperatorMode.CANDIDATE_V2:
             self.history_time.setItemText(0, "先检索采集任务")
-            form.removeWidget(self.history_time)
-            form.addWidget(self.history_time, 0, 2, 1, 5)
-            for widget in (self.select_bpm_button, self.align_button, self.bunch_index,
-                           self.show_id_button):
-                form.removeWidget(widget)
-            for column, widget in enumerate((self.previous_segment_button, self.segment_index,
-                                              self.next_segment_button, self.select_bpm_button,
-                                              self.align_button, self.bunch_index, self.show_id_button)):
-                form.addWidget(widget, 1, column)
+            form.addWidget(self.previous_segment_button, 1, 0)
+            form.addWidget(self.segment_index, 1, 1)
+            form.addWidget(self.next_segment_button, 1, 2)
+            form.addWidget(self.select_bpm_button, 1, 3)
+            form.addWidget(self.align_button, 1, 4)
             form.addWidget(self.segment_label, 2, 0, 1, 7)
             self.history_date.dateChanged.connect(self._history_date_changed)
             self.history_time.currentIndexChanged.connect(self._history_run_changed)
@@ -579,6 +642,11 @@ class OperatorMainWindow(QMainWindow):
             self.next_segment_button.clicked.connect(
                 lambda: self.segment_index.setValue(self.segment_index.value() + 1))
         else:
+            for widget in (self.previous_segment_button, self.segment_index,
+                           self.next_segment_button, self.segment_label):
+                widget.hide()
+            form.addWidget(self.select_bpm_button, 1, 0)
+            form.addWidget(self.align_button, 1, 1)
             self.history_date.dateChanged.connect(self._clear_history_selection)
             self.history_time.currentIndexChanged.connect(self._clear_history_selection)
         self.bunch_index.valueChanged.connect(self._show_bunch_id)
@@ -587,12 +655,14 @@ class OperatorMainWindow(QMainWindow):
 
         self.history_selection_text = QLabel("尚未选择参与对齐的 BPM")
         self.history_selection_text.setObjectName("selectionText")
-        layout.addWidget(self.history_selection_text)
+        self._history_available_device_count = 0
 
         plot = self._card()
         plot_layout = QVBoxLayout(plot)
-        plot_layout.setContentsMargins(22, 18, 22, 18)
+        plot_layout.setContentsMargins(14, 10, 14, 12)
+        plot_layout.setSpacing(7)
         plot_head = QHBoxLayout()
+        plot_head.setSpacing(6)
         self.plot_title = QLabel("BPM位置分布")
         self.plot_title.setObjectName("cardTitle")
         plot_head.addWidget(self.plot_title)
@@ -600,10 +670,11 @@ class OperatorMainWindow(QMainWindow):
         self.plot_mode.setObjectName("plotMode")
         self.plot_mode.addItem("束线分布", "distribution")
         self.plot_mode.addItem("单设备波形", "device")
-        self.plot_mode.setFixedWidth(132)
+        self.plot_mode.setFixedWidth(104)
         self.plot_device = QComboBox()
         self.plot_device.setObjectName("plotDevice")
-        self.plot_device.setMinimumWidth(210)
+        self.plot_device.setMinimumWidth(138)
+        self.plot_device.setMaximumWidth(168)
         self.plot_device.setEnabled(False)
         self.plot_device.setVisible(False)
         self.plot_device.addItem("对齐后选择BPM", None)
@@ -615,11 +686,28 @@ class OperatorMainWindow(QMainWindow):
         self.data_duration_label = QLabel("数据时长：—")
         self.data_duration_label.setToolTip("最后一个 bunch ID 减第一个 bunch ID，换算为秒")
         plot_head.addWidget(self.data_duration_label)
+        self.alignment_status_label = QLabel("未对齐")
+        self.alignment_status_label.setObjectName("alignmentStatus")
+        plot_head.addWidget(self.alignment_status_label)
+        self.quality_status_button = QPushButton("质量详情")
+        self.quality_status_button.setObjectName("qualityStatus")
+        self.quality_status_button.setToolTip("打开当前对齐结果的设备质量记录")
+        self.quality_status_button.setEnabled(False)
+        self.quality_status_button.setVisible(False)
+        self.quality_status_button.clicked.connect(self._show_alignment_quality)
+        plot_head.addWidget(self.quality_status_button)
+        plot_head.addWidget(self.bunch_index)
+        plot_head.addWidget(self.show_id_button)
         plot_head.addStretch(1)
         self.plot_button = QPushButton("刷新绘图")
         self.export_button = QPushButton("导出对齐数据")
         self.raw_button = QPushButton("下载原始数据")
         self.history_spectrum_button = QPushButton("频谱分析")
+        self.plot_button.setToolTip("刷新绘图")
+        self.export_button.setToolTip("导出对齐数据")
+        self.raw_button.setToolTip("下载原始数据")
+        self.history_spectrum_button.setToolTip("使用当前对齐数据进行频谱分析")
+        self.history_spectrum_button.setObjectName("spectrumAction")
         plot_head.addWidget(self.plot_button)
         plot_head.addWidget(self.export_button)
         plot_head.addWidget(self.raw_button)
@@ -645,7 +733,73 @@ class OperatorMainWindow(QMainWindow):
         self.plot_layout.addWidget(self.plot_placeholder, 1)
         plot_layout.addWidget(self.plot_host, 1)
         layout.addWidget(plot, 1)
+        self._set_compact_history_toolbar(self.width() <= 1280)
         return page
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "history_spectrum_button"):
+            self._set_compact_history_toolbar(event.size().width() <= 1280)
+
+    def _set_compact_history_toolbar(self, compact: bool) -> None:
+        if getattr(self, "_compact_history_toolbar", None) == compact:
+            return
+        self._compact_history_toolbar = compact
+        self.plot_title.setVisible(not compact)
+        self.plot_mode.setFixedWidth(82 if compact else 104)
+        self.plot_device.setMinimumWidth(118 if compact else 138)
+        self.plot_device.setMaximumWidth(144 if compact else 168)
+        self.bunch_id_label.setMaximumWidth(138 if compact else 200)
+        self.bunch_index.setPrefix("序号 " if compact else "定位序号 ")
+        self.bunch_index.setFixedWidth(76 if compact else 102)
+        self.show_id_button.setFixedWidth(50 if compact else 58)
+        for button, full_text, compact_text, width in (
+            (self.plot_button, "刷新绘图", "刷新", 46),
+            (self.export_button, "导出对齐数据", "导出", 46),
+            (self.raw_button, "下载原始数据", "原始", 46),
+            (self.history_spectrum_button, "频谱分析", "频谱", 52),
+        ):
+            warning = full_text == "频谱分析" and "⚠" in button.text()
+            button.setText((compact_text if compact else full_text) + (" ⚠" if warning else ""))
+            if compact:
+                button.setFixedWidth(width)
+            else:
+                button.setMinimumWidth(0)
+                button.setMaximumWidth(16777215)
+            button.setToolTip(full_text + ("；当前数据可能不足" if warning else ""))
+        if self._quality_result is not None:
+            self.quality_status_button.setText(
+                self._quality_status_text(self._quality_result, compact=compact)
+            )
+        if self.alignment_result is not None:
+            self._show_bunch_id()
+        else:
+            self.bunch_id_label.setText(
+                "bunchID —" if compact else "尚未选择 bunchID"
+            )
+        self.data_duration_label.setText(self._duration_status_text())
+        if self.plot_mode.currentData() == "device" and self.device_waveform_result is not None:
+            count = int(self.device_waveform_result.bunch_ids.size)
+            self.alignment_status_label.setText(
+                f"单设备 {count}点" if compact else f"单设备波形 · {count} 点"
+            )
+        elif self.alignment_result is not None:
+            self.alignment_status_label.setText(
+                self._alignment_status_text(self.alignment_result)
+            )
+
+    def _duration_status_text(self) -> str:
+        result = getattr(self, "_duration_result", None)
+        if result is None or result.bunch_ids.size == 0:
+            return "数据时长：—"
+        ids = result.bunch_ids
+        seconds = (int(ids[-1]) - int(ids[0])) / 1_000_000
+        return f"数据时长：{seconds:.6f} s"
+
+    def _alignment_status_text(self, result) -> str:
+        count = int(result.bunch_ids.size)
+        return (f"已对齐 {count}点" if self._compact_history_toolbar
+                else f"已对齐 · {count} 点")
 
     def _task_status_bar(self) -> QFrame:
         bar = QFrame()
@@ -751,6 +905,29 @@ class OperatorMainWindow(QMainWindow):
         try:
             if self.alignment_result is None:
                 raise ValueError("请先选择 BPM 并生成历史对齐结果")
+            warning = self._spectrum_requirement_warning()
+            if warning:
+                message = QMessageBox(self)
+                message.setIcon(QMessageBox.Warning)
+                message.setWindowTitle("当前数据可能不足")
+                message.setText(warning)
+                details = QPushButton("查看诊断")
+                proceed = QPushButton("继续到频谱")
+                message.addButton(details, QMessageBox.ActionRole)
+                message.addButton(proceed, QMessageBox.AcceptRole)
+                message.setAttribute(Qt.WA_DeleteOnClose)
+                self._spectrum_warning_dialog = message
+                message.finished.connect(
+                    lambda _result, dialog=message:
+                    setattr(self, "_spectrum_warning_dialog", None)
+                    if getattr(self, "_spectrum_warning_dialog", None) is dialog
+                    else None
+                )
+                message.buttonClicked.connect(
+                    lambda button: self._show_alignment_quality()
+                    if button is details else None
+                )
+                message.open()
             run = self.current_history_run
             segment = self.current_history_segment
             matching_history = (run is not None and segment is not None
@@ -1162,6 +1339,7 @@ class OperatorMainWindow(QMainWindow):
         self.segment_index.blockSignals(True)
         self.segment_index.setRange(0, 0)
         self.segment_index.blockSignals(False)
+        self.segment_index.setSuffix(" / 0")
         self.segment_label.setText("尚未选择数据段")
         self.previous_segment_button.setEnabled(False)
         self.next_segment_button.setEnabled(False)
@@ -1217,6 +1395,7 @@ class OperatorMainWindow(QMainWindow):
             self.segment_index.setEnabled(bool(segments))
             self.segment_index.setValue(1 if segments else 0)
             self.segment_index.blockSignals(False)
+            self.segment_index.setSuffix(f" / {len(segments)}")
             self._history_segment_changed()
 
         self._run_task("任务数据段检索", lambda: self._candidate_history_backend().retrieve_segments(run.request_id), loaded)
@@ -1238,8 +1417,10 @@ class OperatorMainWindow(QMainWindow):
                      else str(len(segment.device_ids)))
         clock = segment.captured_at.astimezone(ZoneInfo("Asia/Shanghai")).strftime("%Y-%m-%d %H:%M:%S")
         self.segment_label.setText(
-            f"第 {position} / {count} 段（全任务） · S{segment.capture_sequence:05d} · {clock} · {bpm_count} BPM"
+            f"S{segment.capture_sequence:05d}  ·  {clock}  ·  {bpm_count} BPM"
         )
+        self._history_available_device_count = len(segment.device_ids)
+        self._update_bpm_button()
 
     def _retrieve_times(self) -> None:
         if self.backend.mode is OperatorMode.CANDIDATE_V2:
@@ -1277,6 +1458,14 @@ class OperatorMainWindow(QMainWindow):
         self.history_selection_key = None
         self._clear_alignment_view()
         self.history_selection_text.setText("尚未选择参与对齐的 BPM")
+        if self.backend.mode is not OperatorMode.CANDIDATE_V2:
+            self._history_available_device_count = 0
+        self._update_bpm_button()
+
+    def _update_bpm_button(self) -> None:
+        self.select_bpm_button.setText(
+            f"BPM {len(self.history_selected_devices)}/{self._history_available_device_count}"
+        )
 
     def _select_history_devices(self) -> None:
         time_sec = self._selected_time()
@@ -1310,6 +1499,8 @@ class OperatorMainWindow(QMainWindow):
                     "检查采集日期和时刻，或查看服务端设备结果。",
                 )
                 return
+            self._history_available_device_count = len(available_ids)
+            self._update_bpm_button()
             previous = (
                 self.history_selected_devices
                 if self.history_selection_key == key else ()
@@ -1326,6 +1517,7 @@ class OperatorMainWindow(QMainWindow):
                 f"已选择 {len(self.history_selected_devices)} / "
                 f"{len(available_ids)} 台可用 BPM"
             )
+            self._update_bpm_button()
             self._record_task(
                 "历史BPM选择", "完成",
                 f"{selected_date} {time_sec} · {len(self.history_selected_devices)} 台",
@@ -1408,6 +1600,9 @@ class OperatorMainWindow(QMainWindow):
             return False
         self.alignment_result = result
         self._set_data_duration(result)
+        self.alignment_status_label.setText(self._alignment_status_text(result))
+        self._set_quality_status(result)
+        self._update_spectrum_action(result)
         self.bunch_index.setMaximum(max(0, result.bunch_ids.size - 1))
         self.bunch_index.setValue(0)
         self.plot_device.clear()
@@ -1423,21 +1618,97 @@ class OperatorMainWindow(QMainWindow):
     def _show_bunch_id(self) -> None:
         result = self.alignment_result
         if result is None or result.bunch_ids.size == 0:
-            self.bunch_id_label.setText("尚未加载对齐数据")
+            self.bunch_id_label.setText(
+                "bunchID —" if self._compact_history_toolbar else "尚未加载对齐数据"
+            )
             return
         index = min(self.bunch_index.value(), result.bunch_ids.size - 1)
         self.bunch_index.setValue(index)
+        text = f"Index {index}  ·  bunchID {int(result.bunch_ids[index])}"
         self.bunch_id_label.setText(
-            f"Index {index}  ·  bunchID {int(result.bunch_ids[index])}"
+            f"bunchID {int(result.bunch_ids[index])}"
+            if self._compact_history_toolbar else text
         )
+        self.bunch_id_label.setToolTip(text)
 
     def _set_data_duration(self, result) -> None:
+        self._duration_result = result
         ids = result.bunch_ids
         if ids.size == 0:
-            self.data_duration_label.setText("数据时长：—")
+            self.data_duration_label.setText(self._duration_status_text())
         else:
-            seconds = (int(ids[-1]) - int(ids[0])) / 1_000_000
-            self.data_duration_label.setText(f"数据时长：{seconds:.6f} s")
+            self.data_duration_label.setText(self._duration_status_text())
+
+    @staticmethod
+    def _quality_issue_count(result) -> int:
+        return sum(
+            quality.status != "usable"
+            or quality.zero_count > 0
+            or quality.duplicate_count > 0
+            or not quality.was_strictly_increasing
+            for quality in result.quality_report
+        )
+
+    @classmethod
+    def _quality_status_text(cls, result, *, compact: bool = False) -> str:
+        issue_count = cls._quality_issue_count(result)
+        if compact:
+            return f"⚠{issue_count}台异常" if issue_count else "✓ bunchID"
+        return (f"⚠ bunchID 异常 {issue_count} 台" if issue_count
+                else "✓ bunchID 正常")
+
+    def _show_alignment_quality(self) -> None:
+        result = self._quality_result
+        if result is not None:
+            AlignmentQualityDialog(result, self).exec_()
+
+    def _set_quality_status(self, result) -> None:
+        self._quality_result = result
+        issue_count = self._quality_issue_count(result)
+        self.quality_status_button.setText(
+            self._quality_status_text(
+                result, compact=self._compact_history_toolbar
+            )
+        )
+        self.quality_status_button.setProperty(
+            "level", "warning" if issue_count else "normal"
+        )
+        self.quality_status_button.setVisible(True)
+        self.quality_status_button.setEnabled(True)
+        self._refresh_widget_style(self.quality_status_button)
+
+    @staticmethod
+    def _refresh_widget_style(widget: QWidget) -> None:
+        widget.style().unpolish(widget)
+        widget.style().polish(widget)
+        widget.update()
+
+    def _spectrum_requirement_warning(self) -> str | None:
+        result = self.alignment_result
+        if result is None or result.bunch_ids.size == 0:
+            return None
+        seconds = (int(result.bunch_ids[-1]) - int(result.bunch_ids[0])) / 1_000_000
+        minimum_seconds = self.spectrum_panel.minimum_seconds.value()
+        minimum_points = self.spectrum_panel.minimum_points.value()
+        problems = []
+        if seconds < minimum_seconds:
+            problems.append(
+                f"有效时长 {seconds:.3f} s，模板要求至少 {minimum_seconds:g} s"
+            )
+        if int(result.bunch_ids.size) < minimum_points:
+            problems.append(
+                f"当前 {int(result.bunch_ids.size)} 点，模板要求至少 {minimum_points} 点"
+            )
+        return "当前数据不足以满足频谱分析模板：\n" + "\n".join(problems) if problems else None
+
+    def _update_spectrum_action(self, result) -> None:
+        warning = self._spectrum_requirement_warning()
+        compact = self._compact_history_toolbar
+        title = "频谱" if compact else "频谱分析"
+        self.history_spectrum_button.setText(title + (" ⚠" if warning else ""))
+        self.history_spectrum_button.setToolTip(
+            warning or "使用当前对齐数据进行频谱分析"
+        )
 
     def _locate_bunch(self) -> None:
         self._render_selected_plot()
@@ -1451,6 +1722,11 @@ class OperatorMainWindow(QMainWindow):
             "BPM位置分布" if distribution else "单设备波形"
         )
         if distribution:
+            if self.alignment_result is not None:
+                self.alignment_status_label.setText(
+                    self._alignment_status_text(self.alignment_result)
+                )
+                self._set_quality_status(self.alignment_result)
             self._show_bunch_id()
         else:
             self._plot_device_changed()
@@ -1464,7 +1740,8 @@ class OperatorMainWindow(QMainWindow):
             row = result.device_ids.index(device_id)
             sample_count = int(result.valid_mask[row].sum())
             self.bunch_id_label.setText(
-                f"{device_id}  ·  {sample_count} 个bunchID"
+                (f"{sample_count} 个 ID" if self._compact_history_toolbar
+                 else f"{device_id}  ·  {sample_count} 个bunchID")
             )
 
     def _render_selected_plot(self) -> None:
@@ -1513,6 +1790,12 @@ class OperatorMainWindow(QMainWindow):
         generation = self._history_generation
         if self.device_waveform_key == key and self.device_waveform_result is not None:
             self._set_data_duration(self.device_waveform_result)
+            self.alignment_status_label.setText(
+                (f"单设备 {int(self.device_waveform_result.bunch_ids.size)}点"
+                 if self._compact_history_toolbar else
+                 f"单设备波形 · {int(self.device_waveform_result.bunch_ids.size)} 点")
+            )
+            self._set_quality_status(self.device_waveform_result)
             self._install_figure(
                 plot_device_waveform(self.device_waveform_result, device_id)
             )
@@ -1531,6 +1814,11 @@ class OperatorMainWindow(QMainWindow):
                 return
             self.device_waveform_result = result
             self._set_data_duration(result)
+            self.alignment_status_label.setText(
+                (f"单设备 {int(result.bunch_ids.size)}点" if self._compact_history_toolbar
+                 else f"单设备波形 · {int(result.bunch_ids.size)} 点")
+            )
+            self._set_quality_status(result)
             self.device_waveform_key = key
             self._plot_device_changed()
             self._install_figure(plot_device_waveform(result, device_id))
@@ -1565,12 +1853,26 @@ class OperatorMainWindow(QMainWindow):
         self.alignment_result = None
         if hasattr(self, "spectrum_panel"):
             self.spectrum_panel.reset_history_context()
-        self.data_duration_label.setText("数据时长：—")
+        self._duration_result = None
+        self.data_duration_label.setText(self._duration_status_text())
+        self.alignment_status_label.setText("未对齐")
+        self._quality_result = None
+        self.quality_status_button.setText("质量详情")
+        self.quality_status_button.setProperty("level", "idle")
+        self.quality_status_button.setEnabled(False)
+        self.quality_status_button.setVisible(False)
+        self._refresh_widget_style(self.quality_status_button)
+        self.history_spectrum_button.setText(
+            "频谱" if self._compact_history_toolbar else "频谱分析"
+        )
+        self.history_spectrum_button.setToolTip("使用当前对齐数据进行频谱分析")
         self.device_waveform_result = None
         self.device_waveform_key = None
         self.plot_device.clear()
         self.plot_device.setEnabled(False)
-        self.bunch_id_label.setText("尚未选择 bunchID")
+        self.bunch_id_label.setText(
+            "bunchID —" if self._compact_history_toolbar else "尚未选择 bunchID"
+        )
         if self.plot_canvas is not None:
             self.plot_layout.removeWidget(self.plot_canvas)
             self.plot_canvas.figure.clear()
@@ -1931,6 +2233,25 @@ class OperatorMainWindow(QMainWindow):
             }
             QLabel#frequencyValue[available="true"] { color: #458cc4; }
             QLabel#selectionText { color: #475569; font-weight: 650; }
+            QLabel#segmentSummary { color: #64748b; font-size: 12px; }
+            QLabel#alignmentStatus { color: #64748b; font-size: 12px; }
+            QPushButton#primaryButton {
+                color: white; background: #458cc4; border-color: #458cc4;
+            }
+            QPushButton#primaryButton:hover { background: #357fb5; }
+            QPushButton#bpmSelectButton {
+                color: #357fb5; background: #eef6fb; border-color: #d4e6f2;
+            }
+            QPushButton#qualityStatus {
+                min-height: 30px; padding: 0 8px; border: 1px solid #d8e7dc;
+                color: #427552; background: #f0f7f1; border-radius: 14px;
+            }
+            QPushButton#qualityStatus[level="warning"] {
+                color: #8a6420; background: #fff7e6; border-color: #f0dfb4;
+            }
+            QPushButton#qualityStatus[level="idle"] {
+                color: #64748b; background: #f5f7fa; border-color: #e3eaf3;
+            }
             QDialog { background: #f4f7fb; color: #334155; }
             QListWidget {
                 background: #ffffff; color: #334155;
