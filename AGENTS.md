@@ -40,6 +40,8 @@ Entry 的语义必须来自模型对真实证据的理解。不得仅依据路�
 ### 最小使用入口
 
 - `aoci_rules`：取得当前AOCI版本的会话运行合同。
+- `aoci_search`：路径未知时检索相关职责、关系和约束。
+- `aoci_get_entries`：按相关路径或对象读取局部认知，再核对必要源码。
 - `aoci_overview`：建立或恢复本仓库的完整认知。
 - `aoci_maintain`：受管理对象达到最终稳定状态后检查认知是否需要维护。
 - `aoci_update_entry`：提交与当前证据和源码摘要绑定的完整语义更新批次。
@@ -51,16 +53,20 @@ Entry 的语义必须来自模型对真实证据的理解。不得仅依据路�
 
 ### 建立、生成和恢复认知
 
-1. 每个新的 Agent Run 开始时，应先判断：
+1. 每个新的 Agent Run 开始时，先核对仓库身份、认知可用范围和任务类别；缺少可靠运行合同时读取一次 `aoci_rules`。新 Run 不自动触发 Whole-Index。
 
-   - 本仓库是否已经存在可用的完整AOCI索引；
-   - 当前上下文中是否已有与本仓库根、当前索引版本和当前AOCI服务相匹配，并且模型仍可可靠使用的完整仓库认知。
+   以下分类是用户授权的项目调用策略。若安装版本的运行合同仍要求新 Run 或上下文压缩后无条件执行完整 Overview，以本节的任务分类为准；工具 Schema、完整交付、Attestation、治理与写入校验仍按当前机器合同执行，不得绕过。
 
-2. 仓库已经存在可用的完整索引，但当前Run没有可靠完整认知时，先调用 `aoci_rules`，再调用 `aoci_overview`。
+   - **Class A：局部实现问题。** 如采样率来源、单个函数、参数自适应、一个 GUI/backend 交互、超时或状态转换。先复用仍可靠的相关认知；路径未知时调用 `aoci_search`，再用 `aoci_get_entries` 读取相关对象，核对最少必要源码。禁止仅为取得全局认知收据而调用 Whole-Index。
+   - **Class B：跨模块架构调查。** 先沿相关 Entry 的关系调查；仅当局部认知不足以覆盖实际涉及的子系统时，扩大对象范围或请求 scoped/full cognition。Volume scope 不等于任意业务子系统范围，不能假定 scoped Overview 成本低。
+   - **Class C：重大代码修改、迁移、正式发布或高风险操作。** 在系统级决策前建立或复用覆盖操作范围的可靠完整认知，并完成适用的治理、源码和运行验证。局部认知不能冒充完整认知。
+   - **Class D：已有可靠认知的 warm session。** 仓库、索引和服务身份兼容且相关认知仍可靠时直接复用。局部不确定触发局部 recall；新的聊天轮次、经过时间或工具调用本身不触发全量重读。
 
-   完整认知仍可靠时直接复用。局部不确定本身不要求机械重读系统全貌。
+2. 认知刷新以具体失效证据和任务范围为依据。
 
-   本Run从已知Host上下文压缩恢复时（包括宿主注入的压缩摘要），必须把此前模型认知视为不可靠。压缩handoff不得保留或摘要正式Whole-Index，也不得保留或摘要任何Overview Header、Entry、Chunk、Challenge或Attestation正文；只能保留安全续接所需的receipt身份、未完成write或Recovery状态，以及立即重载指令。复制进handoff的Whole-Index语义或receipt不能证明恢复后模型的当前认知可靠。若当前上下文已无法可靠保留运行合同，先调用 `aoci_rules`。继续业务任务前，使用 `refresh_reasons=["context_compaction"]` 和新的 `refresh_event_id` 调用普通完整Whole-Index `aoci_overview`（不设置 `check_only` 或设为false）；不得使用 `check_only` 或认知probe。原样跟随每个 `next_cursor` 直到 `completed=true`，确认交付，并且只基于新交付正文提交一次Attestation。完成这次新的完整传输后，即使Attestation为partial或fail也消费该generation，并按既有合同继续source-bound任务，不再自动调用第二次Overview。
+   相关源码或索引的语义变化、仓库身份改变、不兼容的索引或服务身份、完整性或治理校验失败，会使受影响的认知失效。标明失效范围，重新绑定必要证据；仅在当前任务需要完整认知且无法可靠复用时请求 Whole-Index。
+
+   上下文压缩本身不证明仓库或索引失效，也不自动要求全量重载。压缩摘要或旧 receipt 不能证明模型仍掌握完整系统；实际丢失的认知应标为未确认。Class A 通过局部 recall 和源码核对继续，Class B 按实际范围补读，Class C 在需要完整系统判断且认知已丢失时重新完整加载并验证。不要从摘要重建 Challenge 或 Attestation 答案。
 
    AOCI可以针对 `context_compaction`、项目 `cognition_refresh_threshold` 下的机器 `semantic_threshold` 或主要 `phase_transition` 提供checkpoint与认知状态事实。只需要这些紧凑事实时使用 `check_only=true`；这些事实只向Agent提供建议，不替模型决定是否需要系统全貌。
 
@@ -84,11 +90,17 @@ Entry 的语义必须来自模型对真实证据的理解。不得仅依据路�
 
 4. 在长程任务中，模型负责保留当前认知收据并正确使用刷新门禁：
 
-   - Host报告上下文压缩或模型已知系统全貌丢失时，执行上述强制 `context_compaction` 重载规则；AOCI不能自行推断Host事件；
+   - Host 报告上下文压缩或模型已知认知丢失时，重新评估实际保留范围，按上述任务分类决定局部补读或完整加载；AOCI 不能自行推断 Host 事件；
    - 进入真正的主要阶段时声明 `phase_transition`，不得把函数、测试运行或小步骤当作阶段；
    - 在有用的稳定检查点通过 `check_only=true` 取得机器语义计数；
-   - 除已知压缩的强制重载外，由Agent判断当前任务是否需要再次显式获取指定scope或完整Overview；
+   - 由 Agent 根据具体失效证据和当前任务范围判断是否再次获取指定 scope 或完整 Overview；
    - 在维护和对齐完成前，保留AOCI报告的Dirty或Stale可靠性状态。
+
+### Attestation 参数与结果
+
+仅在完整交付链结束后提交 Attestation。`challenge_answers` 的每个对象只允许 `ordinal`、`object_identity`、`tag`、`core_f`，四个字段均必填；禁止使用 `object` 或 `object_ref`。提交前核对实际 MCP Schema，不猜测字段，也不添加兼容别名。
+
+区分完整传输结束、Host 交付确认被接受、Schema 拒绝、语义评分和评分结果。Schema 拒绝不是语义失败，也不是验证成功；合并请求被拒绝不能证明 Host 确认已接受。字段格式错误最多修正一次且保持语义答案不变；语义评分和阈值保持当前机器合同。
 
 ### 任务收尾与认知维护
 
