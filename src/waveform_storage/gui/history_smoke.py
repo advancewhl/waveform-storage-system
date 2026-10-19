@@ -19,6 +19,50 @@ from PyQt5.QtWidgets import QDialog, QFileDialog, QMessageBox
 from waveform_storage.gui.operator_window import BpmSelectionDialog
 
 
+def _continue_alignment_preflight(window, evidence: dict) -> bool:
+    """Record and explicitly continue a required raw-step preflight."""
+    if not getattr(window, "_preflight_confirmation_required", False):
+        return False
+    if window.start_button.isEnabled():
+        raise RuntimeError("capture must remain disabled during history acceptance")
+    report = getattr(window, "_raw_step_report", None)
+    if report is None:
+        raise RuntimeError("preflight confirmation has no raw-step report")
+    identity = list(window._history_key())
+    if evidence.get("identity") != identity:
+        raise RuntimeError("preflight identity differs from the selected segment")
+    if window.align_button.text() != "继续严格对齐":
+        raise RuntimeError("preflight confirmation button is not explicit")
+
+    evidence["preflight"] = {
+        "confirmation_required": True,
+        "identity": identity,
+        "raw_step_compatible": bool(report.raw_step_compatible),
+        "summary": str(report.summary),
+    }
+    evidence["steps"]["raw_step_preflight"] = True
+    warning = getattr(window, "_raw_step_warning_dialog", None)
+    if warning is None:
+        window.align_button.click()
+        warning = getattr(window, "_raw_step_warning_dialog", None)
+    if warning is not None:
+        next(button for button in warning.buttons()
+             if button.text() == "继续严格对齐").click()
+    return True
+
+
+def _lock_capture_start_for_smoke(window) -> None:
+    """Keep capture disabled even when worker completion refreshes widgets."""
+    original_set_busy = window._set_busy
+
+    def set_busy(busy: bool, message: str) -> None:
+        original_set_busy(busy, message)
+        window.start_button.setEnabled(False)
+
+    window._set_busy = set_busy
+    window.start_button.setEnabled(False)
+
+
 def install_history_smoke(window, app, report_path: Path, selected_date: str, project_root: Path):
     """Run query/read/export only; never invoke capture or modify remote data."""
     report_path = Path(report_path)
@@ -56,7 +100,7 @@ def install_history_smoke(window, app, report_path: Path, selected_date: str, pr
         raise RuntimeError('capture is forbidden during history acceptance')
 
     window.backend.start_capture = forbidden_capture
-    window.start_button.setEnabled(False)
+    _lock_capture_start_for_smoke(window)
 
     def finish(error=None):
         timer.stop()
@@ -148,8 +192,26 @@ def install_history_smoke(window, app, report_path: Path, selected_date: str, pr
                 state['stage'] = 'alignment'
                 window.align_button.click()
             elif stage == 'alignment':
+                if _continue_alignment_preflight(window, evidence):
+                    # The second click starts strict alignment; let the worker
+                    # finish before the next timer tick checks the result.
+                    return
                 if window.alignment_result is None or window.alignment_result.bunch_ids.size == 0:
                     raise RuntimeError('alignment did not produce data')
+                if 'preflight' not in evidence:
+                    report = getattr(window, '_raw_step_report', None)
+                    evidence['preflight'] = {
+                        'confirmation_required': False,
+                        'identity': list(window._history_key()),
+                        'raw_step_compatible': (
+                            bool(report.raw_step_compatible) if report is not None else None
+                        ),
+                        'summary': (
+                            str(report.summary) if report is not None
+                            else '当前 backend 未提供相邻数据编号的间隔检查'
+                        ),
+                    }
+                    evidence['steps']['raw_step_preflight'] = report is not None
                 evidence['aligned_sample_count'] = int(window.alignment_result.bunch_ids.size)
                 evidence['steps']['alignment'] = True
                 state['stage'] = 'raw'

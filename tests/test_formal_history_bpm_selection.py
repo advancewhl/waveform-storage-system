@@ -16,15 +16,17 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 from PyQt5.QtCore import QDate, Qt
-from PyQt5.QtWidgets import QApplication, QDialog
+from PyQt5.QtWidgets import QApplication, QComboBox, QDialog
 
 from waveform_storage.config.registry import load_registry
 from waveform_storage.gui.operator_contract import OperatorMode
 from waveform_storage.gui.operator_window import (
     BpmSelectionDialog,
+    HistoryDiagnosticDialog,
     OperatorMainWindow,
 )
 from waveform_storage.processing.alignment import DeviceSeries, align_devices
+from waveform_storage.processing.bunch_id_diagnostics import diagnose_raw_steps
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -89,6 +91,106 @@ class FormalHistorySelectionTests(unittest.TestCase):
         self.app.processEvents()
         self.assertFalse(window._active_workers)
 
+    @staticmethod
+    def continue_to_spectrum(window):
+        warning = window._spectrum_warning_dialog
+        if warning is not None:
+            next(button for button in warning.buttons()
+                 if button.text() == "继续到频谱").click()
+
+    def test_history_layout_and_normal_diagnostic_stays_quiet(self):
+        from dataclasses import replace
+        from types import SimpleNamespace
+
+        backend = Backend()
+        with TemporaryDirectory() as temporary:
+            window = OperatorMainWindow(
+                load_registry(ROOT / "config/devices.operator.json"), backend=backend,
+                capture_registry=load_registry(ROOT / "config/devices.probe47.json"),
+                journal_path=Path(temporary) / "journal.jsonl",
+            )
+            try:
+                window.resize(1600, 1000)
+                window._set_compact_history_toolbar(False)
+                window._show_page(1)
+                page_layout = window.pages.widget(1).layout()
+                toolbar = page_layout.itemAt(0).widget()
+                plot = page_layout.itemAt(2).widget()
+                self.assertEqual(page_layout.stretch(0), 1)
+                self.assertEqual(page_layout.stretch(2), 3)
+                self.assertEqual(toolbar.layout().count(), 3)
+                task_row = toolbar.layout().itemAt(0).layout()
+                self.assertIs(task_row.itemAt(1).widget(), window.history_time)
+                self.assertEqual(
+                    window.history_time.sizeAdjustPolicy(),
+                    QComboBox.AdjustToContents,
+                )
+                self.assertEqual(task_row.stretch(1), 0)
+                self.assertEqual(task_row.stretch(2), 1)
+                self.assertEqual(
+                    toolbar.layout().itemAt(2).widget(), window.segment_label
+                )
+                self.assertGreaterEqual(toolbar.minimumHeight(), 120)
+                self.assertGreaterEqual(plot.minimumHeight(), 280)
+
+                window.current_history_run = backend.retrieve_runs(
+                    date(2026, 10, 2)
+                )[0]
+                window.history_segments = backend.retrieve_segments(
+                    window.current_history_run.request_id
+                )
+                window.segment_index.setRange(1, len(window.history_segments))
+                window.segment_index.setValue(7)
+                self.assertEqual(window.current_history_segment.capture_sequence, 8)
+                self.assertTrue(window.segment_label.text().startswith("S00008 · "))
+
+                ids = np.arange(1, 20_001, dtype=np.uint64)
+                series = [
+                    DeviceSeries(device_id, ids, ids.astype(float), ids.astype(float))
+                    for device_id in (FIRST, SECOND)
+                ]
+                result = align_devices(series)
+                window.alignment_result = result
+                window._quality_result = result
+                window._raw_step_report = diagnose_raw_steps(series)
+                window._analysis_quality_preview = (
+                    SimpleNamespace(
+                        classification="ready", reason=None, quality={},
+                        duration_seconds=None,
+                    ),
+                )
+                window.alignment_status_label.setText(
+                    window._alignment_status_text(result)
+                )
+                window._set_quality_status(result)
+                window._refresh_history_diagnostic()
+                self.assertEqual(window.alignment_status_label.text(), "已对齐 · 20,000 点")
+                self.assertEqual(window.quality_status_button.text(), "质量详情")
+                self.assertNotIn("✓ bunchID 正常", window.quality_status_button.text())
+                self.assertTrue(window.history_diagnostic_bar.isHidden())
+                self.assertTrue(window.history_diagnostic_button.isEnabled())
+
+                window._raw_step_report = replace(
+                    window._raw_step_report,
+                    raw_step_compatible=False,
+                    summary="原始步进需要确认",
+                )
+                window._refresh_history_diagnostic()
+                self.assertFalse(window.history_diagnostic_bar.isHidden())
+
+                window.resize(1280, 800)
+                window._set_compact_history_toolbar(True)
+                window.plot_mode.setCurrentIndex(
+                    window.plot_mode.findData("device")
+                )
+                self.assertTrue(window.alignment_status_label.isHidden())
+                window.plot_mode.setCurrentIndex(
+                    window.plot_mode.findData("distribution")
+                )
+                self.assertFalse(window.alignment_status_label.isHidden())
+            finally:
+                window.close()
+
     def test_two_runs_and_stale_history_callbacks(self):
         from dataclasses import replace
         registry = load_registry(ROOT / "config/devices.operator.json")
@@ -143,6 +245,67 @@ class FormalHistorySelectionTests(unittest.TestCase):
             self.assertIsNone(window.device_waveform_result)
             self.assertIsNone(window.plot_canvas)
             window.close()
+
+    def test_raw_step_warning_requires_dialog_confirmation_and_rejects_stale_continue(self):
+        from types import SimpleNamespace
+
+        ids = np.array([10, 20, 30, 40], dtype=np.uint64)
+        report = diagnose_raw_steps([
+            DeviceSeries(FIRST, ids, ids.astype(float), ids.astype(float)),
+            DeviceSeries(SECOND, ids + np.array([0, 1, 3, 7], dtype=np.uint64),
+                         ids.astype(float), ids.astype(float)),
+        ])
+        snapshot = SimpleNamespace(raw_step_report=report)
+
+        class PreparedBackend(Backend):
+            def prepare_segment(self, segment, devices):
+                return snapshot
+
+            def align_prepared_segment(self, prepared):
+                raise AssertionError("alignment must wait for explicit dialog confirmation")
+
+        with TemporaryDirectory() as temporary:
+            backend = PreparedBackend()
+            window = OperatorMainWindow(
+                load_registry(ROOT / "config/devices.operator.json"), backend=backend,
+                ui_only=True, journal_path=Path(temporary) / "journal.jsonl",
+            )
+            try:
+                window.current_history_segment = backend.retrieve_segments("run-10min")[0]
+                window.history_selected_devices = (FIRST, SECOND)
+                window.history_selection_key = window._history_key()
+                with patch.object(window, "_execute_history_alignment") as execute, patch.object(
+                    window, "_run_task", side_effect=lambda stage, operation, callback: callback(operation())
+                ):
+                    window._align_selected()
+                    warning = window._raw_step_warning_dialog
+                    self.assertIsNotNone(warning)
+                    self.assertEqual(warning.defaultButton().text(), "取消")
+                    execute.assert_not_called()
+                    warning.defaultButton().click()
+                    self.app.processEvents()
+                    self.assertIsNone(window._raw_step_warning_dialog)
+                    self.assertTrue(window._preflight_confirmation_required)
+                    execute.assert_not_called()
+
+                    window._align_selected()
+                    warning = window._raw_step_warning_dialog
+                    next(button for button in warning.buttons()
+                         if button.text() == "继续严格对齐").click()
+                    self.app.processEvents()
+                    execute.assert_called_once()
+                    self.assertIs(execute.call_args.kwargs["prepared"], snapshot)
+
+                    window._preflight_confirmation_required = True
+                    window._align_selected()
+                    warning = window._raw_step_warning_dialog
+                    window._history_generation += 1
+                    next(button for button in warning.buttons()
+                         if button.text() == "继续严格对齐").click()
+                    self.app.processEvents()
+                    execute.assert_called_once()
+            finally:
+                window.close()
 
     def test_frequency_is_displayed_after_startup_query(self):
         class FrequencyBackend(Backend):
@@ -202,7 +365,7 @@ class FormalHistorySelectionTests(unittest.TestCase):
                 np.array([100, 250, 400], dtype=np.uint64),
                 np.array([1, 2, 3]), np.array([4, 5, 6]))])
             window._set_data_duration(result)
-            self.assertEqual(window.data_duration_label.text(), "数据时长：0.000300 s")
+            self.assertEqual(window.data_duration_label.text(), "分析器推算跨度：—")
             window.close()
 
     def test_history_selection_ignores_capture_area_selection(self):
@@ -245,6 +408,7 @@ class FormalHistorySelectionTests(unittest.TestCase):
             )
             self.assertEqual(window.alignment_result.device_ids, (FIRST,))
             window.history_spectrum_button.click()
+            self.continue_to_spectrum(window)
             self.assertEqual(window.spectrum_panel.sample_rate.value(), 1000)
             window.segment_index.setValue(7)
             self.assertIn("S00008", window.segment_label.text())
@@ -261,7 +425,9 @@ class FormalHistorySelectionTests(unittest.TestCase):
             self.wait_for_workers(window)
             self.assertEqual(backend.align_calls[-1][1], ("run-10min", 8))
             window.history_spectrum_button.click()
+            self.continue_to_spectrum(window)
             self.assertEqual(window.spectrum_panel.sample_rate.value(), 1000)
+            window.plot_mode.setCurrentIndex(window.plot_mode.findData("device"))
             window._request_device_waveform(FIRST)
             self.wait_for_workers(window)
             self.assertEqual(backend.align_calls[-1][1], ("run-10min", 8))
@@ -313,6 +479,7 @@ class FormalHistorySelectionTests(unittest.TestCase):
                          patch.object(backend, "retrieve_segments") as query_segments, \
                          patch.object(backend, "align_segment") as align:
                         window.history_spectrum_button.click()
+                        self.continue_to_spectrum(window)
                         handoff.assert_called_once_with(
                             window.alignment_result, sample_rate_hz=rate,
                             history_request_id=segment.request_id, capture_sequence=segment.capture_sequence,
@@ -330,9 +497,143 @@ class FormalHistorySelectionTests(unittest.TestCase):
                 # A task cannot supply a rate for a segment belonging to another request.
                 window.current_history_run = backend.retrieve_runs(date(2026, 10, 2))[0]
                 window.history_spectrum_button.click()
+                self.continue_to_spectrum(window)
                 self.assertEqual(window.spectrum_panel.sample_rate.value(), 0)
                 self.assertIsNone(window.spectrum_panel.history_request_id)
                 self.assertIsNone(window.spectrum_panel.history_capture_sequence)
+            finally:
+                window.close()
+
+    def test_invalid_spectrum_config_does_not_block_history_alignment(self):
+        backend = Backend()
+        with TemporaryDirectory() as temporary:
+            window = OperatorMainWindow(
+                load_registry(ROOT / "config/devices.operator.json"), backend=backend,
+                capture_registry=load_registry(ROOT / "config/devices.probe47.json"),
+                journal_path=Path(temporary) / "journal.jsonl",
+            )
+            try:
+                window.history_date.setDate(QDate(2026, 10, 2))
+                run = backend.retrieve_runs(date(2026, 10, 2))[0]
+                segment = backend.retrieve_segments(run.request_id)[0]
+                window.current_history_run = run
+                window.current_history_segment = segment
+                pending = []
+                window._run_task = lambda stage, operation, callback: pending.append(
+                    (operation, callback)
+                )
+                with patch.object(
+                    window.spectrum_panel,
+                    "analysis_config_after_history_handoff",
+                    side_effect=ValueError("频带上下限无效"),
+                ):
+                    window._execute_history_alignment(segment, (FIRST,), window._history_generation)
+                self.assertEqual(len(pending), 1)
+                operation, callback = pending.pop()
+                result, preview = operation()
+                self.assertEqual(backend.align_calls[-1][2], (FIRST,))
+                self.assertEqual(result.device_ids, (FIRST,))
+                self.assertEqual(preview[0].classification, "invalid")
+                self.assertIn("频谱参数需修正", preview[0].reason)
+                callback((result, preview))
+                self.assertIs(window.alignment_result, result)
+                self.assertEqual(window._analysis_quality_preview[0].classification, "invalid")
+            finally:
+                window.close()
+
+    def test_device_waveform_callback_is_invalidated_by_plot_mode_change(self):
+        backend = Backend()
+        with TemporaryDirectory() as temporary:
+            window = OperatorMainWindow(
+                load_registry(ROOT / "config/devices.operator.json"), backend=backend,
+                capture_registry=load_registry(ROOT / "config/devices.probe47.json"),
+                journal_path=Path(temporary) / "journal.jsonl",
+            )
+            try:
+                run = backend.retrieve_runs(date(2026, 10, 2))[0]
+                segment = backend.retrieve_segments(run.request_id)[0]
+                window.current_history_run = run
+                window.current_history_segment = segment
+                window.plot_device.clear()
+                window.plot_device.addItem(FIRST, FIRST)
+                window.plot_mode.setCurrentIndex(window.plot_mode.findData("device"))
+                pending = []
+                window._run_task = lambda stage, operation, callback: pending.append(
+                    (operation, callback)
+                )
+                window._request_device_waveform(FIRST)
+                operation, callback = pending.pop()
+                result = operation()
+                window.plot_mode.setCurrentIndex(
+                    window.plot_mode.findData("distribution")
+                )
+                callback(result)
+                self.assertIsNone(window.device_waveform_result)
+                self.assertIsNone(window.device_waveform_key)
+            finally:
+                window.close()
+
+    def test_history_diagnostic_accepts_unassessed_preview(self):
+        from types import SimpleNamespace
+
+        dialog = HistoryDiagnosticDialog(
+            None, None,
+            (SimpleNamespace(classification="invalid", reason="参数需修正"),),
+        )
+        try:
+            self.assertEqual(dialog.windowTitle(), "历史数据质量诊断")
+        finally:
+            dialog.close()
+
+    def test_archiver_handoff_preview_matches_profile_reset_behavior(self):
+        from waveform_storage.analysis.models import AnalysisConfig
+
+        with TemporaryDirectory() as temporary:
+            window = OperatorMainWindow(
+                load_registry(ROOT / "config/devices.operator.json"), backend=Backend(),
+                capture_registry=load_registry(ROOT / "config/devices.probe47.json"),
+                journal_path=Path(temporary) / "journal.jsonl",
+            )
+            try:
+                panel = window.spectrum_panel
+                panel.source_combo.setCurrentIndex(panel.source_combo.findData("archiver"))
+                panel.profile_combo.setCurrentIndex(panel.profile_combo.findData("high_band"))
+                panel.low.setValue(42)
+                self.assertEqual(
+                    panel.analysis_config_after_history_handoff().search_low_hz, 42
+                )
+
+                panel.profile_combo.setCurrentIndex(panel.profile_combo.findData("low_v2"))
+                expected = AnalysisConfig.for_profile(
+                    "high_band", zero_policy=panel.zero_combo.currentData()
+                )
+                self.assertEqual(panel.analysis_config_after_history_handoff(), expected)
+            finally:
+                window.close()
+
+    def test_spectrum_warning_escape_keeps_history_page(self):
+        backend = Backend()
+        result = align_devices([
+            DeviceSeries(FIRST, np.array([1000, 3000, 5000], dtype=np.uint64),
+                         np.array([1, 2, 3]), np.array([4, 5, 6]))
+        ])
+        with TemporaryDirectory() as temporary:
+            window = OperatorMainWindow(
+                load_registry(ROOT / "config/devices.operator.json"), backend=backend,
+                capture_registry=load_registry(ROOT / "config/devices.probe47.json"),
+                journal_path=Path(temporary) / "journal.jsonl",
+            )
+            try:
+                window.load_alignment_result(result)
+                original_page = window.pages.currentIndex()
+                window._analyze_history_alignment()
+                warning = window._spectrum_warning_dialog
+                self.assertIsNotNone(warning)
+                self.assertIsNotNone(warning.escapeButton())
+                warning.escapeButton().click()
+                self.app.processEvents()
+                self.assertEqual(window.pages.currentIndex(), original_page)
+                self.assertIsNone(window.spectrum_panel.alignment)
             finally:
                 window.close()
 

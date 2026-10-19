@@ -226,3 +226,85 @@ def analyze_channel(series: ChannelSeries, config: AnalysisConfig) -> ChannelRes
         overall_hit=bool(evidence.get("overall_hit", False)),
     )
     return result
+
+
+def assess_request_quality(request):
+    """Run the analysis time-axis and quality gates without computing an FFT.
+
+    This preview deliberately calls the same loader and ``_prepare`` path as
+    ``analyze_channel``.  It is evidence about the analyzer's current inferred
+    timeline, not a confirmation that raw device clocks are physically aligned.
+    """
+    from .loaders import load_request
+
+    assessed = []
+    try:
+        for series in load_request(request):
+            metadata = {
+                key: value for key, value in series.metadata.items()
+                if not isinstance(value, np.ndarray)
+            }
+            result = ChannelResult(
+                series.channel,
+                series.source,
+                time_basis=series.time_basis,
+                utc_origin=series.utc_origin,
+                unit=series.unit,
+                metadata=metadata,
+                warnings=list(series.warnings),
+            )
+            try:
+                if series.error:
+                    raise ValueError(series.error)
+                _prepare(series, request.config, result)
+                result.classification = "ready"
+            except Exception as exc:
+                result.classification = "invalid"
+                result.reason = f"{type(exc).__name__}：{exc}"
+            valid_points = result.quality.get("valid_points")
+            span_seconds = result.duration_seconds
+            maximum_gap = result.quality.get("max_gap_seconds")
+            maximum_gap_limit = (
+                request.config.max_gap_factor / result.sample_rate_hz
+                if result.sample_rate_hz else None
+            )
+            result.quality["preview_gates"] = {
+                "valid_points": valid_points,
+                "minimum_points": request.config.minimum_points,
+                "minimum_points_passed": (
+                    None if valid_points is None
+                    else valid_points >= request.config.minimum_points
+                ),
+                "span_seconds": span_seconds,
+                "minimum_seconds": request.config.minimum_seconds,
+                "minimum_seconds_passed": (
+                    None if span_seconds is None
+                    else span_seconds >= request.config.minimum_seconds
+                ),
+                "maximum_gap_seconds": maximum_gap,
+                "maximum_gap_limit_seconds": maximum_gap_limit,
+                "maximum_gap_passed": (
+                    None if maximum_gap is None or maximum_gap_limit is None
+                    else maximum_gap <= maximum_gap_limit + 1e-9
+                ),
+            }
+            assessed.append(result)
+    except Exception as exc:
+        assessed.append(
+            ChannelResult(
+                "历史对齐",
+                "history-alignment",
+                classification="invalid",
+                reason=f"{type(exc).__name__}：{exc}",
+            )
+        )
+    if not assessed:
+        assessed.append(
+            ChannelResult(
+                "历史对齐",
+                "history-alignment",
+                classification="invalid",
+                reason="分析器没有生成可检查的通道",
+            )
+        )
+    return tuple(assessed)

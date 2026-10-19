@@ -60,6 +60,15 @@ class SpectrumGuiTests(unittest.TestCase):
         window.close()
         self.app.processEvents()
 
+    def _confirm_history_spectrum_warning(self, window):
+        warning = window._spectrum_warning_dialog
+        self.assertIsNotNone(warning, "history spectrum handoff must require confirmation")
+        self.assertEqual(window.pages.currentIndex(), 0, "warning must keep the current page open")
+        proceed = next(button for button in warning.buttons()
+                       if button.text() == "继续到频谱")
+        proceed.click()
+        self.app.processEvents()
+
     def test_common_parameters_and_collapsed_advanced_parameters(self):
         with TemporaryDirectory() as d:
             window = self._window(d)
@@ -184,6 +193,7 @@ class SpectrumGuiTests(unittest.TestCase):
             try:
                 window.alignment_result = read_legacy_merged_hdf5(p).result
                 window.history_spectrum_button.click()
+                self._confirm_history_spectrum_warning(window)
                 panel = window.spectrum_panel
                 self.assertEqual(window.pages.currentIndex(), 2)
                 self.assertIs(panel.alignment, window.alignment_result)
@@ -211,6 +221,7 @@ class SpectrumGuiTests(unittest.TestCase):
                 window.current_history_segment = CaptureSegment(
                     "task-1000", 8, "080000", now, window.alignment_result.device_ids)
                 window.history_spectrum_button.click()
+                self._confirm_history_spectrum_warning(window)
                 panel = window.spectrum_panel
                 self.assertEqual(window.pages.currentIndex(), 2)
                 self.assertIs(panel.alignment, window.alignment_result)

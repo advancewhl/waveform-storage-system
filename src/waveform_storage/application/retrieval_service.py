@@ -21,6 +21,10 @@ from waveform_storage.processing.alignment import (
     SkippedDevice,
     align_devices,
 )
+from waveform_storage.processing.bunch_id_diagnostics import (
+    RawStepReport,
+    diagnose_raw_steps,
+)
 
 
 @dataclass(frozen=True)
@@ -72,6 +76,17 @@ class StorageGateway(Protocol):
         """Return (DeviceSeries records, SkippedDevice records)."""
 
 
+@dataclass(frozen=True)
+class PreparedRetrieval:
+    """One already-read raw retrieval, reusable for diagnosis and alignment."""
+
+    query: StorageQuery
+    records: tuple
+    skipped_devices: tuple[SkippedDevice, ...]
+    missing_devices: tuple[str, ...]
+    raw_step_report: RawStepReport
+
+
 class RetrievalService:
     """Coordinate one retrieval without depending on Qt or concrete SSH code."""
 
@@ -91,10 +106,85 @@ class RetrievalService:
         self._v2_writer = v2_writer
         self._cache_key = None
         self._cache_result = None
+        self._prepared_key = None
+        self._prepared_result: PreparedRetrieval | None = None
 
     def clear_cache(self) -> None:
         self._cache_key = None
         self._cache_result = None
+        self._prepared_key = None
+        self._prepared_result = None
+
+    def prepare(self, query: StorageQuery) -> PreparedRetrieval:
+        """Read one query once and retain its raw records for later alignment."""
+        if self._prepared_key == query.cache_key and self._prepared_result is not None:
+            return self._prepared_result
+
+        order = {device_id: index for index, device_id in enumerate(query.device_ids)}
+        known_pairs = []
+        skipped = []
+        found_devices = set()
+        for remote_file, device_id in self._storage.find_files(query):
+            if device_id not in order:
+                skipped.append(
+                    SkippedDevice(
+                        device_id,
+                        "unknown_device",
+                        "device is absent from the configured full device list",
+                    )
+                )
+                continue
+            known_pairs.append((remote_file, device_id))
+            found_devices.add(device_id)
+        known_pairs.sort(key=lambda item: order[item[1]])
+        records, read_skipped = self._storage.read_series(known_pairs, self._reader)
+        read_skipped = tuple(read_skipped)
+        failed_ids = {item.device_id for item in read_skipped}
+        missing = tuple(
+            device_id for device_id in query.device_ids
+            if device_id not in found_devices and device_id not in failed_ids
+        )
+        missing_skipped = tuple(
+            SkippedDevice(device_id, "file_not_found", "no waveform file was returned")
+            for device_id in missing
+        )
+        all_skipped = tuple(skipped) + read_skipped + missing_skipped
+        snapshot = PreparedRetrieval(
+            query=query,
+            records=tuple(records),
+            skipped_devices=all_skipped,
+            missing_devices=missing,
+            raw_step_report=diagnose_raw_steps(
+                records,
+                requested_devices=query.device_ids,
+                failed_devices=read_skipped + tuple(skipped) + missing_skipped,
+            ),
+        )
+        self._prepared_key = query.cache_key
+        self._prepared_result = snapshot
+        # A new raw snapshot invalidates the old aligned result, even when the
+        # query key is the same but its cache was explicitly refreshed.
+        self._cache_key = None
+        self._cache_result = None
+        return snapshot
+
+    def align_prepared(
+        self,
+        prepared: PreparedRetrieval,
+        parameters: AlignmentParameters | None = None,
+    ) -> AlignmentResult:
+        """Strictly align the exact raw records retained by ``prepare``."""
+        result = self._aligner(
+            prepared.records,
+            parameters or AlignmentParameters(mode="strict"),
+        )
+        result = replace(
+            result,
+            skipped_devices=prepared.skipped_devices + result.skipped_devices,
+        )
+        self._cache_key = prepared.query.cache_key
+        self._cache_result = result
+        return result
 
     def retrieve(
         self,
@@ -115,42 +205,7 @@ class RetrievalService:
             logger.info("retrieval cache hit")
             return self._cache_result
 
-        order = {
-            device_id: index for index, device_id in enumerate(query.device_ids)
-        }
-        known_pairs = []
-        skipped = []
-        for remote_file, device_id in self._storage.find_files(query):
-            if device_id not in order:
-                skipped.append(
-                    SkippedDevice(
-                        device_id,
-                        "unknown_device",
-                        "device is absent from the configured full device list",
-                    )
-                )
-                continue
-            known_pairs.append((remote_file, device_id))
-        known_pairs.sort(key=lambda item: order[item[1]])
-
-        records, read_skipped = self._storage.read_series(
-            known_pairs,
-            self._reader,
-        )
-        result = self._aligner(
-            records,
-            parameters or AlignmentParameters(mode="strict"),
-        )
-        result = replace(
-            result,
-            skipped_devices=(
-                tuple(skipped)
-                + tuple(read_skipped)
-                + result.skipped_devices
-            ),
-        )
-        self._cache_key = query.cache_key
-        self._cache_result = result
+        result = self.align_prepared(self.prepare(query), parameters)
         log_context(
             logging.getLogger("waveform_storage.retrieval"),
             request_id=None,

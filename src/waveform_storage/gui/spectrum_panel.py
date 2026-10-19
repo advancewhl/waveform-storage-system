@@ -378,6 +378,18 @@ class SpectrumPanel(QWidget):
             peak_match_hz=self.peak_match.value(), zero_policy=self.zero_combo.currentData(),
             minimum_seconds=self.minimum_seconds.value(), minimum_points=self.minimum_points.value())
 
+    def analysis_config_after_history_handoff(self):
+        """Return the config that will be active after history selects HDF5."""
+        if self.source_combo.currentData() == "archiver":
+            # Switching from Archiver to HDF5 selects the high-band profile.
+            # If it is already selected, _source_changed will not reapply the
+            # profile, so preserve the user's current parameter edits.
+            if self.profile_combo.currentData() != "high_band":
+                return AnalysisConfig.for_profile(
+                    "high_band", zero_policy=self.zero_combo.currentData()
+                )
+        return self._config()
+
     def start_analysis(self):
         if self.job_id or self._closed:
             return

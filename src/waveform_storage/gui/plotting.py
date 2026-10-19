@@ -44,41 +44,45 @@ def plot_alignment_result(result, selected_index):
         color=GRAY,
     )
     axis.set_title(
-        f"BPM distribution  ·  BunchID {int(result.bunch_ids[index])}",
+        f"bunchID {int(result.bunch_ids[index])}",
         loc="left",
-        pad=16,
-        fontsize=15,
+        pad=9,
+        fontsize=12,
         fontweight="bold",
         color=INK,
     )
-    if len(devices) <= 40:
-        tick_indices = positions
-    else:
-        step = max(1, int(np.ceil(len(devices) / 24)))
-        tick_indices = positions[::step]
+    # Every device series remains in the plot. Labels are sparse and wrapped
+    # at a semantic separator so they stay readable without consuming most of
+    # the canvas height; the selector and details expose the full device list.
+    label_count = min(len(devices), 6)
+    tick_indices = np.unique(
+        np.linspace(0, len(devices) - 1, label_count, dtype=int)
+    )
     axis.set_xticks(tick_indices)
     axis.set_xticklabels(
-        devices[tick_indices],
-        rotation=58,
-        ha="right",
-        fontsize=9,
+        [_wrap_device_label(str(value)) for value in devices[tick_indices]],
+        rotation=0,
+        ha="center",
+        fontsize=7.5,
         color=MUTED,
     )
     axis.set_xlabel(
         f"BPM device  ·  {len(devices)} visible",
         color=INK,
-        fontsize=10,
+        fontsize=9,
         fontweight="semibold",
     )
     axis.set_ylabel(
         "Position value",
         color=INK,
-        fontsize=10,
+        fontsize=9,
         fontweight="semibold",
     )
     axis.yaxis.set_major_locator(MaxNLocator(nbins=8))
     _finish_axis(axis, grid_axis="y")
-    figure.tight_layout(pad=1.5)
+    # Recalculate margins when Qt resizes the canvas. The full signal remains
+    # plotted; sparse labels retain the first and last device identifiers.
+    figure.set_layout_engine("constrained")
     return figure
 
 
@@ -124,10 +128,10 @@ def plot_device_waveform(result, device_id: str):
         markersize=4,
     )
     axis.set_title(
-        f"Single BPM waveform  ·  {device_id}",
+        f"BPM {device_id} waveform",
         loc="left",
-        pad=16,
-        fontsize=15,
+        pad=9,
+        fontsize=12,
         fontweight="bold",
         color=INK,
     )
@@ -139,27 +143,27 @@ def plot_device_waveform(result, device_id: str):
     axis.set_xticks(tick_values)
     axis.set_xticklabels(
         [str(value) for value in tick_values],
-        rotation=18,
+        rotation=14,
         ha="right",
-        fontsize=9,
+        fontsize=8,
         color=MUTED,
     )
     axis.set_xlabel(
         f"BunchID  ·  {len(bunch_ids)} aligned samples",
         color=INK,
-        fontsize=10,
+        fontsize=9,
         fontweight="semibold",
     )
     axis.set_ylabel(
         "Position value",
         color=INK,
-        fontsize=10,
+        fontsize=9,
         fontweight="semibold",
     )
     axis.yaxis.set_major_locator(MaxNLocator(nbins=8))
     axis.axhline(0, color="#4b4b4b", linewidth=1.1, alpha=0.8)
     _finish_axis(axis, grid_axis="both")
-    figure.tight_layout(pad=1.5)
+    figure.set_layout_engine("constrained")
     return figure
 
 
@@ -171,6 +175,22 @@ def _new_figure():
     )
     axis.set_facecolor("#ffffff")
     return figure, axis
+
+
+def _wrap_device_label(device_id: str) -> str:
+    """Wrap a device label while retaining every identifier character."""
+    semantic_marker = "_BI_"
+    marker_index = device_id.find(semantic_marker)
+    if marker_index > 0:
+        split = marker_index + len(semantic_marker)
+        return device_id[:split] + "\n" + device_id[split:]
+    if len(device_id) <= 14:
+        return device_id
+    separators = [index for index, char in enumerate(device_id) if char == "_"]
+    if not separators:
+        return device_id
+    split = min(separators, key=lambda index: abs(index + 1 - len(device_id) / 2))
+    return device_id[:split + 1] + "\n" + device_id[split + 1:]
 
 
 def _finish_axis(axis, *, grid_axis: str) -> None:

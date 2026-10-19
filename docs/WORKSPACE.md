@@ -1,6 +1,6 @@
 # 工作目录地图
 
-更新时间：2026-10-07。工作区根目录为 `/home/whloong/waveform-storage`；Git 仓库为其中的 `waveform-storage-system/`。
+更新时间：2026-10-19。工作区根目录为 `/home/whloong/waveform-storage`；Git 仓库为其中的 `waveform-storage-system/`。
 
 ```text
 waveform-storage/
@@ -16,9 +16,9 @@ waveform-storage/
 │  │  ├─ history/                # 旧 README 与 7 月过程记录
 │  │  ├─ references/             # 论文资料，仅本地
 │  │  └─ ui-preview/             # 界面截图与参考图片
-│  ├─ 交付/                      # 当前前端与历史交付快照
-│  ├─ outputs/                   # 必需基线和当前前端
-│  ├─ dist/ build/               # 当前二进制和构建目录
+│  ├─ 交付/                      # 已记录的发布与验收快照
+│  ├─ outputs/                   # 本机构建、release 和验证产物
+│  ├─ dist/ build/               # 二进制与构建目录
 │  ├─ offline-packages/          # 打包所需兼容依赖
 │  ├─ archive/                   # 中间版本、旧源码和整理记录
 │  └─ logs/ .env .venv/         # 本地运行状态和环境

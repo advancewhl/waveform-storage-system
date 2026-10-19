@@ -39,6 +39,7 @@ src/waveform_storage/io/hdf5_io.py
 src/waveform_storage/io/txt_parser.py
 src/waveform_storage/processing/__init__.py
 src/waveform_storage/processing/alignment.py
+src/waveform_storage/processing/bunch_id_diagnostics.py
 src/waveform_storage/transport/__init__.py
 src/waveform_storage/transport/ssh_storage.py
 src/waveform_storage/transport/zmq_transport.py

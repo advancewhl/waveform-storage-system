@@ -17,7 +17,11 @@ from waveform_storage.application.communication_service import (
     CaptureDispatchResult,
     CaptureProtocolMode,
 )
-from waveform_storage.application.retrieval_service import RetrievalService, StorageQuery
+from waveform_storage.application.retrieval_service import (
+    PreparedRetrieval,
+    RetrievalService,
+    StorageQuery,
+)
 from waveform_storage.config.settings import AppSettings
 from waveform_storage.gui.operator_contract import OperatorMode
 from waveform_storage.metadata.history import CaptureRunSummary, CaptureSegment
@@ -187,6 +191,13 @@ class CandidateOperatorBackend:
 
     def align_segment(self, segment: CaptureSegment, device_ids):
         return self._retrieval.retrieve(self._segment_query(segment, device_ids))
+
+    def prepare_segment(self, segment: CaptureSegment, device_ids) -> PreparedRetrieval:
+        """Read one segment once for raw diagnosis and possible strict alignment."""
+        return self._retrieval.prepare(self._segment_query(segment, device_ids))
+
+    def align_prepared_segment(self, prepared: PreparedRetrieval):
+        return self._retrieval.align_prepared(prepared)
 
     def export_segment_alignment(self, result, segment: CaptureSegment, destination) -> Path:
         return self._retrieval.export(result, self._segment_query(segment, result.device_ids),

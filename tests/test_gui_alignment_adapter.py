@@ -9,7 +9,7 @@ from unittest.mock import patch
 import matplotlib.pyplot as plt
 import numpy as np
 
-from waveform_storage.gui.plotting import plot_device_waveform
+from waveform_storage.gui.plotting import plot_alignment_result, plot_device_waveform
 from waveform_storage.io.hdf5_io import (
     read_alignment_v2,
     read_legacy_merged_hdf5,
@@ -116,6 +116,27 @@ class AlignmentResultAdapterTests(unittest.TestCase):
             self.assertEqual(list(x_line.get_ydata()), [0])
         finally:
             plt.close(fig)
+
+    def test_distribution_keeps_all_devices_with_sparse_wrapped_labels(self):
+        device_ids = tuple(
+            f"AC_LA_L{index // 5 + 1}_BI_COLDBPM{index + 1:02d}"
+            for index in range(25)
+        )
+        result = align_devices([
+            DeviceSeries(device_id, [1000, 3000], [index, index + 1], [index + 2, index + 3])
+            for index, device_id in enumerate(device_ids)
+        ])
+
+        figure = plot_alignment_result(result, 0)
+        try:
+            axis = figure.axes[0]
+            self.assertEqual(len(axis.lines[0].get_xdata()), 25)
+            self.assertEqual(len(axis.get_xticklabels()), 6)
+            labels = [label.get_text() for label in axis.get_xticklabels()]
+            self.assertEqual(labels[0].replace("\n", ""), device_ids[0])
+            self.assertEqual(labels[-1].replace("\n", ""), device_ids[-1])
+        finally:
+            plt.close(figure)
 
     def test_single_device_plot_uses_bunch_id_as_x_axis(self):
         result = align_devices(

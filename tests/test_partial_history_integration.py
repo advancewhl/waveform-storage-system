@@ -113,6 +113,9 @@ class PartialHistoryIntegrationTests(unittest.TestCase):
                 self.assertEqual(window.history_selection_key, ('segment', request_id, 3))
                 window.align_button.click()
                 self.wait(window)
+                self.assertEqual(window.align_button.text(), '继续严格对齐')
+                window.align_button.click()
+                self.wait(window)
                 self.assertEqual(window.alignment_result.device_ids, (FIRST,))
                 self.assertEqual(window.alignment_result.bunch_ids.size, 3)
                 with patch('waveform_storage.gui.operator_window.QFileDialog.getExistingDirectory',

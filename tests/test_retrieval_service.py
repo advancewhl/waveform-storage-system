@@ -79,6 +79,19 @@ class RetrievalServiceTests(unittest.TestCase):
         self.service.retrieve(changed)
         self.assertEqual(self.storage.find_calls, 3)
 
+    def test_prepare_and_strict_alignment_share_one_raw_read(self):
+        prepared = self.service.prepare(self.query)
+        result = self.service.align_prepared(prepared)
+        self.assertEqual(self.storage.find_calls, 1)
+        self.assertEqual(len(self.storage.read_calls), 1)
+        self.assertEqual(prepared.raw_step_report.majority_step, 1)
+        self.assertEqual(prepared.missing_devices, ())
+        self.assertEqual(result.device_ids, ("BPM_A", "BPM_B"))
+        self.assertEqual(
+            [(item.device_id, item.reason) for item in result.skipped_devices],
+            [("UNKNOWN", "unknown_device"), ("BPM_C", "read_failed")],
+        )
+
     def test_export_injects_writer_and_preserves_filename_contract(self):
         calls = []
 
@@ -145,6 +158,21 @@ class RetrievalServiceTests(unittest.TestCase):
         )
         self.assertEqual(result.bunch_ids.size, 0)
         self.assertTrue(result.skipped_devices)
+
+    def test_preflight_retains_missing_file_diagnostic(self):
+        class PartialStorage(FakeStorage):
+            def find_files(self, query):
+                return [("/remote/a.h5", "BPM_A")]
+
+            def read_series(self, pairs, reader):
+                return ([DeviceSeries("BPM_A", [1, 2], [10, 11], [20, 21])], [])
+
+        prepared = RetrievalService(PartialStorage()).prepare(
+            StorageQuery("/remote", "20260725", "120000", ("BPM_A", "BPM_B"))
+        )
+        self.assertEqual(prepared.missing_devices, ("BPM_B",))
+        self.assertEqual(prepared.skipped_devices[0].reason, "file_not_found")
+        self.assertEqual(prepared.raw_step_report.missing_devices, ("BPM_B",))
 
 
 if __name__ == "__main__":

@@ -1,6 +1,87 @@
-# 波形存储当前状态（2026-10-09）
+# 波形存储当前状态（2026-10-19）
+
+## 2026-10-19 Git 源码 checkpoint
+
+用户已确认当前历史页界面。本次只做源码审阅、文档更新和 Git 存档，不再调整历史页布局、字体、尺寸、比例、样式或交互逻辑。当前源码包含 2026-10-17 r6 之后的源码调整。
+
+当前历史检索区固定为 152 px，检索区与绘图区按 1:3 比例布局，历史控件字号为 14 px。正常严格对齐成功时，诊断提示栏保持隐藏；出现数据编号间隔异常或其他告警时，诊断区域仍会显示。相关文案使用“相邻数据编号的间隔”。
+
+本次目标是保存当前 Git 源码和文档状态，不是创建新的正式 release。最新有明确本机 release 记录的仍是 `20261017-history-wording-r6-local`。`outputs/operator-local/current` 当前指向该 release；Git 源码比该 release 更新，本次没有重建 PyInstaller 二进制，也不声称该 release 包含当前源码。
+
+本次没有部署现场 operator 或 acquisition server，也没有重新核验现场运行状态。验证范围为源码与文档审阅及 `git diff --check`；没有运行测试、构建或完整发布验收。
+
+## 历史发布与验收记录
+
+以下 2026-10-17 及更早的内容保留各次发布和验收时的事实。它们不代表本次检查后的现场运行状态。
+
+### 2026-10-17 数据编号间隔提示，本机审阅版
+
+`20261017-history-wording-r6-local` 已激活到本机 `outputs/operator-local/current`。历史页、异常弹窗和诊断详情中的“步进”改为“相邻数据编号的间隔”，例如“相邻编号相差 28～76”。弹窗明确说明这是 bunchID 差值，不是时间间隔，并在可用时显示多数设备的常见间隔。本轮只改显示文字，诊断与对齐规则保持原有行为；字体、紧凑布局和按钮样式沿用 r5。
+
+原始编号诊断和异常确认共 5 项定向测试通过。离线示例检查覆盖 1280×800、2485×1376 两种尺寸、两种绘图模式及异常弹窗和详情表。PyInstaller 构建、打包程序离线启动与 current 路径确认通过。真实桌面效果等待用户关闭旧窗口后重新打开审阅。
+
+本轮未执行 SHA-256、完整 manifest、二进制身份校验、真实桌面 smoke、完整发布验收或全量测试。服务端和现场前端未部署，现场运行状态未重新核验。回滚目标为已保留的 `20261017-history-compact-r5-local`。详情见[本轮交付记录](../交付/20261017-history-wording-r6-local/README.md)。
+
+### 2026-10-17 历史页恢复字号与紧凑布局，本机审阅版
+
+`20261017-history-compact-r5-local` 已激活到本机 `outputs/operator-local/current`。历史页控件与异常弹窗恢复为 14 px 字体，取消随窗口宽度放大字体的规则。检索区域固定为 152 px 高，输入框和按钮恢复紧凑尺寸，按钮增加轻微渐变、底边层次、悬停及按下反馈。原始步进异常确认弹窗继续保留。
+
+历史布局和异常确认两项定向测试通过。离线示例界面检查覆盖 1280×800、2485×1376 两种尺寸和两种绘图模式，控件边界及尺寸检查通过。PyInstaller 构建、打包程序的离线历史页启动与 current 路径确认通过。真实桌面效果等待用户关闭旧窗口后重新打开审阅。
+
+本轮未执行 SHA-256、完整 manifest、二进制身份校验、真实桌面 smoke、完整发布验收或全量测试。服务端和现场前端未部署，现场运行状态未重新核验。回滚目标为已保留的 `20261017-history-display-r4-local`。详情见[本轮交付记录](../交付/20261017-history-compact-r5-local/README.md)。
+
+### 2026-10-17 外接屏历史页与异常确认弹窗，本机审阅版
+
+`20261017-history-display-r4-local` 已激活到本机 `outputs/operator-local/current`。历史页原始步进异常改为立即弹出确认窗口，默认取消，只有明确确认后才执行严格对齐；任务或数据段变化后，旧确认失效。
+
+窗口宽度达到 1920 px 时，历史控件使用 24 px 字体和 64 px 最小内容高度；较窄窗口使用 20 px 和 52 px。日期、段号、BPM 选择、对齐及定位控件同步加宽，诊断文字和弹窗操作按钮同步放大。窗口宽度不超过 2400 px 时，绘图工具栏采用两行布局。
+
+定向测试 6 项通过，离线界面检查包含用户截图的 2485×1376 尺寸和异常弹窗。PyInstaller 构建、打包程序的离线历史页启动与 current 路径确认通过。旧窗口保留，等待用户关闭后重新打开桌面“波形存储”审阅。回滚目标为已保留的 `20261017-history-controls-r3-local`。
+
+本轮未执行 SHA-256、完整 manifest、二进制身份校验、真实桌面 smoke、完整发布验收或全量测试。服务端和现场前端未修改或部署，现场运行状态未重新核验。详情见[本轮交付记录](../交付/20261017-history-display-r4-local/README.md)。
+
+### 2026-10-17 历史页按钮和字体放大，本机审阅版
+
+`20261017-history-controls-r3-local` 已于 12:45（北京时间）激活到本机 `outputs/operator-local/current`。历史页按钮和输入控件的字体从 14 px 调整为 16 px，最小内容高度从 36 px 调整为 44 px。日期、段号、BPM 选择、对齐和定位等控件同步加宽。绘图工具栏在窗口宽度不超过 1920 px 时使用两行布局，更宽窗口保持一行。
+
+历史页布局定向测试 1 项通过。离线示例数据检查覆盖 1120、1280、1600、1920、1921 和 2262 px 窗口宽度及两种绘图模式，控件尺寸检查通过。PyInstaller 前端构建和打包程序的离线历史页启动通过，`current` 解析路径已确认。重新打开桌面“波形存储”可审阅；本轮未启动真实桌面窗口，真实桌面效果等待用户确认。
+
+本轮未执行 SHA-256、完整 manifest、二进制身份校验、真实桌面 smoke、完整发布验收或全量测试。服务端、现场前端、systemd、MongoDB 和 dashboard 本轮未修改或部署。协议沿用既有版本，现场服务端版本与运行状态未重新核验。回滚目标为已保留的 `20261017-history-ui-layout-r2-local`。详情见[本轮交付记录](../交付/20261017-history-controls-r3-local/README.md)。
+
+### 2026-10-17 历史检索布局优化，本机前端发布
+
+`20261017-history-ui-layout-r2-local` 已激活到本机 `outputs/operator-local/current`。历史页首行的检索时间下拉框按内容宽度显示，不再占满整行；本轮只调整前端布局，没有修改服务端协议或数据格式。
+
+聚焦 GUI 测试 11 项通过，完整质量门通过 242 项测试。隔离 operator 构建、`MANIFEST.sha256` 校验和打包二进制历史页启动检查通过。源码状态为 `working-tree`，`source_revision` 为 `368a9aa48a3e042307a23f86fceec752a4665598`，源码清单 SHA-256 为 `49b74541cb42dabcbd4f66bd83a71e57f886483cd53aef1360aa9f74a26b30f6`。
+
+本机真实桌面 smoke 从 `/home/whloong/桌面/波形存储.desktop` 经正式 launcher 启动，于 2026-10-17 通过。报告确认历史任务加载、数据段切换、BPM 选择、原始步进预检查、对齐、原始数据下载和 V2 导出均完成，`capture_requests=0`。验收任务为 `22833275-5e77-41c5-b703-f306accde164`，`capture_sequence=0`；页面显示 5 段和 25 个可用 BPM，smoke 选择 1 个 BPM 并对齐 20,000 点。由于只选择 1 台设备，预检查要求确认步进参考不明确后继续；此结果不代表多设备步进异常验收。
+
+本机 `current` 已从 `20261016-history-quality-r1` 切换至 `20261017-history-ui-layout-r2-local`。二进制 SHA-256 为 `85301cacfd1793e93edaabda441cd69535c5aa559c8cc9d860593bbdb90569e5`；桌面文件和 launcher SHA-256 分别为 `a7e9f4e010216037d43daa0f6cbee711a6d64a5dcf21121f0832f86b240a1888` 和 `5870593351bfa8c05dec4557fa1f6a9012bc38c4d0b0c261e6fc6b93a18c8174`。真实桌面验收进程 `/proc/4001920/exe` 指向本次二进制，哈希与 `BUILD-INFO` 一致。
+
+回滚版本为 `outputs/operator-local/releases/20261016-history-quality-r1/waveform-operator/`，其二进制 SHA-256 为 `c88b8213e97eff8d601b0154ed31f3432541bf87a2066d669058ae121b7c4beb`。本任务未修改或部署现场 operator、acquisition server、systemd、MongoDB 或 dashboard；服务端候选包只构建，现场版本未重新核验。构建、版本对和桌面验收材料见[本次交付记录](../交付/20261017-history-ui-layout-r2-local/README.md)。
+
+### 2026-10-16 历史检索与绘图质量改进
+
+`20261016-history-quality-r1` 已完成源码实现、独立审查、完整质量门和 operator-only 构建。历史检索新增原始步进预检查，并复用已读取记录执行严格对齐。界面分开显示原始设备步进、共同点保留率、分析器推算跨度和频谱质量门。步进异常时，用户必须明确确认后才能继续；系统保留所有设备，不自动剔除或缩放数据。
+
+真实数据核验覆盖任务 `22833275-5e77-41c5-b703-f306accde164` 的 5 个数据段。每段包含 25 台可读设备，每台有 20,000 个原始点。目标设备 `AC_LA_L1_BI_COLDBPM05` 的相邻 bunchID 差为 28～76，其他 24 台观测步进为 2,000。5 段严格共同点数为 422、621、455、375 和 288。任务记录采样率为 500 Hz；分析器根据共同 ID 推算的跨度为 0.574～1.240 s，均未达到 5 s 频谱准入时长。该推算不把 bunchID 当作时钟，也不把点数除以采样率当作连续时长。统计依据和逐段报告见[交付记录](../交付/20261016-history-quality-r1/README.md)。
+
+原始步进、检索服务、Candidate backend、历史 GUI、部分成功段集成及 smoke 回归均通过。完整 `tools/run_quality.py` 质量门通过 241 项测试。Qt offscreen 验收覆盖正常、预检异常、对齐后异常、共同交集为空四种状态，以及 1280×800 和 1600×1000 两种尺寸；另验证单设备详情不会覆盖严格交集点数。绘图最多显示 6 个均匀分布的两行设备标签，曲线仍绘制全部数据点。operator-only 隔离构建、8,368 项 manifest 校验和打包二进制历史页面启动检查均通过。构建及截图证据见[交付记录](../交付/20261016-history-quality-r1/README.md)。
+
+2026-10-16 20:22，本机 `outputs/operator-local/current` 已从 r6 原子切换到 r1。锁内重验确认 previous 路径仍为 r6，并校验了 r1 manifest、二进制、桌面文件和 launcher。20:22:51 的真实桌面历史 smoke 通过，实际 executable path、二进制哈希及查询/导出身份均与 r1 一致。受控 smoke 保持采集按钮禁用，测试 backend 禁止 `start_capture`；harness 报告 `capture_requests=0`。现场 operator、服务端、systemd、MongoDB 和 dashboard 均未由本任务修改或部署。本轮通过正式 launcher 查询本地 endpoint 的历史数据，但未重新核验现场部署版本、systemd 进程和 MongoDB/dashboard 部署状态。构建记录中的 `current_activated=false`、`deployed=false` 是构建时快照，不表示后续的本机激活状态。
 
 Production desktop frontend releases apply to both desktop-user-a and desktop-user-b user environments on AC-GT-CN-S2-OPI21. The shared frontend release is incomplete until both accounts are validated.
+
+真实桌面 smoke 只选择 `AC_LA_INJ1_BI_SBPM01`，预检因只有 1 台设备而报告多数步进参考无法确定；该 smoke 不证明 25 台设备的异常步进。25 台设备的 bunchID 统计和严格交集使用真实 HDF5 证据与 ID fixture 核验；r5 GUI 截图使用真实 bunchID 和示例 X/Y。按用户要求，本轮没有执行 25 台真实 X/Y 的联合 GUI 补测。
+
+桌面 smoke 进程 PID 为 `3120745`，运行时二进制 SHA-256 为 `c88b8213e97eff8d601b0154ed31f3432541bf87a2066d669058ae121b7c4beb`。验收查询任务 `22833275-5e77-41c5-b703-f306accde164` 的段 0，显示 500 Hz、5 段和 25 个可用 BPM；所选设备为 `AC_LA_INJ1_BI_SBPM01`，单设备严格对齐 20,000 点，完成原始 HDF5 下载与 V2 导出。导出身份与所选任务和段一致。进程已退出；桌面文件 SHA-256、原始和导出文件 SHA-256 见交付记录 `evidence/gui-history.json`。
+
+#### AOCI 收尾状态（2026-10-17）
+
+发布启动时，AOCI 阻止了 scope acknowledge，原因是事务 `scope-d1b9042675acd186cdc024bc.json` 等待恢复。用户确认已审阅并授权记录后，按机器返回的事务身份 `d1b9042675acd186cdc024bc` 恢复，回执为 `status=applied`、`recovery_available=false`，7 个待审 observe 路径已清零。Safe Inventory 的 `requires_human_review=13` 是人工可见项计数，用户已确认审阅；范围复核事务回执见本次交付证据。此前完整交付 10/10 块，严格 Attestation 为 partial 7/10；未重试语义答案。
+
+
+### 更早的现场与服务端记录
 
 2026-10-09 现场桌面机公共 launcher 已激活 r6。desktop-user-a 的桌面入口、GUI、二进制哈希、SSH identity、隧道、ZMQ health 和只读历史查询通过；用户现场确认 desktop-user-a、desktop-user-b 两个账号均可使用 r6，并确认真实 HDF5 频谱功能验收通过。desktop-user-a 的技术验证有机器记录；desktop-user-b 使用情况和 HDF5 功能验收属于用户现场确认，没有对应的机器端输出。本次部署没有发送采集请求，采集服务器未修改。详见[现场桌面机 r6 发布记录](../交付/20261009-spectrum-ui-r6-desktop/README.md)。
 
@@ -24,17 +105,18 @@ Production desktop frontend releases apply to both desktop-user-a and desktop-us
 
 2026-10-09 本机 r6 已激活，仍等待用户对本机开发环境进行人工桌面验收。本段状态仅指本机开发环境；现场桌面机验收状态见下表和 r6 现场发布记录。
 
-## 当前版本与部署
+## 版本与部署状态
 
-| 组件 | 当前 release | current 或部署位置 | 状态 | 验证日期 |
+| 组件 | 最近记录的 release | current 或部署位置 | 状态 | 验证日期 |
 | --- | --- | --- | --- | --- |
-| 本机 operator | `20261009-spectrum-ui-r6` | `outputs/operator-local/current → releases/20261009-spectrum-ui-r6/waveform-operator` | 已构建并激活；等待用户人工桌面验证 | 2026-10-09 |
-| 现场 operator（desktop-user-a、desktop-user-b） | `waveform-operator-r6-20261009` | `/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009` | 已激活并完成双账号验收；desktop-user-a 有机器记录，desktop-user-b 和真实 HDF5 频谱验收为用户现场确认 | 2026-10-09 |
-| 现场 acquisition server | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/current → releases/20261008-history-release-r4` | packaged/current 模式，systemd active | 2026-10-08 |
-| 日志 dashboard | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/dashboard/tools/` | HTML 和只读查询已更新，真实 HTTP/Mongo 验证通过 | 2026-10-08 |
-| MongoDB | `mongo:8.0.29` | 现有 `waveform-mongodb` 容器 | running，采集服务已连接，历史查询正常 | 2026-10-08 |
+| 当前 Git 源码 | 本次 checkpoint（无 release 号） | Git `HEAD` | 已保存当前源码与文档；不代表新的二进制或现场版本 | 2026-10-19 |
+| 本机最近已记录 release | `20261017-history-wording-r6-local` | `outputs/operator-local/current → releases/20261017-history-wording-r6-local/waveform-operator` | 本机激活入口仍指向 r6；本次未重建二进制，当前源码比该 release 更新 | 2026-10-19（仅检查链接） |
+| 现场 operator（desktop-user-a、desktop-user-b） | `waveform-operator-r6-20261009` | `/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009` | 2026-10-09 历史记录为双账号验收通过；本轮未连接复核，未由本任务部署 | 2026-10-09（历史记录） |
+| 现场 acquisition server | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/current → releases/20261008-history-release-r4` | 2026-10-08 历史记录为 packaged/current 和 systemd active；本轮未连接复核 | 2026-10-08（历史记录） |
+| 日志 dashboard | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/dashboard/tools/` | 2026-10-08 历史记录中的 HTTP/Mongo 验收通过；本轮未连接复核 | 2026-10-08（历史记录） |
+| MongoDB | `mongo:8.0.29` | 现有 `waveform-mongodb` 容器 | 2026-10-08 历史记录为运行且查询正常；本轮未连接复核 | 2026-10-08（历史记录） |
 
-旧窗口继续使用启动时加载的版本。desktop-user-a 从原桌面入口启动 r6 并保持运行。用户已确认 desktop-user-b 在其实际桌面会话可使用共享前端；本次未采集 desktop-user-b 的机器端运行输出。
+旧窗口继续使用启动时加载的版本。激活前未发现本机 operator 进程。desktop-user-a 从原桌面入口启动 r6 并保持运行、以及用户确认 desktop-user-b 可使用共享前端，均属于 2026-10-09 的历史记录；本轮没有连接现场账号复核这些情况。
 
 ## 当前入口
 
@@ -71,12 +153,17 @@ Production desktop frontend releases apply to both desktop-user-a and desktop-us
 
 ## 回滚版本
 
-- 本机 operator 的回滚目标：`outputs/operator-local/releases/20261009-spectrum-ui-r3/waveform-operator/`。r4 保留，但不作为回滚目标。
+- 当前本机审阅版 r6 的回滚目标：`outputs/operator-local/releases/20261017-history-compact-r5-local/waveform-operator/`。本轮未执行校验和检查；r5 与 r6 均保留。
+- 上一轮本机审阅版 r5 的回滚目标：`outputs/operator-local/releases/20261017-history-display-r4-local/waveform-operator/`。本轮未执行校验和检查；r4 与 r5 均保留。
+- 上一轮本机审阅版 r4 的回滚目标：`outputs/operator-local/releases/20261017-history-controls-r3-local/waveform-operator/`。本轮未执行校验和检查；r3 与 r4 均保留。
+- 上一轮本机审阅版 r3 的回滚目标：`outputs/operator-local/releases/20261017-history-ui-layout-r2-local/waveform-operator/`。本轮未执行校验和检查；r2 与 r3 均保留。
+- 本机 r2 的 `previous_operator_release` 与回滚目标：`outputs/operator-local/releases/20261016-history-quality-r1/waveform-operator/`。r1 二进制 SHA-256 为 `c88b8213e97eff8d601b0154ed31f3432541bf87a2066d669058ae121b7c4beb`。r1 和 r2 均保留。
+- r1 发布时的历史回滚目标为 `outputs/operator-local/releases/20261009-spectrum-ui-r6/waveform-operator/`，二进制 SHA-256 为 `fe98830a1a806c95e088d7070b86f97c444d35ff8dfbc1abe43aa11ee2ada6bb`；r3 是更早的人工验证版本，r4 不作为回滚目标。
 - previous_server_release：`/home/storage-user/waveform-storage-v2/releases/20261008-history-release-r3/`。
 - 日志页旧 HTML：`dashboard/release-backups/20261008-history-release-r4/`。
 - 日志页旧查询脚本：`dashboard/release-backups/20261008-history-release-r2/`。
 
-r6 本机开发环境的桌面手动验证若失败，可将本机 `current` 原子切回已人工验证的 r3。现场 acquisition server 最近记录为 r4；此前 r4 发布的服务端回滚目标为 r3。本次没有检查、切换或回滚 server。保留各本机 release。
+本机 r2 如需回滚，可将 `current` 原子切回 r1。现场 acquisition server 最近的文档记录为 r4；此前 r4 发布的服务端回滚目标为 r3。本轮没有检查、切换或回滚 server。各本机 release 均保留。
 
 ## 架构与范围
 
@@ -84,7 +171,7 @@ r6 本机开发环境的桌面手动验证若失败，可将本机 `current` 原
 
 整任务分析留待后续。整任务频谱应先逐段计算，再按明确方法汇总。现有单段频谱功能继续使用当前对齐结果，日志页继续直接只读 MongoDB。
 
-用户已确认本机 r3 的人工桌面验证通过。现场桌面机 r6 已于 2026-10-09 激活；现场 acquisition server 未修改，2026-10-08 的 server 验收记录保留为当日状态。本机 `current` 已切换至 r6；本次源码保存与远端同步记录见 Git 提交历史。
+用户已确认本机 r3 的人工桌面验证通过。现场桌面机 r6 于 2026-10-09 激活，仍属于当日历史记录；本轮未连接核对现场状态。2026-10-16 本机 `current` 已切换至 r1，真实桌面历史 smoke 通过。本任务未修改现场 acquisition server；2026-10-08 的 server 验收记录只说明当日状态。
 
 ## 历史记录
 
