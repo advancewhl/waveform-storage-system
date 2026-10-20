@@ -1,4 +1,20 @@
-# 波形存储当前状态（2026-10-19）
+# 波形存储当前状态（2026-10-20）
+
+## 2026-10-20 Agent HTTP API v1 冻结整改
+
+源码已完成 v1 整改。正式路由为 `/api/agent/v1/waveform`，新增 `/health`，POST 先持久化 Agent job 再后台执行 catalog、retrieval、alignment 和分析；UUID `idempotency_key` 与任务状态一同持久化，支持相同 output root 下的重启恢复。result 明确返回历史采样率来源、captured_at、storage_date_local 和实际 algorithm_version。派生产物 URI 同步使用 v1，白名单及 traversal 防护已验证。
+
+本轮定向测试 35 项通过；完整 `python tools/run_quality.py` 本次运行 255 项测试并通过。完整 HTTP fixture 验证真实段 3、47.6 Hz 谱峰、0.05 Hz 分辨率、4/4 分块、幂等 retry/conflict 和三个下载。真实命令及日志见[本轮交付记录](../交付/20261020-waveform-agent-v1/README.md)，客户端接口见 [Integration Handoff](handoffs/waveform-agent-v1-integration-20261020.md)。此前 247 项是上一轮结果，不作为本轮验证依据。
+
+未修改 Mongo/HDF5 schema、采集 protocol、retrieval/alignment 算法、Welch 或科学参数。当前工作树源码尚未部署，未切换已有前端或服务端版本。服务没有内建 auth、TLS、tenant isolation 或自动 artifact GC，跨主机生产接入须经批准的安全网关/隧道并配置 TLS、认证和 ACL。后台操作没有新增统一执行 deadline。accelerator-rag、Qwen 和 RAG 均未集成。
+
+## 2026-10-19 Agent-facing Waveform API
+
+已完成源码实现。`WaveformAgentService` 复用 Candidate 后端、严格对齐和现有 AnalysisJobs，提供历史 run/段查询、单段单设备 X/Y 频谱分析、任务轮询和白名单产物下载。采样率来自历史 `CaptureRunSummary.frequency_hz`；缺失或与 HDF5 metadata 冲突时拒绝分析。不接受存储路径，不提供采集和原始数据修改接口。
+
+定向测试 27 项通过；`python tools/run_quality.py` 本次运行 247 项测试并通过完整离线质量门。真实 catalog → 跳号段 3 → 可用设备 → alignment → ChannelResult 回归得到 47.6 Hz 谱峰。证据、运行命令和 accelerator-rag Integration Handoff 见[本轮交付记录](../交付/20261019-waveform-agent-api/README.md)及[接口文档](waveform-agent-api.md)。
+
+本次没有部署现场服务、切换已有版本或构建桌面二进制，现场运行状态未核验。HTTP 启动器固定绑定 loopback，目前没有内建认证；accelerator-rag/Qwen 集成尚未实现。未执行 SHA-256、完整 manifest、二进制身份、真实桌面 smoke 或完整发布验收。
 
 ## 2026-10-19 Git 源码 checkpoint
 
@@ -109,7 +125,7 @@ Production desktop frontend releases apply to both desktop-user-a and desktop-us
 
 | 组件 | 最近记录的 release | current 或部署位置 | 状态 | 验证日期 |
 | --- | --- | --- | --- | --- |
-| 当前 Git 源码 | 本次 checkpoint（无 release 号） | Git `HEAD` | 已保存当前源码与文档；不代表新的二进制或现场版本 | 2026-10-19 |
+| 当前 Git 源码 | Agent API v1 整改（无 release 号） | 当前工作树 | 源码及本轮质量门完成，未构建或部署新二进制 | 2026-10-20 |
 | 本机最近已记录 release | `20261017-history-wording-r6-local` | `outputs/operator-local/current → releases/20261017-history-wording-r6-local/waveform-operator` | 本机激活入口仍指向 r6；本次未重建二进制，当前源码比该 release 更新 | 2026-10-19（仅检查链接） |
 | 现场 operator（desktop-user-a、desktop-user-b） | `waveform-operator-r6-20261009` | `/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009` | 2026-10-09 历史记录为双账号验收通过；本轮未连接复核，未由本任务部署 | 2026-10-09（历史记录） |
 | 现场 acquisition server | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/current → releases/20261008-history-release-r4` | 2026-10-08 历史记录为 packaged/current 和 systemd active；本轮未连接复核 | 2026-10-08（历史记录） |

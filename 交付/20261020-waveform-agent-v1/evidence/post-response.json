@@ -1,0 +1,30 @@
+{
+  "job_id": "1bb975c2-0d15-4518-aef4-208bf5c0d2f6",
+  "analysis_job_id": null,
+  "status": "accepted",
+  "analysis_parameters": {
+    "profile": "high_band",
+    "search_low_hz": 40.0,
+    "search_high_hz": 50.0,
+    "background_low_hz": 30.0,
+    "background_high_hz": 60.0,
+    "welch_seconds": 20.0,
+    "block_seconds": 5.0,
+    "threshold_db": 6.0,
+    "minimum_points": 128,
+    "minimum_seconds": 5.0,
+    "minimum_blocks": 3,
+    "minimum_block_ratio": 0.6,
+    "peak_match_hz": 1.0,
+    "max_gap_factor": 5.0,
+    "zero_policy": "keep"
+  },
+  "created_at": "2026-10-20T01:58:59.769072+00:00",
+  "updated_at": "2026-10-20T01:58:59.769090+00:00",
+  "request_id": "c4577407-3528-486f-87df-6290da28e00d",
+  "capture_sequence": 3,
+  "device_id": "AC_LA_INJ1_BI_SBPM01",
+  "channel": "X",
+  "profile": "high_band",
+  "idempotency_key": "e4c07704-7351-4bfc-a259-a77a12e29803"
+}

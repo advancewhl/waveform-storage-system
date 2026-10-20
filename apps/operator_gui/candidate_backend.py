@@ -150,6 +150,10 @@ class CandidateOperatorBackend:
             raise RuntimeError("服务器返回的频率PV读数无效，未发送采集请求")
         return float(frequency)
 
+    def check_health(self) -> bool:
+        """Probe only Candidate liveness, without capture or metadata mutations."""
+        return self._candidate_transport(timeout_ms=1000).health(str(uuid4())).accepted
+
     def get_capture_status(self, request_id: str):
         return self._candidate_transport().get_status(request_id)
 

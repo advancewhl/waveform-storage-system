@@ -139,3 +139,7 @@ python tools/run_spectrum_service.py \
 前端允许清单、离线依赖列表和 PyInstaller 配置已包含新模块。新增运行依赖为 pandas 和 SciPy。
 
 预览产物放在 `outputs/spectrum-preview/`。桌面机安装需使用目标系统兼容的构建脚本。本次未自动更新已部署的桌面机。
+
+## Agent HTTP API v1
+
+正式前缀为 `/api/agent/v1/waveform`，按 canonical `request_id`、真实 `capture_sequence`、段内 `device_id`、`X/Y` 和 UUID `idempotency_key` 异步提交。采样率来自历史 run，结构化 `sample_rate_source` 为 `capture_run_summary`；从检索到分析全部属于 Agent job，客户端使用同 key 安全重试，并通过 polling 与同 origin 的 URI 获取结果和产物。`GET /health` 提供 Candidate 可达性及分析就绪状态。当前服务仅绑定 loopback，没有内建 auth、TLS 或 tenant isolation，也没有自动 artifact GC。源码尚未部署，accelerator-rag/Qwen 接入未实现。精确契约见 [API v1 文档](waveform-agent-api.md)及 [Integration Handoff](handoffs/waveform-agent-v1-integration-20261020.md)。

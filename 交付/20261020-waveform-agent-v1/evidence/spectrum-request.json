@@ -1,0 +1,8 @@
+{
+  "request_id": "c4577407-3528-486f-87df-6290da28e00d",
+  "capture_sequence": 3,
+  "device_id": "AC_LA_INJ1_BI_SBPM01",
+  "channel": "X",
+  "profile": "high_band",
+  "idempotency_key": "e4c07704-7351-4bfc-a259-a77a12e29803"
+}

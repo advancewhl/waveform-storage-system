@@ -94,6 +94,17 @@ def read_single_device_hdf5(path: str | os.PathLike[str]) -> DeviceSeries:
         bunch_raw = np.asarray(h5["BunchIDData"])
         data = np.asarray(h5["Data"])
         device_id = _decode_scalar_string(h5.attrs.get("Device", ""))
+        metadata = {}
+        for key in ("capture_metadata_json", "metadata_json"):
+            if key in h5.attrs:
+                value = json.loads(_decode_scalar_string(h5.attrs[key]))
+                if not isinstance(value, dict):
+                    raise Hdf5SchemaError("HDF5 metadata must be an object")
+                metadata.update(value)
+        for key in ("sample_rate_hz", "frequency_hz"):
+            if key in h5.attrs:
+                value = h5.attrs[key]
+                metadata[key] = value.item() if isinstance(value, np.generic) else value
 
     if bunch_raw.ndim == 2 and bunch_raw.shape[0] == 1:
         bunch_ids = bunch_raw[0]
@@ -121,6 +132,7 @@ def read_single_device_hdf5(path: str | os.PathLike[str]) -> DeviceSeries:
         bunch_ids=bunch_ids.astype(np.uint64, copy=False),
         x=data[0].copy(),
         y=data[1].copy(),
+        metadata=metadata,
     )
 
 

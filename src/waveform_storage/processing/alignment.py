@@ -6,7 +6,7 @@ does not guess scale factors or convert between incompatible device timebases.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import ceil
 from numbers import Integral
 from typing import Literal, Sequence
@@ -28,6 +28,7 @@ class DeviceSeries:
     bunch_ids: ArrayLike
     x: ArrayLike
     y: ArrayLike
+    metadata: dict = field(default_factory=dict, compare=False)
 
 
 @dataclass(frozen=True)

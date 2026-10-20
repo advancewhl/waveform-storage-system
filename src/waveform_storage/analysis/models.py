@@ -112,8 +112,13 @@ class AnalysisRequest:
     config: AnalysisConfig = field(default_factory=AnalysisConfig)
     sample_rate_hz: float | None = None
     alignment: Any = field(default=None, repr=False, compare=False)
+    sample_rate_source: str | None = None
 
     def __post_init__(self) -> None:
+        if self.sample_rate_source not in {None, "capture_run_summary"}:
+            raise ValueError("Unknown sampling-rate source")
+        if self.sample_rate_source and self.source_type != "alignment":
+            raise ValueError("Historical sampling-rate source requires alignment")
         if self.source_type not in {"archiver", "hdf5", "alignment"}:
             raise ValueError("请选择 Archiver 或 HDF5 数据来源")
         if self.source_type == "alignment":

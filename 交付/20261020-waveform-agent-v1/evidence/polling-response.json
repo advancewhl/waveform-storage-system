@@ -1,0 +1,106 @@
+{
+  "job_id": "1bb975c2-0d15-4518-aef4-208bf5c0d2f6",
+  "analysis_job_id": "f663cca2-a06f-4cca-8cb9-a08a8546c115",
+  "status": "succeeded",
+  "analysis_parameters": {
+    "profile": "high_band",
+    "search_low_hz": 40.0,
+    "search_high_hz": 50.0,
+    "background_low_hz": 30.0,
+    "background_high_hz": 60.0,
+    "welch_seconds": 20.0,
+    "block_seconds": 5.0,
+    "threshold_db": 6.0,
+    "minimum_points": 128,
+    "minimum_seconds": 5.0,
+    "minimum_blocks": 3,
+    "minimum_block_ratio": 0.6,
+    "peak_match_hz": 1.0,
+    "max_gap_factor": 5.0,
+    "zero_policy": "keep"
+  },
+  "created_at": "2026-10-20T01:58:59.769072+00:00",
+  "updated_at": "2026-10-20T01:58:59.856608+00:00",
+  "result": {
+    "request_id": "c4577407-3528-486f-87df-6290da28e00d",
+    "capture_sequence": 3,
+    "device_id": "AC_LA_INJ1_BI_SBPM01",
+    "channel": "X",
+    "profile": "high_band",
+    "idempotency_key": "e4c07704-7351-4bfc-a259-a77a12e29803",
+    "sample_rate_hz": 1000.0,
+    "data_points": 20000,
+    "duration_seconds": 19.999,
+    "classification": "stable_candidate",
+    "display_status": "clear_peak",
+    "reason": "整体谱峰显著，且在本次记录的独立秒级分块中重复出现",
+    "peak_hz": 47.6,
+    "peak_to_background_db": 240.1270504522734,
+    "resolution_hz": 0.05,
+    "block_hits": 4,
+    "block_count": 4,
+    "block_ratio": 1.0,
+    "quality": {
+      "raw_points": 20000,
+      "removed_points": 0,
+      "duplicate_points": 0,
+      "first_valid_offset_seconds": 0.0,
+      "valid_points": 20000,
+      "median_interval_seconds": 0.0009999999999998899,
+      "interval_mad_seconds": 4.440892098500626e-16,
+      "max_gap_seconds": 0.0010000000000012221,
+      "nyquist_hz": 500.0,
+      "resampled_points": 20000,
+      "short_gap_fill_points": 0
+    },
+    "warnings": [
+      "时间轴为相对时间",
+      "X/Y 同时为零的点有 1 个；默认保留"
+    ],
+    "captured_at": "2026-10-08T08:00:03+00:00",
+    "storage_date_local": "2026-10-08",
+    "sample_rate_source": "capture_run_summary",
+    "algorithm_version": "unified-spectrum-1.0",
+    "analysis_parameters": {
+      "profile": "high_band",
+      "search_low_hz": 40.0,
+      "search_high_hz": 50.0,
+      "background_low_hz": 30.0,
+      "background_high_hz": 60.0,
+      "welch_seconds": 20.0,
+      "block_seconds": 5.0,
+      "threshold_db": 6.0,
+      "minimum_points": 128,
+      "minimum_seconds": 5.0,
+      "minimum_blocks": 3,
+      "minimum_block_ratio": 0.6,
+      "peak_match_hz": 1.0,
+      "max_gap_factor": 5.0,
+      "zero_policy": "keep"
+    },
+    "analysis_job_id": "f663cca2-a06f-4cca-8cb9-a08a8546c115",
+    "artifact_refs": {
+      "job_id": "1bb975c2-0d15-4518-aef4-208bf5c0d2f6",
+      "artifacts": [
+        {
+          "name": "results.json",
+          "uri": "/api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6/artifacts/results.json"
+        },
+        {
+          "name": "results.zip",
+          "uri": "/api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6/artifacts/results.zip"
+        },
+        {
+          "name": "spectra.npz",
+          "uri": "/api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6/artifacts/spectra.npz"
+        }
+      ]
+    }
+  },
+  "request_id": "c4577407-3528-486f-87df-6290da28e00d",
+  "capture_sequence": 3,
+  "device_id": "AC_LA_INJ1_BI_SBPM01",
+  "channel": "X",
+  "profile": "high_band",
+  "idempotency_key": "e4c07704-7351-4bfc-a259-a77a12e29803"
+}

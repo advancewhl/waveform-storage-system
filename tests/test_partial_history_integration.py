@@ -114,7 +114,11 @@ class PartialHistoryIntegrationTests(unittest.TestCase):
                 window.align_button.click()
                 self.wait(window)
                 self.assertEqual(window.align_button.text(), '继续严格对齐')
-                window.align_button.click()
+                dialog = window._raw_step_warning_dialog
+                self.assertIsNotNone(dialog)
+                proceed = next(button for button in dialog.buttons()
+                               if button.text() == '继续严格对齐')
+                proceed.click()
                 self.wait(window)
                 self.assertEqual(window.alignment_result.device_ids, (FIRST,))
                 self.assertEqual(window.alignment_result.bunch_ids.size, 3)

@@ -285,6 +285,7 @@ def download_device_series(
                         source.bunch_ids,
                         source.x,
                         source.y,
+                        metadata=getattr(source, "metadata", {}),
                     )
                 )
             except Exception as exc:

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-10T02:17:16Z",
-  "updated_at": "2026-10-19T02:09:10Z",
+  "updated_at": "2026-10-20T02:21:13Z",
   "files": {
     ".env.example": {
       "role": "index",
@@ -47,9 +47,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "d14c949c31fc8d3fffd428aae429a0ac1ff7e9ad5e6fa29deb1041c99387b138",
-      "size": 122070,
-      "normalized_sha256": "d14c949c31fc8d3fffd428aae429a0ac1ff7e9ad5e6fa29deb1041c99387b138"
+      "sha256": "6828bc26e4752d72b8608e439687fafd4893e0fe9c09ef884c1780bbf6adc8e0",
+      "size": 126666,
+      "normalized_sha256": "6828bc26e4752d72b8608e439687fafd4893e0fe9c09ef884c1780bbf6adc8e0"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -77,9 +77,9 @@
     },
     "apps/operator_gui/candidate_backend.py": {
       "role": "index",
-      "sha256": "3be31de7b1ee5ca405a90a0813986d2ce1590981e853845f077670be80133829",
-      "size": 16081,
-      "normalized_sha256": "3be31de7b1ee5ca405a90a0813986d2ce1590981e853845f077670be80133829"
+      "sha256": "513fc9a4414cb1ef7dce02f435163be7d672324c11dec92dea8be6aa1059c72c",
+      "size": 16290,
+      "normalized_sha256": "513fc9a4414cb1ef7dce02f435163be7d672324c11dec92dea8be6aa1059c72c"
     },
     "apps/operator_gui/experimental_backend.py": {
       "role": "index",
@@ -233,9 +233,9 @@
     },
     "docs/CURRENT_STATUS.md": {
       "role": "index",
-      "sha256": "6d07e20e81af5ca1799772d2df0629c68c0661bb293dfc00cd9280085b3960f3",
-      "size": 24392,
-      "normalized_sha256": "6d07e20e81af5ca1799772d2df0629c68c0661bb293dfc00cd9280085b3960f3"
+      "sha256": "4008faa3a907552c01d9964d717c8a95a8cd57eddb17f978302c2a9a2d11b037",
+      "size": 26985,
+      "normalized_sha256": "4008faa3a907552c01d9964d717c8a95a8cd57eddb17f978302c2a9a2d11b037"
     },
     "docs/MongoDB元数据模块设计.md": {
       "role": "index",
@@ -365,6 +365,12 @@
       "size": 9477,
       "normalized_sha256": "f5e1f22b7b214216c2422801b8ca29d7b61eeaa99b9d0ba2cdfc8d7655e08c03"
     },
+    "docs/handoffs/waveform-agent-v1-integration-20261020.md": {
+      "role": "index",
+      "sha256": "1197341ad04b5c0ce63855d66fa80539ba87c745eafcffda5c107c0de35973df",
+      "size": 22505,
+      "normalized_sha256": "1197341ad04b5c0ce63855d66fa80539ba87c745eafcffda5c107c0de35973df"
+    },
     "docs/history/2026-07/CODEX_HANDOFF.md": {
       "role": "index",
       "sha256": "b97a768c089ab806c5bb604d297f03c99a21c0e1bb2e1636301c5fdf57bb5c0b",
@@ -433,9 +439,9 @@
     },
     "docs/spectrum-analysis-usage.md": {
       "role": "index",
-      "sha256": "ba0b959dbc481e281ce02ca3267587af6df544c0387d99184d9c26313517fe41",
-      "size": 9725,
-      "normalized_sha256": "ba0b959dbc481e281ce02ca3267587af6df544c0387d99184d9c26313517fe41"
+      "sha256": "84e97c91651b7c49685a12c026c4543fe325de4ab5ab8ecdf210a4782d501648",
+      "size": 10518,
+      "normalized_sha256": "84e97c91651b7c49685a12c026c4543fe325de4ab5ab8ecdf210a4782d501648"
     },
     "docs/spectrum-analysis-validation.md": {
       "role": "index",
@@ -513,6 +519,12 @@
       "role": "index",
       "sha256": "aa5484bdf4b56f2d3e801ba70684a19c8b8fcd52fd2237a8331d4260684b3a90",
       "size": 153864
+    },
+    "docs/waveform-agent-api.md": {
+      "role": "index",
+      "sha256": "7a5fbf7ac766f0d498d4e6b48e422797918f4240cf57c477759f5d338c167fbd",
+      "size": 14272,
+      "normalized_sha256": "7a5fbf7ac766f0d498d4e6b48e422797918f4240cf57c477759f5d338c167fbd"
     },
     "docs/工作目录整理_2026-10-07.md": {
       "role": "index",
@@ -858,15 +870,15 @@
     },
     "src/waveform_storage/analysis/loaders.py": {
       "role": "index",
-      "sha256": "aea5f0edcab7ab9960b24274f225823788948ee5de9064deaed0afe8c89ddacd",
-      "size": 13919,
-      "normalized_sha256": "aea5f0edcab7ab9960b24274f225823788948ee5de9064deaed0afe8c89ddacd"
+      "sha256": "bb10ab0fec8475a8aaaac5c1f60ac59b852b52f07fbb6d26ed9120af47779fc0",
+      "size": 14081,
+      "normalized_sha256": "bb10ab0fec8475a8aaaac5c1f60ac59b852b52f07fbb6d26ed9120af47779fc0"
     },
     "src/waveform_storage/analysis/models.py": {
       "role": "index",
-      "sha256": "5dc48a7924462d379f40ef5ea6a60a865846b5782a7ccce2b8e09da4f35f8dc3",
-      "size": 6813,
-      "normalized_sha256": "5dc48a7924462d379f40ef5ea6a60a865846b5782a7ccce2b8e09da4f35f8dc3"
+      "sha256": "dc2357cf4c28f6030d69b1601420d150cde7c34d128cc710d7555b2f50fbc931",
+      "size": 7144,
+      "normalized_sha256": "dc2357cf4c28f6030d69b1601420d150cde7c34d128cc710d7555b2f50fbc931"
     },
     "src/waveform_storage/analysis/numerics.py": {
       "role": "index",
@@ -912,9 +924,9 @@
     },
     "src/waveform_storage/analysis/service.py": {
       "role": "index",
-      "sha256": "aeacd0c5e9769d51481ed7a9c8f3134063b577ca5052409c2b31c634428ba698",
-      "size": 13775,
-      "normalized_sha256": "aeacd0c5e9769d51481ed7a9c8f3134063b577ca5052409c2b31c634428ba698"
+      "sha256": "886a5f6761e6feb9f1c5131a3ddeb537954b3c24c01670a7182764790b1fcd55",
+      "size": 14381,
+      "normalized_sha256": "886a5f6761e6feb9f1c5131a3ddeb537954b3c24c01670a7182764790b1fcd55"
     },
     "src/waveform_storage/analysis/status.py": {
       "role": "index",
@@ -927,6 +939,24 @@
       "sha256": "0e191e177b4a476fc86589bebc5f9d2b218b55f35bff24978754a0943bc7a95e",
       "size": 1247,
       "normalized_sha256": "0e191e177b4a476fc86589bebc5f9d2b218b55f35bff24978754a0943bc7a95e"
+    },
+    "src/waveform_storage/application/agent_http_api.py": {
+      "role": "index",
+      "sha256": "ea107f52baab7ca54437c3d2bc2c77f97d4e4b8b6e1c0ef9124f2f4840dd1b2e",
+      "size": 4854,
+      "normalized_sha256": "ea107f52baab7ca54437c3d2bc2c77f97d4e4b8b6e1c0ef9124f2f4840dd1b2e"
+    },
+    "src/waveform_storage/application/agent_jobs.py": {
+      "role": "index",
+      "sha256": "7bce96d6a9ceea34388fea49d4f8fddcc6ca02928ea0e8bd586758d1ebd19850",
+      "size": 3968,
+      "normalized_sha256": "7bce96d6a9ceea34388fea49d4f8fddcc6ca02928ea0e8bd586758d1ebd19850"
+    },
+    "src/waveform_storage/application/agent_service.py": {
+      "role": "index",
+      "sha256": "80f393acc57dc5c533d2ad65013a9cf1c0039a4c0c83be38f6d290de274b16ed",
+      "size": 13512,
+      "normalized_sha256": "80f393acc57dc5c533d2ad65013a9cf1c0039a4c0c83be38f6d290de274b16ed"
     },
     "src/waveform_storage/application/capture_service.py": {
       "role": "index",
@@ -1056,9 +1086,9 @@
     },
     "src/waveform_storage/io/hdf5_io.py": {
       "role": "index",
-      "sha256": "dd67f8709bf5094d66589cff4d220cb25048c0e8d28603fc133fd9bb98fc0b03",
-      "size": 15144,
-      "normalized_sha256": "dd67f8709bf5094d66589cff4d220cb25048c0e8d28603fc133fd9bb98fc0b03"
+      "sha256": "d3511cc99d3b1daadac0a2bce0bd86c3eafa6ee8d84e4b0a6c2399615d0e897d",
+      "size": 15739,
+      "normalized_sha256": "d3511cc99d3b1daadac0a2bce0bd86c3eafa6ee8d84e4b0a6c2399615d0e897d"
     },
     "src/waveform_storage/io/txt_parser.py": {
       "role": "index",
@@ -1170,9 +1200,9 @@
     },
     "src/waveform_storage/processing/alignment.py": {
       "role": "index",
-      "sha256": "3932256d4e1b7038a8ac063370ddc7ea09e8bbd3391f05b34589c8bd5963e2b4",
-      "size": 15077,
-      "normalized_sha256": "3932256d4e1b7038a8ac063370ddc7ea09e8bbd3391f05b34589c8bd5963e2b4"
+      "sha256": "e8db12d72a0ad553130f0823a88b508ab0ec2a6b223fe90ad2b1abd8843d5346",
+      "size": 15148,
+      "normalized_sha256": "e8db12d72a0ad553130f0823a88b508ab0ec2a6b223fe90ad2b1abd8843d5346"
     },
     "src/waveform_storage/processing/bunch_id_diagnostics.py": {
       "role": "index",
@@ -1200,9 +1230,9 @@
     },
     "src/waveform_storage/transport/ssh_storage.py": {
       "role": "index",
-      "sha256": "9774f87c56d0a508308ab33557190542d503beb5d3970912379012a04b200f3c",
-      "size": 10108,
-      "normalized_sha256": "9774f87c56d0a508308ab33557190542d503beb5d3970912379012a04b200f3c"
+      "sha256": "a1eb0a74ed97a9214cab0a29f427dc1e0581eeb953712b97df353caf7cbbb19d",
+      "size": 10174,
+      "normalized_sha256": "a1eb0a74ed97a9214cab0a29f427dc1e0581eeb953712b97df353caf7cbbb19d"
     },
     "src/waveform_storage/transport/zmq_transport.py": {
       "role": "index",
@@ -1368,9 +1398,9 @@
     },
     "tests/test_partial_history_integration.py": {
       "role": "observe",
-      "sha256": "f03062d61be8a7560331cdf7cc9fba6646c3bd59f8686dd35cd68f239133796f",
-      "size": 7434,
-      "normalized_sha256": "f03062d61be8a7560331cdf7cc9fba6646c3bd59f8686dd35cd68f239133796f"
+      "sha256": "7733353ec5d0f88ed0ba67fd1eff1010eb1d9c8130e560a311420daf48845825",
+      "size": 7666,
+      "normalized_sha256": "7733353ec5d0f88ed0ba67fd1eff1010eb1d9c8130e560a311420daf48845825"
     },
     "tests/test_release_waveform.py": {
       "role": "observe",
@@ -1419,6 +1449,12 @@
       "sha256": "81ebf042ffe5ea32c1d8e8c995bac7d553f6e8d14b400e39979701ba5019d97e",
       "size": 9970,
       "normalized_sha256": "81ebf042ffe5ea32c1d8e8c995bac7d553f6e8d14b400e39979701ba5019d97e"
+    },
+    "tests/test_waveform_agent_api.py": {
+      "role": "observe",
+      "sha256": "880fe38da869f86cd745e3db46a8f2bd0405963c83bd77c9ce362e4c12c0490e",
+      "size": 26104,
+      "normalized_sha256": "880fe38da869f86cd745e3db46a8f2bd0405963c83bd77c9ce362e4c12c0490e"
     },
     "tests/test_waveform_log_query.py": {
       "role": "observe",
@@ -1515,6 +1551,18 @@
       "sha256": "c1e7ca51c060f80089b85197939c39ed15417c61bca97a9fe0461ade528de718",
       "size": 1078,
       "normalized_sha256": "c1e7ca51c060f80089b85197939c39ed15417c61bca97a9fe0461ade528de718"
+    },
+    "tools/run_waveform_agent_api.py": {
+      "role": "index",
+      "sha256": "f5eb73b8b7f06afa1296ec59a1f02ee845cd133af8a327b4c971b64209dbf193",
+      "size": 1389,
+      "normalized_sha256": "f5eb73b8b7f06afa1296ec59a1f02ee845cd133af8a327b4c971b64209dbf193"
+    },
+    "tools/run_waveform_agent_fixture.py": {
+      "role": "index",
+      "sha256": "0eb3d3fe9c20b7b51341e58894262ff77d9c1e398a2813ff368fdff113f8e702",
+      "size": 926,
+      "normalized_sha256": "0eb3d3fe9c20b7b51341e58894262ff77d9c1e398a2813ff368fdff113f8e702"
     },
     "tools/run_waveform_log_dashboard.sh": {
       "role": "index",
@@ -1935,6 +1983,18 @@
       "sha256": "41d2d202fcc53ae98d7cdc1291686f7fea22a1fe6ea2383c544c4cd3844cf3f5",
       "size": 3156,
       "normalized_sha256": "41d2d202fcc53ae98d7cdc1291686f7fea22a1fe6ea2383c544c4cd3844cf3f5"
+    },
+    "交付/20261019-waveform-agent-api/README.md": {
+      "role": "index",
+      "sha256": "7ab1e8725d385e582edd6b9309792d7985fa251f70899423a9de0a4bb567d5c2",
+      "size": 2852,
+      "normalized_sha256": "7ab1e8725d385e582edd6b9309792d7985fa251f70899423a9de0a4bb567d5c2"
+    },
+    "交付/20261020-waveform-agent-v1/README.md": {
+      "role": "index",
+      "sha256": "26cba620ff7110811ed6dff47fe43368bd764e79d25344ac8f23d3c42947983f",
+      "size": 3483,
+      "normalized_sha256": "26cba620ff7110811ed6dff47fe43368bd764e79d25344ac8f23d3c42947983f"
     },
     "交付/README_先看.md": {
       "role": "index",

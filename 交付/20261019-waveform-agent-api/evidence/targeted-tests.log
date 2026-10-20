@@ -1,0 +1,62 @@
+test_actual_nonconsecutive_sequence_to_channel_and_artifacts (test_waveform_agent_api.AgentIntegrationTests) ... ok
+test_domain_validation_frequency_conflict_and_missing_frequency (test_waveform_agent_api.AgentIntegrationTests) ... ok
+test_error_mapping (test_waveform_agent_api.AgentIntegrationTests) ... ok
+test_http_contract_download_and_rejected_paths_mutations (test_waveform_agent_api.AgentIntegrationTests) ... 127.0.0.1 - - [19/Oct/2026 16:53:25] "GET /api/agent/waveform/runs?date=2026-10-08 HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "GET /api/agent/waveform/requests/c4577407-3528-486f-87df-6290da28e00d/captures HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "GET /api/agent/waveform/requests/c4577407-3528-486f-87df-6290da28e00d/captures/3 HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "POST /api/agent/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "GET /api/agent/waveform/jobs/1bca9375-d77d-4c61-b01b-ea58a80d5d37 HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "GET /api/agent/waveform/jobs/1bca9375-d77d-4c61-b01b-ea58a80d5d37/artifacts/results.json HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "GET /api/agent/waveform/jobs/1bca9375-d77d-4c61-b01b-ea58a80d5d37/artifacts/results.zip HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "GET /api/agent/waveform/jobs/1bca9375-d77d-4c61-b01b-ea58a80d5d37/artifacts/spectra.npz HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "POST /api/agent/waveform/start_capture HTTP/1.1" 404 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "POST /api/agent/waveform/cancel HTTP/1.1" 404 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "POST /api/agent/waveform/delete HTTP/1.1" 404 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "POST /api/agent/waveform/rename HTTP/1.1" 404 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "POST /api/agent/waveform/move HTTP/1.1" 404 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "POST /api/agent/waveform/jobs/1bca9375-d77d-4c61-b01b-ea58a80d5d37/cancel HTTP/1.1" 404 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "POST /api/agent/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "GET /api/agent/waveform/jobs/1bca9375-d77d-4c61-b01b-ea58a80d5d37/artifacts/run-manifest.json HTTP/1.1" 404 -
+127.0.0.1 - - [19/Oct/2026 16:53:25] "POST /api/agent/waveform/spectrum HTTP/1.1" 504 -
+ok
+test_partial_catalog_protocol_gui_alignment_raw_and_export (test_partial_history_integration.PartialHistoryIntegrationTests) ... This plugin does not support propagateSizeHints()
+ok
+test_bom_value_fallback_and_zip_use_real_utc_times (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_id_gap_is_not_compressed_and_bad_row_labels_fail (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_old_hdf_requires_rate_and_conflicting_rate_fails (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_three_hdf_layouts_keep_all_channels_and_rate (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_display_status_policy_covers_all_five_states_and_keeps_invalid_separate (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_drifting_block_peaks_do_not_become_repeated_candidate (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_explicit_double_zero_policy_preserves_time_axis (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_high_band_welch_uses_20_seconds_overall_and_five_second_blocks (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_high_frequency_evidence_flows_into_display_status_deterministically (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_long_gap_and_nyquist_and_constant_are_invalid (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_low_frequency_display_status_separates_peak_evidence_from_v2_stability (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_low_frequency_matches_original_algorithm_golden (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_resolution_aware_peak_formatter (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_same_peak_and_physical_windows_at_500_and_1000_hz (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_shorter_record_uses_available_welch_data_with_20_second_request (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_empty_input_and_cancelled_run_leave_no_partial_result (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_live_manager_cannot_be_mistaken_for_a_restarted_service (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_pre_v2_results_reload_with_conservative_legacy_observation_status (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_report_rounds_peak_for_people_but_machine_outputs_keep_full_precision (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_restart_retains_completed_results_and_marks_interrupted_jobs (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_result_manifest_and_files_and_async_status (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_shared_job_and_download_and_allowlisted_input (test_spectrum_http_api.SpectrumApiTests) ... 127.0.0.1 - - [19/Oct/2026 16:53:27] "POST /api/analysis/jobs HTTP/1.1" 202 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "GET /api/analysis/jobs/1623937b-5523-4def-82f3-2b8ea5361a7b HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "GET /api/analysis/jobs/1623937b-5523-4def-82f3-2b8ea5361a7b HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "GET /api/analysis/jobs/1623937b-5523-4def-82f3-2b8ea5361a7b HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "GET /api/analysis/jobs/1623937b-5523-4def-82f3-2b8ea5361a7b HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "GET /api/analysis/jobs/1623937b-5523-4def-82f3-2b8ea5361a7b HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "GET /api/analysis/jobs/1623937b-5523-4def-82f3-2b8ea5361a7b HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "GET /api/analysis/jobs/1623937b-5523-4def-82f3-2b8ea5361a7b HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "GET /api/analysis/jobs/1623937b-5523-4def-82f3-2b8ea5361a7b/artifacts/results.zip HTTP/1.1" 200 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "POST /api/analysis/jobs HTTP/1.1" 403 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "GET /api/analysis/jobs/1623937b-5523-4def-82f3-2b8ea5361a7b/artifacts/secret.json HTTP/1.1" 404 -
+127.0.0.1 - - [19/Oct/2026 16:53:27] "POST /api/analysis/jobs HTTP/1.1" 403 -
+ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 2.502s
+
+OK

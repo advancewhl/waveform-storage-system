@@ -186,6 +186,8 @@ def _waveform_series(ids, x, y, devices, source, rate, rate_source,
         notes = ["时间轴为相对时间；采样率来自" + (
             "文件记录，需结合采集语义核对" if rate_source == "file_metadata"
             else "用户填写的该次采集频率")]
+        if rate_source == "capture_run_summary":
+            notes = ["时间轴为相对时间"]
         if double_zero.any():
             notes.append(f"X/Y 同时为零的点有 {int(double_zero.sum()):,} 个；默认保留")
         for values, plane in [(x[index], "X"), (y[index], "Y")]:
@@ -258,6 +260,7 @@ def load_hdf5(path, explicit_rate):
 def load_request(request: AnalysisRequest):
     if request.source_type == "alignment":
         rate, rate_source = _sampling_rate({}, request.sample_rate_hz)
+        rate_source = request.sample_rate_source or rate_source
         result = request.alignment
         yield from _waveform_series(result.bunch_ids, result.x, result.y,
                                     result.device_ids, "history-alignment", rate,

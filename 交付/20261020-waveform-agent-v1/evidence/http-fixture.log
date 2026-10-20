@@ -1,0 +1,14 @@
+127.0.0.1 - - [20/Oct/2026 09:58:59] "GET /health HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "GET /api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "GET /api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "GET /api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "GET /api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "GET /api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "GET /api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "GET /api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6/artifacts/results.json HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "GET /api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6/artifacts/results.zip HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 09:58:59] "GET /api/agent/v1/waveform/jobs/1bb975c2-0d15-4518-aef4-208bf5c0d2f6/artifacts/spectra.npz HTTP/1.1" 200 -
+v1 HTTP fixture: health, catalog-backed spectrum, idempotency retry/conflict, polling and 3 artifacts OK

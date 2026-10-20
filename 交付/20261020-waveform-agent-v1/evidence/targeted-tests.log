@@ -1,0 +1,222 @@
+test_agent_queue_is_bounded (test_waveform_agent_api.AgentV1Tests) ... ok
+test_artifact_security_unknown_job_and_read_only_router (test_waveform_agent_api.AgentV1Tests) ... 127.0.0.1 - - [20/Oct/2026 10:05:32] "GET /api/agent/v1/waveform/jobs/f57c295c-fdd1-4545-8eef-d27a3853391d HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:32] "GET /api/agent/v1/waveform/jobs/bad HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:32] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts/results.json HTTP/1.1" 422 -
+127.0.0.1 - - [20/Oct/2026 10:05:32] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts/unknown.json HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts/.. HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts/../results.json HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts/%2e%2e HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts/%2e%2e%2fresults.json HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts/%252e%252e%252fresults.json HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts//etc/passwd HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts/%2fetc%2fpasswd HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts/run-manifest.json HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/artifacts/results.json HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/start_capture HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/cancel HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/delete HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/rename HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/move HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/mongo/update HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/epics/write HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/cancel HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PUT /api/agent/v1/waveform/start_capture HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PUT /api/agent/v1/waveform/cancel HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PUT /api/agent/v1/waveform/delete HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PUT /api/agent/v1/waveform/rename HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PUT /api/agent/v1/waveform/move HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PUT /api/agent/v1/waveform/mongo/update HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PUT /api/agent/v1/waveform/epics/write HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PUT /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/cancel HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PATCH /api/agent/v1/waveform/start_capture HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PATCH /api/agent/v1/waveform/cancel HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PATCH /api/agent/v1/waveform/delete HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PATCH /api/agent/v1/waveform/rename HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PATCH /api/agent/v1/waveform/move HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PATCH /api/agent/v1/waveform/mongo/update HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PATCH /api/agent/v1/waveform/epics/write HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "PATCH /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/cancel HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "DELETE /api/agent/v1/waveform/start_capture HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "DELETE /api/agent/v1/waveform/cancel HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "DELETE /api/agent/v1/waveform/delete HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "DELETE /api/agent/v1/waveform/rename HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "DELETE /api/agent/v1/waveform/move HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "DELETE /api/agent/v1/waveform/mongo/update HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "DELETE /api/agent/v1/waveform/epics/write HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "DELETE /api/agent/v1/waveform/jobs/f597c914-5135-4a05-8549-78c9803578e2/cancel HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/waveform/runs?date=2026-10-08 HTTP/1.1" 404 -
+ok
+test_async_resolution_failures_preserve_domain_errors (test_waveform_agent_api.AgentV1Tests) ... 127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/de0e35ce-bffd-492c-b0ea-1b50049db170 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/de0e35ce-bffd-492c-b0ea-1b50049db170 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/da60fa92-3460-4ec8-8481-d79bccdd80d8 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/c9280d94-8f3e-48a8-818d-f7bbf5488644 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/5ce03ee1-933c-4f02-96fb-19dccf6ee5aa HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/requests/c4577407-3528-486f-87df-6290da28e00d/captures HTTP/1.1" 503 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/9858b7a3-e16d-4a56-ba92-8c84e6b74df2 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/requests/c4577407-3528-486f-87df-6290da28e00d/captures HTTP/1.1" 504 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/c9c7c5b1-13a3-4635-9521-117388ad1466 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/requests/c4577407-3528-486f-87df-6290da28e00d/captures HTTP/1.1" 409 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/64ff21eb-1f53-498d-8bf6-b3b1914b73a7 HTTP/1.1" 200 -
+Agent operation failed
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_service.py", line 144, in _execute
+    segment = self._segment(request_id, values['capture_sequence'])
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_service.py", line 102, in _segment
+    segments = self.backend.retrieve_segments(request_id)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1114, in __call__
+    return self._mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1118, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1173, in _execute_mock_call
+    raise effect
+RuntimeError: SECRET_TOKEN /home/private
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/jobs/64ff21eb-1f53-498d-8bf6-b3b1914b73a7 HTTP/1.1" 200 -
+Agent operation failed
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 79, in _handle
+    self._dispatch(method)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 53, in _dispatch
+    self._json(200, {'captures': service.list_captures(parts[1])})
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_service.py", line 93, in list_captures
+    segments = self.backend.retrieve_segments(request_id)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1114, in __call__
+    return self._mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1118, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1173, in _execute_mock_call
+    raise effect
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_service.py", line 144, in _execute
+    segment = self._segment(request_id, values['capture_sequence'])
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_service.py", line 102, in _segment
+    segments = self.backend.retrieve_segments(request_id)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1114, in __call__
+    return self._mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1118, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1173, in _execute_mock_call
+    raise effect
+RuntimeError: SECRET_TOKEN /home/private
+127.0.0.1 - - [20/Oct/2026 10:05:33] "GET /api/agent/v1/waveform/requests/c4577407-3528-486f-87df-6290da28e00d/captures HTTP/1.1" 500 -
+ok
+test_basic_argument_errors_are_synchronous (test_waveform_agent_api.AgentV1Tests) ... 127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:34] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+ok
+test_classification_invalid_is_succeeded_but_infrastructure_failure_is_failed (test_waveform_agent_api.AgentV1Tests) ... 127.0.0.1 - - [20/Oct/2026 10:05:35] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/f69e065c-be82-43a0-b44c-b937ef32e790 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/f69e065c-be82-43a0-b44c-b937ef32e790 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/f69e065c-be82-43a0-b44c-b937ef32e790 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/f69e065c-be82-43a0-b44c-b937ef32e790 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/653cbbac-d1de-4f00-b648-d44b0ffe9aeb HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/653cbbac-d1de-4f00-b648-d44b0ffe9aeb HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/653cbbac-d1de-4f00-b648-d44b0ffe9aeb HTTP/1.1" 200 -
+Analysis job 2f041672-5eca-4567-bc84-e0f967a267e7 failed: RuntimeError：SECRET_TOKEN /home/private
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/653cbbac-d1de-4f00-b648-d44b0ffe9aeb HTTP/1.1" 200 -
+ok
+test_complete_v1_catalog_to_peak_download_and_provenance (test_waveform_agent_api.AgentV1Tests) ... 127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/runs?date=2026-10-08 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/requests/c4577407-3528-486f-87df-6290da28e00d/captures HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/requests/c4577407-3528-486f-87df-6290da28e00d/captures/3 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/b73b7090-16b2-4fbe-99e3-96e42d2250af HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/b73b7090-16b2-4fbe-99e3-96e42d2250af HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/b73b7090-16b2-4fbe-99e3-96e42d2250af HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/b73b7090-16b2-4fbe-99e3-96e42d2250af HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/b73b7090-16b2-4fbe-99e3-96e42d2250af HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/b73b7090-16b2-4fbe-99e3-96e42d2250af HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/b73b7090-16b2-4fbe-99e3-96e42d2250af/artifacts/results.json HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/b73b7090-16b2-4fbe-99e3-96e42d2250af/artifacts/results.zip HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "GET /api/agent/v1/waveform/jobs/b73b7090-16b2-4fbe-99e3-96e42d2250af/artifacts/spectra.npz HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:35] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+ok
+test_fast_accept_lifecycle_and_concurrent_idempotency (test_waveform_agent_api.AgentV1Tests) ... 127.0.0.1 - - [20/Oct/2026 10:05:36] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 400 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "GET /api/agent/v1/waveform/jobs/d3f5198f-3e8b-4b4d-9d97-c14486e2f42c HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "GET /api/agent/v1/waveform/jobs/d3f5198f-3e8b-4b4d-9d97-c14486e2f42c HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "GET /api/agent/v1/waveform/jobs/d3f5198f-3e8b-4b4d-9d97-c14486e2f42c HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "GET /api/agent/v1/waveform/jobs/d3f5198f-3e8b-4b4d-9d97-c14486e2f42c HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "GET /api/agent/v1/waveform/jobs/d3f5198f-3e8b-4b4d-9d97-c14486e2f42c HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:36] "GET /api/agent/v1/waveform/jobs/d3f5198f-3e8b-4b4d-9d97-c14486e2f42c HTTP/1.1" 200 -
+ok
+test_hdf_conflict_and_unreadable_are_job_failures (test_waveform_agent_api.AgentV1Tests) ... 127.0.0.1 - - [20/Oct/2026 10:05:37] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:37] "GET /api/agent/v1/waveform/jobs/30837ea7-5310-46c0-b50b-b20d17dce210 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:37] "GET /api/agent/v1/waveform/jobs/30837ea7-5310-46c0-b50b-b20d17dce210 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:37] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:37] "GET /api/agent/v1/waveform/jobs/7f723858-8f33-4b99-9544-63d793e058cf HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:37] "GET /api/agent/v1/waveform/jobs/7f723858-8f33-4b99-9544-63d793e058cf HTTP/1.1" 200 -
+ok
+test_health_real_candidate_closed_and_unreachable (test_waveform_agent_api.AgentV1Tests) ... 127.0.0.1 - - [20/Oct/2026 10:05:37] "GET /health HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:37] "GET /health HTTP/1.1" 503 -
+127.0.0.1 - - [20/Oct/2026 10:05:37] "GET /health HTTP/1.1" 503 -
+127.0.0.1 - - [20/Oct/2026 10:05:37] "GET /health HTTP/1.1" 503 -
+127.0.0.1 - - [20/Oct/2026 10:05:37] "POST /api/agent/v1/waveform/spectrum HTTP/1.1" 503 -
+ok
+test_restart_incomplete_job_fails_without_replay (test_waveform_agent_api.AgentV1Tests) ... ok
+test_restart_recovers_idempotency_and_result (test_waveform_agent_api.AgentV1Tests) ... ok
+test_single_registry_owner_and_closed_service (test_waveform_agent_api.AgentV1Tests) ... ok
+test_partial_catalog_protocol_gui_alignment_raw_and_export (test_partial_history_integration.PartialHistoryIntegrationTests) ... This plugin does not support propagateSizeHints()
+ok
+test_bom_value_fallback_and_zip_use_real_utc_times (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_id_gap_is_not_compressed_and_bad_row_labels_fail (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_old_hdf_requires_rate_and_conflicting_rate_fails (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_three_hdf_layouts_keep_all_channels_and_rate (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_display_status_policy_covers_all_five_states_and_keeps_invalid_separate (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_drifting_block_peaks_do_not_become_repeated_candidate (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_explicit_double_zero_policy_preserves_time_axis (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_high_band_welch_uses_20_seconds_overall_and_five_second_blocks (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_high_frequency_evidence_flows_into_display_status_deterministically (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_long_gap_and_nyquist_and_constant_are_invalid (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_low_frequency_display_status_separates_peak_evidence_from_v2_stability (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_low_frequency_matches_original_algorithm_golden (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_resolution_aware_peak_formatter (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_same_peak_and_physical_windows_at_500_and_1000_hz (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_shorter_record_uses_available_welch_data_with_20_second_request (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_empty_input_and_cancelled_run_leave_no_partial_result (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_live_manager_cannot_be_mistaken_for_a_restarted_service (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_pre_v2_results_reload_with_conservative_legacy_observation_status (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_report_rounds_peak_for_people_but_machine_outputs_keep_full_precision (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_restart_retains_completed_results_and_marks_interrupted_jobs (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_result_manifest_and_files_and_async_status (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_shared_job_and_download_and_allowlisted_input (test_spectrum_http_api.SpectrumApiTests) ... 127.0.0.1 - - [20/Oct/2026 10:05:39] "POST /api/analysis/jobs HTTP/1.1" 202 -
+127.0.0.1 - - [20/Oct/2026 10:05:39] "GET /api/analysis/jobs/6802a9d0-39c8-4695-a662-f5580ff065a3 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:39] "GET /api/analysis/jobs/6802a9d0-39c8-4695-a662-f5580ff065a3 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:39] "GET /api/analysis/jobs/6802a9d0-39c8-4695-a662-f5580ff065a3 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:39] "GET /api/analysis/jobs/6802a9d0-39c8-4695-a662-f5580ff065a3 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:39] "GET /api/analysis/jobs/6802a9d0-39c8-4695-a662-f5580ff065a3 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:39] "GET /api/analysis/jobs/6802a9d0-39c8-4695-a662-f5580ff065a3 HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:39] "GET /api/analysis/jobs/6802a9d0-39c8-4695-a662-f5580ff065a3/artifacts/results.zip HTTP/1.1" 200 -
+127.0.0.1 - - [20/Oct/2026 10:05:39] "POST /api/analysis/jobs HTTP/1.1" 403 -
+127.0.0.1 - - [20/Oct/2026 10:05:39] "GET /api/analysis/jobs/6802a9d0-39c8-4695-a662-f5580ff065a3/artifacts/secret.json HTTP/1.1" 404 -
+127.0.0.1 - - [20/Oct/2026 10:05:39] "POST /api/analysis/jobs HTTP/1.1" 403 -
+ok
+
+----------------------------------------------------------------------
+Ran 35 tests in 7.944s
+
+OK

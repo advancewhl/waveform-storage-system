@@ -131,6 +131,7 @@ def run_analysis(request: AnalysisRequest, output_root, *, job_id=None,
                     ),
                     "source_type": request.source_type, "source_files": sources,
                     "sample_rate_hz_supplied": request.sample_rate_hz,
+                    "sample_rate_source": request.sample_rate_source,
                     "config": asdict(request.config), "beam_status": "unknown",
                     "interpretation": "statistical_spectrum_candidate",
                     "duration_definition": "last_sample_minus_first_sample",
@@ -171,7 +172,9 @@ def run_analysis(request: AnalysisRequest, output_root, *, job_id=None,
                 f"{snr} | {c.block_hits}/{c.block_count} |"
             )
         lines.extend(["", "配置与来源见 `run-manifest.json`；无效原因见 `data-quality.csv`。",
-                      "HDF5 的相对时间与填入的采样率均记录在来源字段中。"])
+                      ("历史采样率来自 CaptureRunSummary.frequency_hz；时间轴为相对时间。"
+                       if request.sample_rate_source == "capture_run_summary" else
+                       "HDF5 的相对时间与填入的采样率均记录在来源字段中。")])
         (stage / "report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
         with ZipFile(stage / "results.zip", "w", compression=ZIP_DEFLATED) as archive:
             for path in sorted(stage.iterdir()):
@@ -211,6 +214,14 @@ class AnalysisJobs:
                 state.update(status="failed", error="分析服务已重启，未完成任务未自动重跑")
                 write_json(path, state)
             self._jobs[state["job_id"]] = state
+
+    def availability(self):
+        """Read-only readiness; never enqueues work or touches source data."""
+        with self._lock:
+            if self._closed:
+                return "closed"
+            pending = sum(s["status"] in {"accepted", "running"} for s in self._jobs.values())
+            return "ready" if pending < 8 else "busy"
 
     def submit(self, request):
         with self._lock:

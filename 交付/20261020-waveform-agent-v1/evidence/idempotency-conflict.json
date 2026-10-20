@@ -1,0 +1,11 @@
+{
+  "error": {
+    "code": "INVALID_ARGUMENT",
+    "reason": "Idempotency key is bound to a different request",
+    "diagnostics": {
+      "error_code": "INVALID_ARGUMENT",
+      "reason": "Idempotency key is bound to a different request",
+      "detail": "Idempotency key is bound to a different request"
+    }
+  }
+}
