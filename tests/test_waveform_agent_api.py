@@ -38,7 +38,7 @@ DEVICE = 'AC_LA_INJ1_BI_SBPM01'
 
 
 @contextmanager
-def agent_fixture(root):
+def agent_fixture(root, *, capture_runner=None, capture_canceller=None, capture_prepare=None):
     registry = load_registry(ROOT / 'config/devices.probe47.json')
     repository = InMemoryMetadataRepository()
     now = datetime(2026, 10, 8, 8, tzinfo=timezone.utc)
@@ -58,7 +58,8 @@ def agent_fixture(root):
     endpoint = 'inproc://agent-fixture-' + str(uuid4())
     def reject_capture(_request):
         raise AssertionError('Agent must never acquire raw data')
-    tasks = PersistentTaskExecutor(JsonTaskStore(root / 'state'), reject_capture)
+    tasks = PersistentTaskExecutor(JsonTaskStore(root / 'state'), capture_runner or reject_capture,
+                                   canceller=capture_canceller, prepare=capture_prepare)
     server = CandidateAcquisitionServer(
         endpoint, RegistryPolicy(registry), tasks,
         metadata=CaptureMetadataService(repository, registry, ROOT / 'config/devices.probe47.json'),

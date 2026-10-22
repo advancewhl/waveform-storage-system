@@ -1,0 +1,7 @@
+test_operation_lists_filter_page_sanitize_and_scope (test_waveform_agent_v2.AgentV2Tests) ... v1 无认证，必须由网络 ACL/代理限制；生产推荐 WAVEFORM_AGENT_V2_ONLY=true 或独立端口
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.655s
+
+OK

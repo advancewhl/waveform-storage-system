@@ -1,0 +1,13 @@
+{
+  "alignment_algorithm_version": "bunch-id-alignment:e8db12d72a0ad553",
+  "alignment_source_sha256": "e8db12d72a0ad553130f0823a88b508ab0ec2a6b223fe90ad2b1abd8843d5346",
+  "spectrum_algorithm_version": "unified-spectrum-1.0",
+  "spectrum_algorithm_source_sha256_present": false,
+  "read_posts_require_approval": false,
+  "control_data_posts_require_signed_approval": true,
+  "version0_before_fix": "HTTP 404 NOT_FOUND reproduced",
+  "version0_after_fix": "HTTP 200 with live checksum; repo state, catalog bytes and original metadata unchanged",
+  "missing_ambiguous_unreadable_originals": "404 NOT_FOUND / 409 AMBIGUOUS / 422 DATA_UNREADABLE tested",
+  "overlay_version_history_restore_delete_overwrite_and_concurrency": "existing tests retained and passed",
+  "fixture_is_production_verification": false
+}

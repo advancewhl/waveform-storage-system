@@ -1,4 +1,38 @@
-# 波形存储当前状态（2026-10-20）
+# 波形存储当前状态（2026-10-22）
+
+## 2026-10-22 Agent API v2 Git 源码归档
+
+本轮审阅并归档自 v1 冻结提交 `25e6b73` 之后的 Agent API v2 实现、审查整改和加固变更。统一 README 与文档索引中的 v1/v2 接入入口，保留各轮交付报告与验证证据。下方“未 commit、push”的表述记录各轮交付当时状态，本轮 Git 归档另行完成；提交 ID 与推送结果以 Git 历史及本次任务回复为准。
+
+本轮仅做源码审阅、文档整理、提交范围和敏感内容检查，不修改 API 实现，也不重复运行全量测试。复用此前 43 项 v1/v2 定向回归、286 项完整质量门，以及最后审计边界修复的 1 项定向通过记录。验证日期和修复顺序见[加固报告](../交付/20261021-waveform-agent-v2/evidence/harden-20261022/report.md)。
+
+本次归档不是正式 release，没有构建、切换或部署现场服务。真实远端 SFTP、生产 Mongo、TLS 和设备仍未验证；v2 overlay 不改变 v1/GUI，未实现 EPICS 写入。本地数据、构建和界面验证产物、备份及无关历史交付文件保留在原位置，不纳入本次源码提交。
+
+## 2026-10-22 Agent API v2 加固
+
+已完成本轮源码加固，尚未部署。新增 `WAVEFORM_AGENT_V2_ONLY`，默认保留 v1；启用后 v1 返回 404，认证 v2 与 `/health` 可用。同端口启用 v1/v2 时明确警告匿名 v1 的网络边界。
+
+data preview 改为无审批预览，只保留 DataToken、幂等和审计。mutation 仍绑定完整 body、preview_id、confirm_target 和 expected_version，操作员确认一次。新增 previous 审批密钥轮换、scope 请求和写操作限流、catalog schema_version=1，以及带安全投影和筛选分页的 data/control operations 列表。
+
+下载开始响应后失败只关闭连接。文件读取移出 catalog 锁，读取后校验 checksum 与 overlay 版本；中途变更使任务以 VERSION_CONFLICT 失败。preview/mutation 复用读取记录，减少 overwrite 重复下载。preview、operation、versions 明确声明只影响 Agent v2 overlay，source_modified=false；v1/GUI 仍使用原视图，未实现 unified。
+
+实现前 v1/v2 基线 32 项通过；加固定向回归 43 项通过。完整质量门运行一次，286 项通过。最终审阅补齐失败取消与无效 body 的审计边界，并单独通过对应 HTTP 测试。详情见[加固报告](../交付/20261021-waveform-agent-v2/evidence/harden-20261022/report.md)。此前“所有 control/data POST 审批”的记录为历史状态，当前 preview 规则以本节和 v2 手册为准。
+
+本轮保留既有未提交文件，未 commit、push 或部署。科学实现、Mongo/HDF5 schema、protocol v2 均未修改。真实 loopback fixture 通过，未验证远端 SFTP、生产 Mongo、TLS 或设备；未实现 EPICS 写入。
+
+## 2026-10-22 Agent API v2 小范围审查整改
+
+本轮修复 3 项已确认问题。spectrum 省略误用的 alignment 算法源码 hash，算法版本仍来自真实分析 manifest。审批文档明确区分 read POST 与 control/data POST。成功 preview 后、首次 mutation 前，versions 返回当前原始对象的 version 0、checksum 和字节数；GET 不创建 mutation state、operation_id、审批占用或版本。
+
+先用真实 HTTP fixture 确认原行为为 404，再完成修复。v2 定向测试 20 项通过；本轮正式质量门仅运行一次，275 项全部通过。科学算法、审批实现、HTTP 路由、metadata repository 和 protocol v2 未修改，v1 回归通过。证据见[审查整改记录](../交付/20261021-waveform-agent-v2/evidence/review-fix-20261022/report.md)。本轮未 commit、push 或现场部署；fixture 不代表生产验证。
+
+## 2026-10-21 Agent HTTP API v2 源码交付
+
+v2 已实现 read/control/data 三个命名空间。v1 保留原端点和只读语义。v2 使用独立 service token；control/data 默认关闭，所有 control/data POST 强制签名审批；read POST 不要求人工审批，但需要 read service token 和幂等 key。data 修改要求 preview、显式目标确认和预期版本。数据版本目录保留原始 HDF5，通过现有 writer 生成新版本与 manifest；软删除只影响 v2，原 Mongo/v1/GUI 视图保持原状。
+
+实现前质量门 255 项通过；最终 `tools/run_quality.py` 运行 272 项测试并通过，其中新增 v2 测试 17 项。真实 loopback HTTP、Candidate ZMQ 和 HDF5 fixture 覆盖 read、对齐、legacy/v2 导出、47.6 Hz 频谱、附件、合成采集 start/status/cancel、重启不重放，以及临时副本上的软删除、恢复和版本化覆盖。证据见[本次交付记录](../交付/20261021-waveform-agent-v2/README.md)。
+
+本轮为源码交付，尚未部署现场。没有重建二进制、切换 current、重启现场服务或连接真实设备。没有实现 EPICS 写入，也没有修改 analysis/alignment/retrieval 科学实现、Mongo/HDF5 schema 或 protocol v2。关闭的写 scope 和浮点历史 raw 的版本覆盖仍返回 `CAPABILITY_UNAVAILABLE`；物理删除和任意上传未开放。接口、环境变量、签名规则和迁移说明见 [v2 手册](agent-api-v2.md)及 [Integration Handoff](handoffs/waveform-agent-v2-integration-20261021.md)。
 
 ## 2026-10-20 Agent HTTP API v1 冻结整改
 
@@ -125,7 +159,7 @@ Production desktop frontend releases apply to both desktop-user-a and desktop-us
 
 | 组件 | 最近记录的 release | current 或部署位置 | 状态 | 验证日期 |
 | --- | --- | --- | --- | --- |
-| 当前 Git 源码 | Agent API v1 整改（无 release 号） | 当前工作树 | 源码及本轮质量门完成，未构建或部署新二进制 | 2026-10-20 |
+| 当前 Git 源码 | Agent API v2 加固与源码归档（无二进制 release） | 当前分支 | 43 项定向、286 项质量门及最终审计边界补测通过；本轮仅文档与 Git 归档，尚未部署 | 2026-10-22 |
 | 本机最近已记录 release | `20261017-history-wording-r6-local` | `outputs/operator-local/current → releases/20261017-history-wording-r6-local/waveform-operator` | 本机激活入口仍指向 r6；本次未重建二进制，当前源码比该 release 更新 | 2026-10-19（仅检查链接） |
 | 现场 operator（desktop-user-a、desktop-user-b） | `waveform-operator-r6-20261009` | `/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009` | 2026-10-09 历史记录为双账号验收通过；本轮未连接复核，未由本任务部署 | 2026-10-09（历史记录） |
 | 现场 acquisition server | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/current → releases/20261008-history-release-r4` | 2026-10-08 历史记录为 packaged/current 和 systemd active；本轮未连接复核 | 2026-10-08（历史记录） |

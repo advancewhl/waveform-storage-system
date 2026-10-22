@@ -10,6 +10,9 @@
 - [独立日志前端说明](docs/日志前端使用说明.md)
 - [频谱分析使用说明](docs/spectrum-analysis-usage.md)
 - [统一频谱分析架构](docs/spectrum-analysis-design.md)
+- [Agent API v2 接入与安全边界](docs/agent-api-v2.md)、[OpenAPI](docs/agent-api-v2.openapi.json)
+- [Agent API v1 兼容契约](docs/waveform-agent-api.md)
+- [Agent API v2 交付与验证记录](交付/20261021-waveform-agent-v2/README.md)
 - [中间构建包归档索引](archive/build-artifacts/README.md)
 - [本次整理记录](docs/工作目录整理_2026-10-07.md)
 

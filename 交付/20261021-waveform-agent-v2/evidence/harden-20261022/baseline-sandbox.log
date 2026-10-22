@@ -1,0 +1,598 @@
+test_agent_queue_is_bounded (test_waveform_agent_api.AgentV1Tests) ... ok
+test_artifact_security_unknown_job_and_read_only_router (test_waveform_agent_api.AgentV1Tests) ... ERROR
+test_async_resolution_failures_preserve_domain_errors (test_waveform_agent_api.AgentV1Tests) ... ERROR
+test_basic_argument_errors_are_synchronous (test_waveform_agent_api.AgentV1Tests) ... ERROR
+test_classification_invalid_is_succeeded_but_infrastructure_failure_is_failed (test_waveform_agent_api.AgentV1Tests) ... ERROR
+test_complete_v1_catalog_to_peak_download_and_provenance (test_waveform_agent_api.AgentV1Tests) ... ERROR
+test_fast_accept_lifecycle_and_concurrent_idempotency (test_waveform_agent_api.AgentV1Tests) ... ERROR
+test_hdf_conflict_and_unreadable_are_job_failures (test_waveform_agent_api.AgentV1Tests) ... ERROR
+test_health_real_candidate_closed_and_unreachable (test_waveform_agent_api.AgentV1Tests) ... ERROR
+test_restart_incomplete_job_fails_without_replay (test_waveform_agent_api.AgentV1Tests) ... ok
+test_restart_recovers_idempotency_and_result (test_waveform_agent_api.AgentV1Tests) ... ok
+test_single_registry_owner_and_closed_service (test_waveform_agent_api.AgentV1Tests) ... ok
+test_acquisition_restart_via_http_does_not_replay (test_waveform_agent_v2.AgentV2Tests) ... ERROR
+test_alignment_spectrum_artifacts_real_http_e2e (test_waveform_agent_v2.AgentV2Tests) ... /home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/weakref.py:354: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpv1z3l615/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  super().__init__(ob, callback)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_all_post_idempotency_and_conflict (test_waveform_agent_v2.AgentV2Tests) ... ERROR
+test_analysis_sampling_rate_conflict_is_explicit (test_waveform_agent_v2.AgentV2Tests) ... /home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpfcurkgr8/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpixrik67a/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_approval_signature_scope_expiry_hash_and_replay (test_waveform_agent_v2.AgentV2Tests) ... ERROR
+test_auth_scope_isolation_and_default_disabled (test_waveform_agent_v2.AgentV2Tests) ... /home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpjcf61d0n/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpqt3g3lh3/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_bounded_analysis_queue_and_errors (test_waveform_agent_v2.AgentV2Tests) ... ERROR
+test_control_start_status_cancel_duplicate_request_and_limits (test_waveform_agent_v2.AgentV2Tests) ... /home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmp2j3the14/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpnrix03uy/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_data_preview_target_parameter_and_version_conflicts (test_waveform_agent_v2.AgentV2Tests) ... ERROR
+test_data_preview_update_delete_restore_overwrite_and_versions (test_waveform_agent_v2.AgentV2Tests) ... /home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmp562um57n/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpz5hnoo8w/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_data_same_target_concurrency_has_single_commit (test_waveform_agent_v2.AgentV2Tests) ... ERROR
+test_hdf5_external_links_are_not_followed_by_analysis (test_waveform_agent_v2.AgentV2Tests) ... /home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmp543udhe8/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpt08rm9b4/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_job_cancellation_is_idempotent_and_reports_actual_state (test_waveform_agent_v2.AgentV2Tests) ... ERROR
+test_openapi_approval_and_provenance_contract (test_waveform_agent_v2.AgentV2Tests) ... /home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmp7_hu0vhm/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmp_1cou9y5/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_preview_expiry_change_in_source_and_checksum_mismatch (test_waveform_agent_v2.AgentV2Tests) ... ERROR
+test_raw_exact_identity_checksum_limits_and_escaping (test_waveform_agent_v2.AgentV2Tests) ... /home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpj_fgivgl/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmp1cbrbmn8/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_read_runs_captures_devices_and_v1_compatibility (test_waveform_agent_v2.AgentV2Tests) ... ERROR
+test_restart_journal_preserves_versions_and_never_replays (test_waveform_agent_v2.AgentV2Tests) ... /home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpc203cx8d/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpmdwaeuj5/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+test_unmutated_versions_use_live_source_and_safe_read_errors (test_waveform_agent_v2.AgentV2Tests) ... ERROR
+test_versions_after_preview_before_mutation_are_read_only (test_waveform_agent_v2.AgentV2Tests) ... /home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpxwpfed8c/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/registry.py:481: ResourceWarning: unclosed file <_io.FileIO name='/tmp/tmpggkjtwsk/derived/agent-v2/owner.lock' mode='ab+' closefd=True>
+  if not isinstance(tags, list) or not all(
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ERROR
+
+======================================================================
+ERROR: test_artifact_security_unknown_job_and_read_only_router (test_waveform_agent_api.AgentV1Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 390, in test_artifact_security_unknown_job_and_read_only_router
+    with TemporaryDirectory() as directory, agent_fixture(Path(directory)) as (service, _), http_fixture(service) as request:
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 108, in http_fixture
+    server = make_server(service, ('127.0.0.1', 0))
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_async_resolution_failures_preserve_domain_errors (test_waveform_agent_api.AgentV1Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 307, in test_async_resolution_failures_preserve_domain_errors
+    with TemporaryDirectory() as directory, agent_fixture(Path(directory)) as (service, _), http_fixture(service) as request:
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 108, in http_fixture
+    server = make_server(service, ('127.0.0.1', 0))
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_basic_argument_errors_are_synchronous (test_waveform_agent_api.AgentV1Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 293, in test_basic_argument_errors_are_synchronous
+    with TemporaryDirectory() as directory, agent_fixture(Path(directory)) as (service, _), http_fixture(service) as request:
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 108, in http_fixture
+    server = make_server(service, ('127.0.0.1', 0))
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_classification_invalid_is_succeeded_but_infrastructure_failure_is_failed (test_waveform_agent_api.AgentV1Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 349, in test_classification_invalid_is_succeeded_but_infrastructure_failure_is_failed
+    with TemporaryDirectory() as directory, agent_fixture(Path(directory)) as (service, _), http_fixture(service) as request:
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 108, in http_fixture
+    server = make_server(service, ('127.0.0.1', 0))
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_complete_v1_catalog_to_peak_download_and_provenance (test_waveform_agent_api.AgentV1Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 153, in test_complete_v1_catalog_to_peak_download_and_provenance
+    with TemporaryDirectory() as directory, agent_fixture(Path(directory)) as (service, repo), http_fixture(service) as request:
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 108, in http_fixture
+    server = make_server(service, ('127.0.0.1', 0))
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_fast_accept_lifecycle_and_concurrent_idempotency (test_waveform_agent_api.AgentV1Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 220, in test_fast_accept_lifecycle_and_concurrent_idempotency
+    with TemporaryDirectory() as directory, agent_fixture(Path(directory)) as (service, _), http_fixture(service) as request:
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 108, in http_fixture
+    server = make_server(service, ('127.0.0.1', 0))
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_hdf_conflict_and_unreadable_are_job_failures (test_waveform_agent_api.AgentV1Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 335, in test_hdf_conflict_and_unreadable_are_job_failures
+    with TemporaryDirectory() as directory, agent_fixture(Path(directory)) as (service, _), http_fixture(service) as request:
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 108, in http_fixture
+    server = make_server(service, ('127.0.0.1', 0))
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_health_real_candidate_closed_and_unreachable (test_waveform_agent_api.AgentV1Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 367, in test_health_real_candidate_closed_and_unreachable
+    with TemporaryDirectory() as directory, agent_fixture(Path(directory)) as (service, _), http_fixture(service) as request:
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_api.py", line 108, in http_fixture
+    server = make_server(service, ('127.0.0.1', 0))
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_acquisition_restart_via_http_does_not_replay (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_alignment_spectrum_artifacts_real_http_e2e (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_all_post_idempotency_and_conflict (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_analysis_sampling_rate_conflict_is_explicit (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_approval_signature_scope_expiry_hash_and_replay (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_auth_scope_isolation_and_default_disabled (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_bounded_analysis_queue_and_errors (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_control_start_status_cancel_duplicate_request_and_limits (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_data_preview_target_parameter_and_version_conflicts (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_data_preview_update_delete_restore_overwrite_and_versions (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_data_same_target_concurrency_has_single_commit (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_hdf5_external_links_are_not_followed_by_analysis (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_job_cancellation_is_idempotent_and_reports_actual_state (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_openapi_approval_and_provenance_contract (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_preview_expiry_change_in_source_and_checksum_mismatch (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_raw_exact_identity_checksum_limits_and_escaping (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_read_runs_captures_devices_and_v1_compatibility (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_restart_journal_preserves_versions_and_never_replays (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_unmutated_versions_use_live_source_and_safe_read_errors (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_versions_after_preview_before_mutation_are_read_only (test_waveform_agent_v2.AgentV2Tests)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 126, in setUp
+    self.request, self.api, self.repository, self.runner = self.context.__enter__()
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/contextlib.py", line 135, in __enter__
+    return next(self.gen)
+  File "/home/whloong/waveform-storage/waveform-storage-system/tests/test_waveform_agent_v2.py", line 67, in v2_fixture
+    server = make_server(v1, address, v2=api)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 112, in make_server
+    return ThreadingHTTPServer(address, Handler)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socketserver.py", line 448, in __init__
+    self.socket = socket.socket(self.address_family,
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/socket.py", line 232, in __init__
+    _socket.socket.__init__(self, family, type, proto, fileno)
+PermissionError: [Errno 1] Operation not permitted
+
+----------------------------------------------------------------------
+Ran 32 tests in 7.078s
+
+FAILED (errors=28)

@@ -2,6 +2,10 @@
 
 交接日期：2026-10-20。源码完成，部署状态为 NO。本文只定义 waveform-storage v1，不声明 accelerator-rag/Qwen 已接入。
 
+2026-10-21 补充：v1 继续兼容。新能力与签名审批使用并行的 [v2 契约](waveform-agent-v2-integration-20261021.md)，不改变本文冻结的 v1 行为。
+
+2026-10-22 加固补充：`WAVEFORM_AGENT_V2_ONLY` 默认 `false`，保留匿名 v1；设为 `true` 后 v1 路径返回 404，`/health` 和认证 v2 继续可用。生产推荐 v2-only 或独立进程、端口与网络 ACL；该开关不会给 v1 客户端静默增加 token 要求。
+
 ## CONTRACT_VERSION
 
 Waveform Agent HTTP API v1。正式业务前缀为 `/api/agent/v1/waveform`，没有未版本化 alias。底层 Candidate protocol v2 不变。

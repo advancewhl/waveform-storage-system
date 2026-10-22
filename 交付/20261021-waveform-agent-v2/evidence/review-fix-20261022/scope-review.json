@@ -1,0 +1,18 @@
+{
+  "business_files": [
+    "src/waveform_storage/application/agent_v2_service.py",
+    "tests/test_waveform_agent_v2.py",
+    "docs/agent-api-v2.md",
+    "docs/agent-api-v2.openapi.json",
+    "docs/CURRENT_STATUS.md",
+    "docs/handoffs/waveform-agent-v2-integration-20261021.md",
+    "交付/20261021-waveform-agent-v2/README.md"
+  ],
+  "scientific_code_changed": false,
+  "acquisition_protocol_changed": false,
+  "auth_policy_changed": false,
+  "http_routes_changed": false,
+  "metadata_repository_changed": false,
+  "v1_code_changed": false,
+  "diff_basis": "task-start snapshot; does not treat pre-existing untracked v2 files as newly authored this round"
+}

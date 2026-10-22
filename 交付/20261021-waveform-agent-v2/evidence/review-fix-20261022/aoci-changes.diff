@@ -1,0 +1,157 @@
+--- task-start/aoci.code.txt
++++ current/aoci.code.txt
+@@ -61,7 +61,7 @@
+ 
+ ===/home/whloong/waveform-storage/waveform-storage-system/docs/===
+ CODEX_HANDOFF.md[SV3T]: F:指向仓库当前状态说明、目录说明与历史交接材料 | R:code:docs/CURRENT_STATUS.md,code:docs/WORKSPACE.md | A:提供继续仓库工作的文档入口 | S:历史 handoff 不能替代当前状态核验。
+-CURRENT_STATUS.md[SV8M]: F:记录 Agent API v2 源码交付、兼容边界、测试证据及各环境的历史部署状态 | R:code:docs/agent-api-v2.md,code:交付/20261021-waveform-agent-v2/README.md | A:区分源码、质量门、构建、部署与现场运行，导航当前及历史交付 | S:272 项质量门和真实 HTTP fixture 通过不代表现场验证；本轮未部署或实现 EPICS 写入；v2 软删除不改变 v1 和 GUI 原视图。
++CURRENT_STATUS.md[SV8M]: F:记录 Agent API v2 源码交付与审查整改、测试证据和各环境的历史部署状态 | R:code:docs/agent-api-v2.md,code:交付/20261021-waveform-agent-v2/README.md | A:区分原交付272项质量门与整改20项定向及275项质量门，导航差异证据和部署记录 | S:源码和真实HTTP fixture通过不能冒充现场验证；当前未部署或实现EPICS写入；v2软删除不改变v1和GUI原视图。
+ MongoDB元数据模块设计.md[SD7S]: F:说明 MongoDB 在 Candidate V2 中保存任务与文件元数据、历史查询及故障降级的设计 | R:code:src/waveform_storage/metadata/history.py,code:src/waveform_storage/metadata/mongo_repository.py,code:src/waveform_storage/metadata/service.py,code:src/waveform_storage/metadata/settings.py | A:描述元数据集合、文件身份、历史回填和可选连接配置 | S:波形数组仍保存在 HDF5；MongoDB URI 等凭证不得进入公开文档或日志，元数据写入失败不代表 HDF5 写入失败。
+ README.md[SV5T]: F:索引 docs 目录中的运行、设计、发布与历史说明文档 | R:code:docs/CURRENT_STATUS.md,code:docs/WORKSPACE.md | A:按主题提供文档导航 | S:历史文档中的动态状态仍须对照当前状态和现场证据核验。
+ RELEASE_CHECKLIST.md[SV9S]: F:列出用户明确要求完整正式发布验收时的前后端、协议、回滚与证据步骤 | R:code:AGENTS.md,code:docs/CURRENT_STATUS.md,code:deploy/systemd/waveform-acquisition-v2.service,code:deploy/systemd/waveform-acquisition-v2-packaged.service | A:按用户明确授权的任务范围选择构建、部署及协议验收步骤；记录运行状态、回滚点和未验证项 | S:清单不自动授权测试或扩大单项任务范围；受AGENTS长期验证限制约束，SHA-256、完整manifest、二进制身份、真实桌面smoke、完整发布验收和无关全量/重复测试需在当前任务中逐项明确要求。服务切换前须确认没有accepted或running采集任务；旧前端窗口仍可能运行旧代码，若用户明确要求进程验收则检查新进程。
+@@ -79,8 +79,8 @@
+ 采集协议v2候选.md[SN9S]: F:定义 Candidate V2 区域与设备快照请求、状态查询、取消及 MongoDB 历史查询协议 | R:code:src/waveform_storage/acquisition/protocol.py,code:src/waveform_storage/acquisition/server.py,code:src/waveform_storage/metadata/history.py,code:docs/RELEASE_CHECKLIST.md | A:说明 v1 到 v2 的区域身份校验、请求幂等、按 request_id 查询任务和 GUI 显式模式 | S:该协议已进入实验客户端与服务端，但文档明确尚未完成真实设备灰度，不替换生产 saveApp。
+ 问题清单与改进路线.md[SV8L]: F:记录波形系统从通信、采集与数据正确性到测试、打包和监控的历史问题及改进里程碑 | R:code:docs/CURRENT_STATUS.md,code:docs/采集协议v2候选.md,code:docs/数据对齐v2设计.md,code:docs/RELEASE_CHECKLIST.md | A:用 WF 编号、优先级、状态、验收条件和待确认业务问题组织路线 | S:问题状态与建议建立于 2026-07 的初始基线；当前完成情况须以源码、状态记录和现场证据重审。
+ waveform-agent-api.md[SA8S]: F:定义保留兼容的 Agent HTTP v1 查询、后台频谱、幂等及 provenance 契约，并链接 v2 | R:code:src/waveform_storage/application/agent_service.py,code:docs/agent-api-v2.md | A:描述 health、任务生命周期、结果、白名单附件、运行环境与迁移入口 | S:v1 同 key 冲突仍返回 400，重启未完成任务失败且不重跑；v1 无认证不能由 v2 token 代为保护；peak_hz 仅代表 profile 搜索频带内峰值。
+-agent-api-v2.md[SN8M]: F:定义 Agent v2 的只读、采集控制、数据版本、签名审批与迁移运行契约 | R:code:src/waveform_storage/application/agent_v2_service.py,code:docs/agent-api-v2.openapi.json | A:说明端点、启动环境、HMAC 规范化、幂等、下载、fixture 与回滚 | S:control/data 默认关闭且必须签名审批；v1 仍无内建认证，需要独立网络隔离；版本目录仅覆盖 v2 视图，原 Mongo 和 GUI 不同步软删除；现场尚未部署。
+-agent-api-v2.openapi.json[FN8L]: F:以 OpenAPI 3.0.3 声明 Agent v2 的 27 个操作、请求模型与错误和附件响应 | R:code:src/waveform_storage/application/agent_v2_http.py,code:src/waveform_storage/application/agent_v2_contract.py | A:声明三类 Bearer security scheme、审批 header、目标身份、分页和版本操作 schema | S:service token 按 read/control/data 分离；data versions 路径中的 target 是 preview 的 target_id；binary 响应提供 checksum，不把原始数组装进 JSON。
++agent-api-v2.md[SN8M]: F:定义 Agent v2 的只读、采集控制、数据版本、签名审批与迁移运行契约 | R:code:src/waveform_storage/application/agent_v2_service.py,code:docs/agent-api-v2.openapi.json | A:说明端点、HMAC规范化、幂等、下载、算法来源、未修改对象版本查询和回滚 | S:control/data POST签名审批，read POST只需对应token和幂等key；spectrum省略未定义的算法源码hash；preview后未mutation也可读取version 0且GET不写状态；v2软删不影响v1/GUI，v1需独立网络隔离。
++agent-api-v2.openapi.json[FN8L]: F:以 OpenAPI 3.0.3 声明 Agent v2 的27个操作、请求模型、错误与附件和provenance响应 | R:code:src/waveform_storage/application/agent_v2_http.py,code:src/waveform_storage/application/agent_v2_contract.py | A:声明scope token、审批header、目标身份、分页及version 0查询契约 | S:read POST只声明ReadToken，control/data POST要求签名审批；algorithm_source_sha256仅表示alignment源码，spectrum省略；versions的target来自preview，首次mutation前返回实时version 0且不创建状态。
+ 
+ ===/home/whloong/waveform-storage/waveform-storage-system/docs/audits/device-readiness-20261003/===
+ README.md[SH8T]: F:记录 2026-10-03 对未批准候选设备进行 TCP、EPICS PV 与 SSH 主机密钥只读核验的范围和结论 | R:code:config/devices.candidate.json,code:config/devices.operator.json,code:docs/audits/device-readiness-20261003/candidate-336.csv,code:docs/audits/device-readiness-20261003/connection-candidates-169.csv,code:docs/audits/device-readiness-20261003/proposed-capture-205-NOT-DEPLOYED.json | A:说明各类连通性检查边界、合成密钥配置检查和未部署候选草案 | S:PV 可读或共享 SSH 公钥材料匹配均不能证明主机身份或真实采集可用；205 台草案明确未部署。
+@@ -103,7 +103,7 @@
+ TASK_HANDOFF_2026-08-28_16-31-43_UTC+0800.md[SV3T]: F:记录 2026-08-28 Candidate V2 设备采集排障进展与证据边界 | R:code:docs/CURRENT_STATUS.md,code:docs/handoffs/TASK_HANDOFF_2026-08-28_17-17-38_UTC+0800.md | A:汇总当时任务结果、设备观察和待复核事项 | S:该交接记录是历史状态快照，不可直接作为当前现场结论。
+ TASK_HANDOFF_2026-08-28_17-17-38_UTC+0800.md[SV3T]: F:交接当时 Candidate V2 全设备任务、设备端采集失败证据及剩余现场验证工作 | R:code:docs/CURRENT_STATUS.md,code:src/waveform_storage/acquisition/server.py,code:src/waveform_storage/metadata/history.py | A:列出阻塞、已验证事实、未知项和继续工作的顺序 | S:交接中的服务、设备、网络与数据状态均有时间边界，开始工作前须重新核实。
+ waveform-agent-v1-integration-20261020.md[SA8L]: F:向 accelerator-rag 交接冻结的 Waveform HTTP v1 契约、真实示例和复现流程，并指向并行 v2 | R:code:docs/waveform-agent-api.md,code:docs/handoffs/waveform-agent-v2-integration-20261021.md | A:提供请求 schema、health、幂等、轮询和 artifact 示例及旧客户端重试规则 | S:HTTP URI 使用 Agent job UUID 而非 analysis_job_id；后台失败仍为 polling 200；v2 新能力不修改冻结的 v1 行为；生产地址未部署。
+-waveform-agent-v2-integration-20261021.md[SN8T]: F:向 accelerator-rag 交接 v2 能力、认证审批、版本模型、验证证据与兼容限制 | R:code:docs/agent-api-v2.md,code:交付/20261021-waveform-agent-v2/README.md | A:按实现、接口、安全、测试及剩余限制组织客户端接入说明 | S:审批 UI 和自然人身份认证在 accelerator-rag；fixture 采用真实协议和合成采集 runner，不证明现场设备可用；v1 和 GUI 继续读取原 catalog。
++waveform-agent-v2-integration-20261021.md[SN8T]: F:向 accelerator-rag 交接 v2 能力、认证审批、版本模型及审查整改后的契约与验证证据 | R:code:docs/agent-api-v2.md,code:交付/20261021-waveform-agent-v2/README.md | A:说明read与写scope审批差异、算法来源字段、未mutation版本查询及20项定向和275项质量门 | S:审批UI和自然人认证在accelerator-rag；spectrum不声称alignment hash是其科学源码身份；未mutation的version 0通过preview绑定解析；fixture不证明现场设备可用，v1/GUI保留原catalog。
+ 
+ ===/home/whloong/waveform-storage/waveform-storage-system/docs/history/2026-07/===
+ CODEX_HANDOFF.md[SV2L]: F:保存 2026-07 的长篇项目交接、历史决策、排障记录与当时工作树信息 | R:code:docs/CURRENT_STATUS.md,code:docs/CODEX_HANDOFF.md | A:提供旧任务的证据索引与继续工作提示 | S:该文件是历史快照，不能作为当前服务、设备或 Git 状态的证据。
+@@ -208,7 +208,7 @@
+ agent_jobs.py[AW9T]: F:持久化有界 Agent job 与请求幂等绑定，并恢复重启状态 | R:code:src/waveform_storage/application/agent_service.py,code:src/waveform_storage/analysis/service.py | A:AgentJobRegistry 提供 create/update/get/close，原子 JSON 保存请求、状态、结果和 key | S:单 root 排他 owner，先持久化再执行；最多 8 个未完成 job；重复 key 先查绑定再检查容量，同 key 异请求拒绝；重启未完成记录失败且保持 key，不自动重放。
+ agent_v2_contract.py[ES9S]: F:定义 v2 错误、精确目标身份、独立 service scope 认证与签名审批校验 | R:code:src/waveform_storage/application/agent_v2_service.py,code:src/waveform_storage/application/agent_v2_http.py | A:AccessPolicy 校验配置和 token；canonical、action_hash、sign_approval 定义签名格式；exact/target 校验输入 | S:启用 control/data 必须配置独立 token 和 HMAC secret；签名绑定完整 body、action、scope、operator、approval 与 TTL；只有已登记原操作可过期重试，一次性审批占用由持久目录保证。
+ agent_v2_http.py[EN9M]: F:提供认证后的 v2 read/control/data 路由、严格请求解析、稳定分页和二进制下载 | R:code:src/waveform_storage/application/agent_v2_service.py,code:src/waveform_storage/application/agent_v2_contract.py | A:dispatch 处理 27 个操作；page 绑定筛选和结果指纹；下载发送长度、SHA-256 和 ETag | S:拒绝重复安全 header、重复 JSON 字段、编码路径和 traversal；POST body 上限 16 KiB；cursor 在列表变化后失效；control/data POST 经审批与 durable intent 后才执行，raw 不接受文件路径。
+-agent_v2_service.py[AB9L]: F:复用现有检索、对齐、分析、HDF5 writer 和 Candidate 协议实现 Agent v2 编排与版本化数据操作 | R:code:src/waveform_storage/application/retrieval_service.py,code:src/waveform_storage/metadata/agent_version_repository.py,code:src/waveform_storage/acquisition/server.py | A:提供 runs/captures/raw、背景任务、采集 start/status/cancel、preview/mutate、版本与 artifact 查询 | S:采集只转发同一 request_id，不另建 runner；取消返回真实状态；数据修改绑定 preview、源摘要及 expected_version，旧 HDF5 保留；overlay 只影响 v2，v1/GUI 不同步；单 worker 最多 8 个任务；缺失历史频率不猜测，浮点 raw 覆盖能力不可用。
++agent_v2_service.py[AB9L]: F:复用现有检索、对齐、分析、HDF5 writer和Candidate协议实现Agent v2编排与版本化数据操作 | R:code:src/waveform_storage/application/retrieval_service.py,code:src/waveform_storage/metadata/agent_version_repository.py,code:src/waveform_storage/acquisition/server.py | A:提供历史与raw、后台任务、采集控制、preview/mutate、版本和artifact查询；未mutation目标可从成功preview解析version 0 | S:采集只转发同一request_id，取消返回真实状态；版本修改绑定preview和expected_version，旧HDF5保留，overlay仅影响v2。versions的GET不写mutation state；spectrum省略未定义的算法源码hash。采样率只取历史run，浮点raw覆盖不可用；单worker最多8任务。
+ agent_v2_storage.py[IS9S]: F:从受信 catalog 路径生成有界磁盘快照，供 raw、版本和分析读取 | R:code:src/waveform_storage/application/agent_v2_service.py,code:src/waveform_storage/config/settings.py | A:CatalogSnapshots 校验根目录、大小、期限及可选源摘要；Download 持有流、字节数和 checksum | S:本机逐级使用 no-follow 目录 FD，拒绝链接和非常规文件；远端只用 SFTP 与 RejectPolicy，不用旧 AutoAddPolicy 或 shell；快照先计算 checksum 再发送，临时流必须关闭。
+ 
+ ===/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/config/===
+@@ -411,4 +411,4 @@
+ README.md[OV7T]: F:汇总 Waveform Agent HTTP API v1 整改、接入交接和本次真实验证证据 | R:code:docs/waveform-agent-api.md,code:docs/handoffs/waveform-agent-v1-integration-20261020.md | A:记录 35 项定向测试、255 项完整质量门、真实 HTTP JSON 和下载证据，以及安全、retention 和部署限制 | S:这是源码工程交付，未部署现场或切换版本；旧 247 项不是本轮结果；raw/metadata 只读验证使用尺寸、mtime 和 mutation spy，没有扩大为哈希或完整发布验收。
+ 
+ ===/home/whloong/waveform-storage/waveform-storage-system/交付/20261021-waveform-agent-v2/===
+-README.md[OV8T]: F:汇总 Agent API v2 源码交付、真实 HTTP fixture、272 项质量门及部署和回滚边界 | R:code:docs/agent-api-v2.md,code:docs/handoffs/waveform-agent-v2-integration-20261021.md | A:按实现、API、审批、数据模型、安全和限制组织证据，并导航测试日志和 JSON | S:本次未部署现场、构建新二进制或实现 EPICS 写入；fixture 只证明合成后端链路；保留 output root 才能保留版本、幂等和审批占用，v2 软删除不改变 v1/GUI。
++README.md[OV8T]: F:汇总Agent API v2源码交付及小范围整改、真实HTTP fixture、测试和部署回滚边界 | R:code:docs/agent-api-v2.md,code:docs/handoffs/waveform-agent-v2-integration-20261021.md | A:区分原交付272项质量门与整改20项定向及275项质量门，导航原始及修复后证据 | S:旧fixture的错误spectrum源码hash保留为历史记录，新契约以整改证据为准；未部署或实现EPICS写入，fixture不能代替现场；完整保留output root才能保留版本与幂等，v2软删不改变v1/GUI。
+--- task-start/.aoci/baseline.json
++++ current/.aoci/baseline.json
+@@ -1,7 +1,7 @@
+ {
+   "version": 1,
+   "created_at": "2026-10-10T02:17:16Z",
+-  "updated_at": "2026-10-21T08:27:32Z",
++  "updated_at": "2026-10-22T01:57:02Z",
+   "files": {
+     ".env.example": {
+       "role": "index",
+@@ -47,9 +47,9 @@
+     },
+     "aoci.code.txt": {
+       "role": "index",
+-      "sha256": "95a23f6b644007449dfc3cbaec652efae6ad60942c8fbc1a2d6c3da7e0890b9f",
+-      "size": 131572,
+-      "normalized_sha256": "95a23f6b644007449dfc3cbaec652efae6ad60942c8fbc1a2d6c3da7e0890b9f"
++      "sha256": "7a5e98af5ed3e3102f98bfe5ef96a0f8aabdb94bf91e1c17c3c585284f2ffdc0",
++      "size": 131840,
++      "normalized_sha256": "7a5e98af5ed3e3102f98bfe5ef96a0f8aabdb94bf91e1c17c3c585284f2ffdc0"
+     },
+     "aoci.meta.txt": {
+       "role": "index",
+@@ -233,9 +233,9 @@
+     },
+     "docs/CURRENT_STATUS.md": {
+       "role": "index",
+-      "sha256": "eea4c15fdc4ff9ae508e71d756492d4ea7e7eb5e74ec67fc9f514e93a5cc4735",
+-      "size": 28412,
+-      "normalized_sha256": "eea4c15fdc4ff9ae508e71d756492d4ea7e7eb5e74ec67fc9f514e93a5cc4735"
++      "sha256": "f42282594c4f4890e1480dbbea336bcfab86804d7e27dc9bd8d44dd802ddc306",
++      "size": 29418,
++      "normalized_sha256": "f42282594c4f4890e1480dbbea336bcfab86804d7e27dc9bd8d44dd802ddc306"
+     },
+     "docs/MongoDB元数据模块设计.md": {
+       "role": "index",
+@@ -263,15 +263,15 @@
+     },
+     "docs/agent-api-v2.md": {
+       "role": "index",
+-      "sha256": "d787c7f3c9decc625a2b70d8818025793cb64b6416cb416ed98b7c3ccf6c4c6f",
+-      "size": 18693,
+-      "normalized_sha256": "d787c7f3c9decc625a2b70d8818025793cb64b6416cb416ed98b7c3ccf6c4c6f"
++      "sha256": "19366986d3a70017c2b666befbc9c079033c6798697f8f074a71e9dc17f85838",
++      "size": 19564,
++      "normalized_sha256": "19366986d3a70017c2b666befbc9c079033c6798697f8f074a71e9dc17f85838"
+     },
+     "docs/agent-api-v2.openapi.json": {
+       "role": "index",
+-      "sha256": "6a2365dd16de18de4796f76c78183da70510f0ede38b806b9dcfe9372c035e2e",
+-      "size": 139632,
+-      "normalized_sha256": "6a2365dd16de18de4796f76c78183da70510f0ede38b806b9dcfe9372c035e2e"
++      "sha256": "baf12d6cf69e0fee9576a616cb004722d6d825c6475a226e132dcb94dc704dd6",
++      "size": 140284,
++      "normalized_sha256": "baf12d6cf69e0fee9576a616cb004722d6d825c6475a226e132dcb94dc704dd6"
+     },
+     "docs/audits/device-readiness-20261003/README.md": {
+       "role": "index",
+@@ -385,9 +385,9 @@
+     },
+     "docs/handoffs/waveform-agent-v2-integration-20261021.md": {
+       "role": "index",
+-      "sha256": "4f658c0a3a9eda7a42408688bef9708418ed188a9b08c0b600b981f7a78d852b",
+-      "size": 6393,
+-      "normalized_sha256": "4f658c0a3a9eda7a42408688bef9708418ed188a9b08c0b600b981f7a78d852b"
++      "sha256": "6ef4aeb857bf81560ad43162cca7277bbdcfaa10a30f13d8a97d49f1ffcf2db1",
++      "size": 7286,
++      "normalized_sha256": "6ef4aeb857bf81560ad43162cca7277bbdcfaa10a30f13d8a97d49f1ffcf2db1"
+     },
+     "docs/history/2026-07/CODEX_HANDOFF.md": {
+       "role": "index",
+@@ -990,9 +990,9 @@
+     },
+     "src/waveform_storage/application/agent_v2_service.py": {
+       "role": "index",
+-      "sha256": "2e1d8f21e8bcfe997cd44cfcafc02348d8a95ab11e8cd2657546e4c4fa3f52be",
+-      "size": 34186,
+-      "normalized_sha256": "2e1d8f21e8bcfe997cd44cfcafc02348d8a95ab11e8cd2657546e4c4fa3f52be"
++      "sha256": "3b74bc867b4e257e71a76a98555ca565a84f05cf601b5a06930d2ebf214436b3",
++      "size": 35572,
++      "normalized_sha256": "3b74bc867b4e257e71a76a98555ca565a84f05cf601b5a06930d2ebf214436b3"
+     },
+     "src/waveform_storage/application/agent_v2_storage.py": {
+       "role": "index",
+@@ -1506,9 +1506,9 @@
+     },
+     "tests/test_waveform_agent_v2.py": {
+       "role": "observe",
+-      "sha256": "376abedc8126ae0238811b6c1903795456e435f241e63bf51bb5e79c0124ac50",
+-      "size": 28708,
+-      "normalized_sha256": "376abedc8126ae0238811b6c1903795456e435f241e63bf51bb5e79c0124ac50"
++      "sha256": "16955692a83bf35f4f9ab3656f0d705d7ae52734db71f25c8c5e4731d87f24a6",
++      "size": 34118,
++      "normalized_sha256": "16955692a83bf35f4f9ab3656f0d705d7ae52734db71f25c8c5e4731d87f24a6"
+     },
+     "tests/test_waveform_log_query.py": {
+       "role": "observe",
+@@ -2052,9 +2052,9 @@
+     },
+     "交付/20261021-waveform-agent-v2/README.md": {
+       "role": "index",
+-      "sha256": "30b07a411751d6cdbb3752b6113d8adfad87b92543eeb5c62e63d010ec958fe2",
+-      "size": 4431,
+-      "normalized_sha256": "30b07a411751d6cdbb3752b6113d8adfad87b92543eeb5c62e63d010ec958fe2"
++      "sha256": "2c5578bb7188999d4c2c484761714279588f76e2cf20c91e3bf33fc12050bf8b",
++      "size": 5459,
++      "normalized_sha256": "2c5578bb7188999d4c2c484761714279588f76e2cf20c91e3bf33fc12050bf8b"
+     },
+     "交付/README_先看.md": {
+       "role": "index",

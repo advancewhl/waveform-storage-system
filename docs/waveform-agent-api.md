@@ -2,6 +2,10 @@
 
 ## 范围与版本
 
+2026-10-21 起，新增并行的 [Agent API v2](agent-api-v2.md)。v1 保留全部端点、请求、错误和只读语义。v2 增加独立 token、对齐、raw、受控采集与数据版本接口。本文的无内建认证说明仅适用于 v1；v2 的认证不能替代部署层对 v1 的网络隔离。
+
+2026-10-22 加固补充：`WAVEFORM_AGENT_V2_ONLY` 默认 `false`，保留匿名 v1；设为 `true` 后 v1 路径返回 404，`/health` 和认证 v2 继续可用。生产推荐 v2-only 或独立进程、端口与网络 ACL；该开关不会给 v1 客户端静默增加 token 要求。
+
 正式 contract 为 **Waveform Agent HTTP API v1**。唯一业务路由前缀是 `/api/agent/v1/waveform`，不保留未版本化 alias。`GET /health` 是独立的版本就绪检查入口。源码已实现，尚未部署现场服务；accelerator-rag、Qwen 和 RAG 集成均未实施。
 
 调用链保持为 `WaveformAgentService → CandidateOperatorBackend → RetrievalService → AlignmentResult → AnalysisJobs → run_analysis → ChannelResult`。本轮只调整 Agent 任务编排、持久化、接口和 provenance，不修改 catalog、retrieval/alignment 算法、科学参数、Mongo/HDF5 schema 或采集 protocol v2。

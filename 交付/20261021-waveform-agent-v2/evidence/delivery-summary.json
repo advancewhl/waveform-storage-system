@@ -1,0 +1,31 @@
+{
+  "delivery_verified_on": "2026-10-22",
+  "source_delivery": "20261021-waveform-agent-v2",
+  "tests": {
+    "baseline": 255,
+    "final": 272,
+    "new_v2": 17,
+    "quality_gate": "passed"
+  },
+  "real_http_fixture": {
+    "passed": true,
+    "capture_runner_calls": 1,
+    "data_versions": 6,
+    "spectrum_peak_hz": 47.6
+  },
+  "aoci": {
+    "updated_entries": 15,
+    "verify": "aligned",
+    "check": "passed",
+    "guide": "complete",
+    "pending_transactions": 0
+  },
+  "production_deployed": false,
+  "production_verified": false,
+  "epics_write_api_implemented": false,
+  "capability_unavailable": [
+    "disabled control/data scopes",
+    "floating-point historical raw overwrite"
+  ],
+  "view_boundary": "Agent v2 overlay; v1 and existing GUI retain the original catalog"
+}

@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "ok": false,
+  "exit_code": 2,
+  "error_code": "managed_scope_invalid",
+  "message": "Managed Scope失败：managed_scope_auto_authorization_blocked: deterministic_replay_failed"
+}

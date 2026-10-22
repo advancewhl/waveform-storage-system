@@ -1,0 +1,1186 @@
+{
+  "branch": "ui/history-retrieval-compact-v2",
+  "head": "25e6b73985082bb5e2157b77114949597994301f",
+  "status": [
+    {
+      "status": " M",
+      "path": ".aoci/baseline.json"
+    },
+    {
+      "status": " M",
+      "path": "aoci.code.txt"
+    },
+    {
+      "status": " M",
+      "path": "docs/CURRENT_STATUS.md"
+    },
+    {
+      "status": " M",
+      "path": "docs/handoffs/waveform-agent-v1-integration-20261020.md"
+    },
+    {
+      "status": " M",
+      "path": "docs/waveform-agent-api.md"
+    },
+    {
+      "status": " M",
+      "path": "src/waveform_storage/application/agent_http_api.py"
+    },
+    {
+      "status": " M",
+      "path": "tests/test_waveform_agent_api.py"
+    },
+    {
+      "status": " M",
+      "path": "tools/run_waveform_agent_api.py"
+    },
+    {
+      "status": " M",
+      "path": "tools/run_waveform_agent_fixture.py"
+    },
+    {
+      "status": "??",
+      "path": "AGENTS.md.backup.20261010_100846.5c9d1bf37d0206dab0f7caff76ac4763c965dec4202a907e099fc0c17b48026d"
+    },
+    {
+      "status": "??",
+      "path": "analysis/high_frequency/数据结果/spectrum-results.zip"
+    },
+    {
+      "status": "??",
+      "path": "docs/agent-api-v2.md"
+    },
+    {
+      "status": "??",
+      "path": "docs/agent-api-v2.openapi.json"
+    },
+    {
+      "status": "??",
+      "path": "docs/handoffs/waveform-agent-v2-integration-20261021.md"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/bunch-id-fixtures/22833275-5e77-41c5-b703-f306accde164_S00000.npz"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/bunch-id-fixtures/22833275-5e77-41c5-b703-f306accde164_S00001.npz"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/bunch-id-fixtures/22833275-5e77-41c5-b703-f306accde164_S00002.npz"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/bunch-id-fixtures/22833275-5e77-41c5-b703-f306accde164_S00003.npz"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/bunch-id-fixtures/22833275-5e77-41c5-b703-f306accde164_S00004.npz"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r2/aligned-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r2/figure-extents-1280.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r2/layout-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r2/normal-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r3/aligned-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r3/aligned-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r3/figure-extents-1280.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r3/layout-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r3/normal-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r3/normal-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r3/preflight-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r3/preflight-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r3/zero-intersection-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r3/zero-intersection-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/aligned-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/aligned-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/layout-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/normal-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/normal-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/preflight-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/preflight-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/single-device-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/single-device-details-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/single-device-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/zero-intersection-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r4/zero-intersection-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/aligned-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/aligned-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/figure-extents-1280.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/layout-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/normal-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/normal-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/preflight-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/preflight-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/single-device-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/single-device-details-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/single-device-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/validation-summary.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/zero-intersection-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final-r5/zero-intersection-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final/aligned-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final/aligned-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final/figure-extents-1280.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final/layout-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final/normal-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final/normal-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final/preflight-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final/preflight-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final/zero-intersection-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-final/zero-intersection-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0-waveform-env/aligned-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0-waveform-env/aligned-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0-waveform-env/layout-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0-waveform-env/normal-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0-waveform-env/normal-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0-waveform-env/preflight-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0-waveform-env/preflight-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0-waveform-env/zero-intersection-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0-waveform-env/zero-intersection-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0/aligned-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0/aligned-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0/layout-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0/normal-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0/normal-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0/preflight-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0/preflight-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0/zero-intersection-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r0/zero-intersection-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r1/aligned-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r1/aligned-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r1/layout-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r1/normal-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r1/normal-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r1/preflight-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r1/preflight-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r1/zero-intersection-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/offscreen-preview-r1/zero-intersection-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/real-data-20261012-all-segments.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/real-data-20261012-loader-diagnostics.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/real-data-20261012-sequence-0.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/real-data-20261012-sequence-1.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/real-data-20261012-sequence-2.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/real-data-20261012-sequence-3.json"
+    },
+    {
+      "status": "??",
+      "path": "outputs/history-ui-validation-20261016/real-data-20261012-sequence-4.json"
+    },
+    {
+      "status": "??",
+      "path": "pdf2zh_files/Attachment Conference Handbook.pdf"
+    },
+    {
+      "status": "??",
+      "path": "src/waveform_storage/application/agent_v2_contract.py"
+    },
+    {
+      "status": "??",
+      "path": "src/waveform_storage/application/agent_v2_http.py"
+    },
+    {
+      "status": "??",
+      "path": "src/waveform_storage/application/agent_v2_service.py"
+    },
+    {
+      "status": "??",
+      "path": "src/waveform_storage/application/agent_v2_storage.py"
+    },
+    {
+      "status": "??",
+      "path": "src/waveform_storage/metadata/agent_version_repository.py"
+    },
+    {
+      "status": "??",
+      "path": "tests/test_waveform_agent_v2.py"
+    },
+    {
+      "status": "??",
+      "path": "tools/deploy_candidate_release.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261008-spectrum-ui-r1/evidence/runtime-state/spectrum-runs/c8d45dd7-04e8-4892-9c1d-1643e4233bcd/data-quality.csv"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261008-spectrum-ui-r1/evidence/runtime-state/spectrum-runs/c8d45dd7-04e8-4892-9c1d-1643e4233bcd/report.md"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261008-spectrum-ui-r1/evidence/runtime-state/spectrum-runs/c8d45dd7-04e8-4892-9c1d-1643e4233bcd/results.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261008-spectrum-ui-r1/evidence/runtime-state/spectrum-runs/c8d45dd7-04e8-4892-9c1d-1643e4233bcd/results.zip"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261008-spectrum-ui-r1/evidence/runtime-state/spectrum-runs/c8d45dd7-04e8-4892-9c1d-1643e4233bcd/run-manifest.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261008-spectrum-ui-r1/evidence/runtime-state/spectrum-runs/c8d45dd7-04e8-4892-9c1d-1643e4233bcd/spectra.npz"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261008-spectrum-ui-r1/evidence/runtime-state/spectrum-runs/c8d45dd7-04e8-4892-9c1d-1643e4233bcd/spectrum-blocks.csv"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261008-spectrum-ui-r1/evidence/runtime-state/spectrum-runs/c8d45dd7-04e8-4892-9c1d-1643e4233bcd/spectrum-summary.csv"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261008-spectrum-ui-r1/evidence/runtime-state/spectrum-runs/jobs/c8d45dd7-04e8-4892-9c1d-1643e4233bcd.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r3/evidence/baseline.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r3/evidence/build-operator.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r3/evidence/task-changes.diff"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r3/evidence/verify-operator.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/BUILD-INFO"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/MANIFEST.sha256"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/SOURCE-MANIFEST.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/evidence/activation-checks.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/evidence/build-operator.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/evidence/packaged-advanced-page.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/evidence/peak-display.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/evidence/pre-activation-checks.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/evidence/source-manifest-before-build.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/evidence/spectrum-page.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r4/evidence/verify-operator.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/BUILD-INFO"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/MANIFEST.sha256"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/SOURCE-MANIFEST.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/evidence/activation-checks.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/evidence/build-operator.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/evidence/packaged-advanced-page.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/evidence/peak-display.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/evidence/pre-activation-checks.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/evidence/source-manifest-before-build.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/evidence/spectrum-page.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r5/evidence/verify-operator.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/BUILD-INFO"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/MANIFEST.sha256"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/SOURCE-MANIFEST.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/evidence/activation-checks.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/evidence/build-operator.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/evidence/build-record.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/evidence/packaged-advanced-page.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/evidence/packaged-verification.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/evidence/source-manifest-before-build.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/evidence/spectrum-page.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/evidence/verify-activation.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261009-spectrum-ui-r6/evidence/verify-operator.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/BUILD-INFO"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/MANIFEST.sha256"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/README.md"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/SOURCE-MANIFEST.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/SHA256SUMS"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/aligned-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/aligned-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/aoci-maintain-blocked.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/archive-verification.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/figure-extents-1280.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/gui-history-verification.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/gui-history.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/gui-history.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/layout-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/normal-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/normal-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/operator-activation.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/operator-binary-history-page.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/operator-build-record.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/operator-pyz-modules.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/preflight-anomaly-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/preflight-anomaly-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/single-device-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/single-device-details-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/single-device-evidence.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/source-manifest-before-build.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/source-manifest-before-build.sha256"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/ui-validation-summary.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/zero-intersection-1280x800.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/evidence/zero-intersection-1600x1000.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261016-history-quality-r1/version-pair.md"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/BUILD-INFO"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/README.md"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/aoci-check.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/aoci-guide.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/aoci-verify.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/compact-change.diff"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/history-1280x800-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/history-1280x800-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/history-2485x1376-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/history-2485x1376-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/history-controls-preview.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/host-operator-processes.txt"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/layout-check.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/operator-activation.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/packaged-history-offscreen.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/preview-history-compact.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/evidence/raw-step-warning-dialog.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-compact-r5-local/release-pair.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/BUILD-INFO"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/README.md"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/controls-change.diff"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-1120x720-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-1120x720-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-1280x800-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-1280x800-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-1600x1000-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-1600x1000-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-1920x1080-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-1920x1080-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-1921x1080-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-1921x1080-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-2262x1368-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-2262x1368-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/history-controls-preview.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/layout-boundary-check.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/layout-check.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/operator-activation.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/packaged-history-offscreen.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/preview-history-boundary.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/evidence/preview-history-controls.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-controls-r3-local/release-pair.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/BUILD-INFO"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/README.md"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/aoci-check.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/aoci-guide.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/aoci-scope-acknowledgement.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/aoci-scope-status.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/aoci-verify.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/display-change.diff"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-1120x720-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-1120x720-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-1280x800-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-1280x800-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-1920x1080-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-1920x1080-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-2485x1376-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-2485x1376-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-2560x1440-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-2560x1440-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/history-controls-preview.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/host-operator-processes.txt"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/layout-check.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/operator-activation.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/packaged-history-offscreen.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/preview-history-display.py"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/evidence/raw-step-warning-dialog.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-display-r4-local/release-pair.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/BUILD-INFO"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/MANIFEST.sha256"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/README.md"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/SOURCE-MANIFEST.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/evidence/SHA256SUMS"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/evidence/aoci-scope-acknowledgement.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/evidence/gui-history.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/evidence/gui-history.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/evidence/operator-activation.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/evidence/runtime-process.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/release-pair.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-ui-layout-r2-local/version-pair.md"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/BUILD-INFO"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/README.md"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/aoci-check.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/aoci-guide.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/aoci-verify.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/history-1280x800-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/history-1280x800-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/history-2485x1376-device.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/history-2485x1376-distribution.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/history-controls-preview.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/host-operator-processes.txt"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/layout-check.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/number-gap-details.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/number-gap-warning-page.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/operator-activation.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/packaged-history-offscreen.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/raw-step-warning-dialog.png"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/evidence/wording-change.diff"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261017-history-wording-r6-local/release-pair.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261021-waveform-agent-v2/README.md"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261021-waveform-agent-v2/evidence/aoci-check.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261021-waveform-agent-v2/evidence/aoci-guide.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261021-waveform-agent-v2/evidence/aoci-observe-ack.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261021-waveform-agent-v2/evidence/aoci-update-receipt.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261021-waveform-agent-v2/evidence/aoci-verify.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261021-waveform-agent-v2/evidence/delivery-summary.json"
+    },
+    {
+      "status": "??",
+      "path": "交付/20261021-waveform-agent-v2/evidence/http-fixture.json"
+    }
+  ]
+}

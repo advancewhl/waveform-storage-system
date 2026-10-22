@@ -1,0 +1,30 @@
+{
+  "initial": {
+    "staged": 0,
+    "unstaged": 9,
+    "untracked": 301
+  },
+  "all_original_untracked_preserved": true,
+  "all_new_paths_in_task_evidence": true,
+  "business_files": [
+    "docs/CURRENT_STATUS.md",
+    "docs/agent-api-v2.md",
+    "docs/agent-api-v2.openapi.json",
+    "docs/handoffs/waveform-agent-v2-integration-20261021.md",
+    "src/waveform_storage/application/agent_http_api.py",
+    "src/waveform_storage/application/agent_v2_contract.py",
+    "src/waveform_storage/application/agent_v2_http.py",
+    "src/waveform_storage/application/agent_v2_service.py",
+    "src/waveform_storage/metadata/agent_version_repository.py",
+    "tests/test_waveform_agent_v2.py",
+    "tools/run_waveform_agent_api.py",
+    "交付/20261021-waveform-agent-v2/README.md"
+  ],
+  "no_commit_or_push": true,
+  "head": "25e6b73985082bb5e2157b77114949597994301f",
+  "final": {
+    "staged": 0,
+    "unstaged": 9,
+    "untracked": 316
+  }
+}

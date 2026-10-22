@@ -1,0 +1,2403 @@
+--- task-start/docs/CURRENT_STATUS.md
++++ current/docs/CURRENT_STATUS.md
+@@ -1,4 +1,16 @@
+ # 波形存储当前状态（2026-10-22）
++
++## 2026-10-22 Agent API v2 加固
++
++已完成本轮源码加固，尚未部署。新增 `WAVEFORM_AGENT_V2_ONLY`，默认保留 v1；启用后 v1 返回 404，认证 v2 与 `/health` 可用。同端口启用 v1/v2 时明确警告匿名 v1 的网络边界。
++
++data preview 改为无审批预览，只保留 DataToken、幂等和审计。mutation 仍绑定完整 body、preview_id、confirm_target 和 expected_version，操作员确认一次。新增 previous 审批密钥轮换、scope 请求和写操作限流、catalog schema_version=1，以及带安全投影和筛选分页的 data/control operations 列表。
++
++下载开始响应后失败只关闭连接。文件读取移出 catalog 锁，读取后校验 checksum 与 overlay 版本；中途变更使任务以 VERSION_CONFLICT 失败。preview/mutation 复用读取记录，减少 overwrite 重复下载。preview、operation、versions 明确声明只影响 Agent v2 overlay，source_modified=false；v1/GUI 仍使用原视图，未实现 unified。
++
++实现前 v1/v2 基线 32 项通过；加固定向回归 43 项通过。完整质量门运行一次，286 项通过。最终审阅补齐失败取消与无效 body 的审计边界，并单独通过对应 HTTP 测试。详情见[加固报告](../交付/20261021-waveform-agent-v2/evidence/harden-20261022/report.md)。此前“所有 control/data POST 审批”的记录为历史状态，当前 preview 规则以本节和 v2 手册为准。
++
++本轮保留既有未提交文件，未 commit、push 或部署。科学实现、Mongo/HDF5 schema、protocol v2 均未修改。真实 loopback fixture 通过，未验证远端 SFTP、生产 Mongo、TLS 或设备；未实现 EPICS 写入。
+ 
+ ## 2026-10-22 Agent API v2 小范围审查整改
+ 
+--- task-start/docs/agent-api-v2.md
++++ current/docs/agent-api-v2.md
+@@ -2,7 +2,7 @@
+ 
+ ## 状态与边界
+ 
+-本版本为 2026-10-21 的源码实现。v1 继续使用 `/api/agent/v1/waveform`，请求与响应语义保持兼容。v2 使用 `/api/agent/v2`，增加独立认证、受控采集和数据版本目录。现场尚未部署，accelerator-rag 客户端的修改不属于本仓库。
++本版本包含 2026-10-22 的加固修复。v1 继续使用 `/api/agent/v1/waveform`，请求与响应语义保持兼容。v2 使用 `/api/agent/v2`，增加独立认证、受控采集和数据版本目录。现场尚未部署，accelerator-rag 客户端的修改不属于本仓库。
+ 
+ 本服务复用 Candidate protocol v2、RetrievalService、HDF5 reader/writer、alignment 和 AnalysisJobs。采集通过既有 ZMQ 服务进入 `RegistryPolicy → PersistentTaskExecutor → JsonTaskStore → ProductionCaptureRunner`。HTTP 进程不另建采集执行器，不改变采集协议和科学算法。
+ 
+@@ -16,6 +16,7 @@
+ 
+ ```bash
+ export WAVEFORM_CANDIDATE_ZMQ_ENDPOINT=tcp://127.0.0.1:5555
++export WAVEFORM_AGENT_V2_ONLY=true
+ # 从部署环境注入以下秘密，勿把真实值写入命令记录或仓库。
+ # WAVEFORM_AGENT_READ_TOKEN
+ python tools/run_waveform_agent_api.py --port 8771 \
+@@ -26,6 +27,10 @@
+ 
+ | 环境变量 | 含义与默认值 |
+ | --- | --- |
++| `WAVEFORM_AGENT_V2_ONLY` | 默认 `false`，保留匿名 v1；`true` 仅注册 v2 和 `/health`，v1 路径返回 404；必须同时启用 v2 |
++| `WAVEFORM_AGENT_RATE_LIMIT_PER_MINUTE` | 每个 scope token 每 60 s 的请求配额，默认 60，`0` 关闭 |
++| `WAVEFORM_AGENT_WRITE_RATE_LIMIT_PER_MINUTE` | control/data 写操作附加配额，默认 10/min，`0` 关闭；preview 不占此配额 |
++| `WAVEFORM_AGENT_APPROVAL_SECRET_PREVIOUS` | 可选的上一审批密钥，只用于轮换窗口验签 |
+ | `WAVEFORM_AGENT_READ_TOKEN` | v2 read token；配置后启用 v2。未配置时保持原 v1 启动方式 |
+ | `WAVEFORM_AGENT_CONTROL_TOKEN` | control 专用 token |
+ | `WAVEFORM_AGENT_DATA_TOKEN` | data 专用 token |
+@@ -49,7 +54,7 @@
+ 
+ 每个 v2 请求都需要对应 scope 的 `Authorization: Bearer …`。缺失或错误 token 返回 401；使用其他 scope 的有效 token 返回 403。已关闭 scope 返回 503、`CAPABILITY_UNAVAILABLE`。
+ 
+-read scope 的 POST alignment、spectrum 和 analysis job cancel 不要求人工审批或 `X-Approval-*` header，但需要 read service token 和幂等 key。所有 control/data POST，包括 data preview，都强制签名审批，并需要：
++read scope 的 POST alignment、spectrum 和 analysis job cancel 不要求人工审批或 `X-Approval-*` header，但需要 read service token 和幂等 key。data preview 只需 DataToken 和幂等 key，不要求审批 header，也不消耗 approval。所有 control POST 和 data mutation（update、soft-delete、restore、overwrite）强制签名审批，并需要：
+ 
+ ```http
+ Idempotency-Key: <stable key>
+@@ -81,6 +86,10 @@
+ 服务器检查签名、action、action_hash、scope、有效期及操作员引用。body 中的 `operator_id`、`approval_id` 必须与 header 一致。审批 ID 首次接收后持久化占用。参数变化必须重新 preview、确认并签发新审批。相同 key 的重试必须保留原 operation、approval 和 operator 引用。
+ 
+ 已经登记的同一操作，可以携带原签名在过期后查询原结果。该例外只返回或查询原任务状态，不再执行副作用。新操作的过期审批一律拒绝。审批引用不是操作员身份认证，服务不会证明标识对应哪个自然人。
++
++轮换时先将旧密钥配置为 `WAVEFORM_AGENT_APPROVAL_SECRET_PREVIOUS`，再把新密钥配置为 `WAVEFORM_AGENT_APPROVAL_SECRET`，重启服务后仅用 current 签发新审批。服务先试 current，再试 previous；签名格式与 payload 保持兼容。窗口至少覆盖客户端迁移所需时间，并设定明确结束时间；到期移除 previous 并重启。移除后，旧密钥的重试也会被拒绝，应查询已记录 operation。重启前须等待采集结束；本服务不会重放任务。
++
++限流在认证后按 scope token 独立计数，使用进程内固定 60 s 窗口；不会保存或记录 token。超过任一配额返回 HTTP 429、`RESOURCE_BUSY`。control/data 写操作同时受总配额与写配额约束，preview 只受总配额约束。无审批或无效审批的已认证写请求也计入配额。窗口结束恢复，进程重启清零；多进程配额需由代理统一限制。v1 不受此 v2 限流器约束。
+ 
+ ## Read API
+ 
+@@ -104,7 +113,7 @@
+ | POST | `/jobs/{job_id}/cancel` | 请求分析取消，返回实际状态 |
+ | GET | `/jobs/{job_id}/artifacts/{artifact_name}` | 白名单附件 |
+ 
+-runs、captures、devices 和 versions 的列表均返回 `total`、`truncated`、`next_cursor`。`limit` 默认 100，范围为 1～500。使用原筛选参数和 `next_cursor` 继续读取。列表发生变化时，旧 cursor 返回 409，应重新查询。未知或重复 query 参数会被拒绝。
++runs、captures、devices、versions 和 operations 的列表均返回 `total`、`truncated`、`next_cursor`。`limit` 默认 100，范围为 1～500。使用原筛选参数和 `next_cursor` 继续读取。列表发生变化时，旧 cursor 返回 409，应重新查询。未知或重复 query 参数会被拒绝。
+ 
+ 对齐示例：
+ 
+@@ -147,6 +156,8 @@
+ 
+ 对齐附件为 `alignment-v2.h5`，符合条件时另有 `alignment-legacy.h5`。频谱附件为 `results.zip`、`results.json`、`spectra.npz`、`run-manifest.json`、`report.md`、`spectrum-summary.csv`、`spectrum-blocks.csv`、`data-quality.csv`。下载使用二进制响应，不能把附件直接放进模型上下文。
+ 
++下载开始发送响应头后发生读写异常，只记录不含路径和异常详情的日志并关闭连接，不追加 JSON 或第二个 HTTP 响应。客户端必须检查实际长度和 checksum，丢弃不完整下载。发送前失败仍返回结构化错误。
++
+ 下载先以受限大小流式复制到临时磁盘快照，再分块发送。响应提供 `Content-Length`、`X-Content-SHA256` 和 ETag。checksum 对应本次发送的快照；进程不返回底层路径。超限、空 raw、链接逃逸和外部 HDF5 数据引用会被拒绝。分析读取还限制数据集元素数量，避免小文件触发无界解压。
+ 
+ ## Control API
+@@ -160,6 +171,7 @@
+ | POST | `/captures/{request_id}/cancel` | 请求取消，202；返回实际后端状态 |
+ | GET | `/timing-frequency` | 经现有后端读取 timing PV |
+ | GET | `/health` | 经现有后端读取健康状态 |
++| GET | `/operations?limit=&cursor=&operator_id=&action=&request_id=` | control 安全审计列表 |
+ 
+ 采集请求包含：
+ 
+@@ -187,12 +199,13 @@
+ 
+ | 方法 | 路径 | 行为 |
+ | --- | --- | --- |
+-| POST | `/preview` | 返回精确目标、版本、源 checksum、依赖和可恢复性 |
++| POST | `/preview` | 无审批预览；返回精确目标、版本、源 checksum、依赖和可恢复性 |
+ | POST | `/update` | 修改 `label`、`comment`、`tags` 注释 |
+ | POST | `/soft-delete` | 新增逻辑删除版本 |
+ | POST | `/restore` | 清除删除标记，或恢复到指定历史版本 |
+ | POST | `/overwrite` | 从另一个授权段的同一设备生成新 HDF5 版本 |
+-| GET | `/{operation_id}` | 查询操作参数、审批引用、状态与结果 |
++| GET | `/operations?limit=&cursor=&operator_id=&action=&target_id=` | data 安全审计列表 |
++| GET | `/{operation_id}` | 查询 data 操作参数、审批引用、状态与结果 |
+ | GET | `/{target}/versions` | 查询版本列表；target 是 preview 返回的 target_id |
+ 
+ 目标始终为 `request_id + capture_sequence + device_id`。target_id 是该规范化身份的 SHA-256。当前只支持单个文件对象的操作，不支持整任务批量修改。
+@@ -211,27 +224,35 @@
+ }
+ ```
+ 
+-取得 preview 后，提交对应动作，保留相同参数，并新增 `preview_id` 和 `confirm_target`。`confirm_target` 必须精确等于 preview 的 target_id。两个 POST 分别需要签名审批与幂等 key。preview 有效期为 900 s，操作员必须一致。任何参数、目标、版本或源 checksum 变化都会使旧 preview 失效。
++取得 preview 后，提交对应动作，保留相同参数，并新增 `preview_id` 和 `confirm_target`。`confirm_target` 必须精确等于 preview 的 target_id。两个 POST 都需要幂等 key。preview 不要求审批，只写审计、幂等和短期 preview 绑定，不修改数据、版本或审批占用；其 `approval_id=null`、`operator_id=service:data`。操作员查看 preview 后确认一次，再为完整 mutation body 签发审批。签名绑定 `preview_id`、`confirm_target`、`expected_version` 及其余全部参数。preview 有效期为 900 s。任何参数、目标、版本或源 checksum 变化都会使旧 preview 失效。
+ 
+ update 在 preview 和修改请求中增加 `annotations` 对象。只允许 `label`、`comment`、`tags`，不会修改采样率、采集身份、科学参数或原始文件。restore 可增加 `restore_version`，以新版本恢复旧数据指针和注释。版本号只递增，不倒退。
+ 
+ overwrite 在两个请求中增加 `source`，结构同 target。source 必须是同一设备的可读对象，历史采样率必须相同。输入不接受路径、URL、任意数组或上传文件。writer 只接受生产整数 raw 格式；浮点历史文件的版本覆盖返回 `CAPABILITY_UNAVAILABLE`，避免隐式量化。
+ 
+-现有 Mongo repository 仅有 upsert 和读取，没有删除或历史版本。本次新增 `AgentVersionRepository` 作为兼容的 Agent 元数据层，存于 output root 的 `agent-v2/catalog.json`。没有变更 Mongo 集合、索引、HDF5 schema 或 protocol v2。版本 0 指原 catalog 文件；新文件写在 `agent-v2/versions/<target_id>/<version>-<operation_id>/`，使用现有 writer，并保存 manifest 和来源。原始文件从不原地改写。
++现有 Mongo repository 仅有 upsert 和读取，没有删除或历史版本。本次新增 `AgentVersionRepository` 作为兼容的 Agent 元数据层，存于 output root 的 `agent-v2/catalog.json`。没有变更 Mongo 集合、索引、HDF5 schema 或 protocol v2。Agent catalog 写入 `schema_version=1`；启动时将现有无版本 catalog 视为兼容的版本 1 并补写字段，拒绝未知版本且不覆盖该文件。未来版本必须先实现显式迁移。版本 0 指原 catalog 文件；新文件写在 `agent-v2/versions/<target_id>/<version>-<operation_id>/`，使用现有 writer，并保存 manifest 和来源。原始文件从不原地改写。
+ 
+ 成功 preview 会绑定 target_id 与精确原始对象身份。在首次 mutation 前，GET versions 根据该绑定重新读取当前原始对象，返回 version 0、当前 SHA-256 和字节数。该 GET 不写 Mongo 或 mutation state，不新增 operation_id、审批占用或版本；未知 target_id 返回 `NOT_FOUND`。对象缺失、不唯一或不可读取时，沿用安全读取错误。已有 overlay history 时返回完整的已记录版本历史。
+ 
+ catalog 将版本指针、操作结果、审批占用与幂等绑定原子提交，并使用 fsync 和单所有者锁。文件先写到新的版本目录，catalog 发布指针后才可见。崩溃可能留下未发布的孤立版本文件，但不会自动重放。管理员应保留这些文件供审计，不能仅凭目录存在推断操作成功。
+ 
+-软删除只影响 v2 的可见对象、raw 和后续分析输入。v1、原 Mongo catalog 和既有 GUI 继续使用原始历史视图；它们不是删除权限边界。已有分析附件作为历史证据保留。preview 的依赖列表报告当前 Agent 目录内已记录源对象的任务，不代表外部系统中的全部引用。
++preview、operation、versions（含各版本项）显式返回 `effect_scope="agent-v2-overlay"`、`source_modified=false`、`source_authoritative=true`。overwrite 另返回 `supersedes_version`，表示被取代的 overlay 版本。软删除是 Agent v2 视图隐藏，overwrite 是 v2 版本目录，都不修改源 Mongo/HDF5。软删除只影响 v2 的可见对象、raw 和后续分析输入。v1、原 Mongo catalog 和既有 GUI 继续使用原始历史视图；它们不是删除权限边界。已有分析附件作为历史证据保留。preview 的依赖列表报告当前 Agent 目录内已记录源对象的任务，不代表外部系统中的全部引用。
++
++本轮没有实现 unified 可见性，也没有提供可误启用的 unified 配置。后续迁移需单独引入 `WAVEFORM_AGENT_V2_VISIBILITY=agent-only|unified`（默认 agent-only），让 v1/GUI 显式读取 overlay，并完成跨视图、回滚和授权测试后再开放。
+ 
+ 回滚数据使用新的 preview、审批和 restore 操作。回滚服务源码时也须保留整个 output root、原始文件和版本目录；旧 v1 程序不会解释 v2 overlay。当前没有自动 GC、物理删除、跨目录原子事务或跨副本一致性。
+ 
++分析任务只在获取和校验 overlay generation、提交状态时持有 catalog 锁。文件和网络读取在锁外完成；读取前记录各目标版本和来源，读取后重新校验 checksum，再在锁内比较 overlay generation。中途修改返回 `VERSION_CONFLICT`，不进入算法或发布结果，不自动重放。原 catalog 没有不可变内容 generation，分析因此需要二次读取校验；通过校验后按已获取的快照计算。
++
++preview 内按精确对象去重读取，target/source 相同只读一次。mutation 对每个不同对象重新读取、核验 checksum 一次，并复用解码记录生成 overwrite；不重复调用 source 下载。不同 target/source 的 overwrite，preview + mutation 最多读取原对象 4 次，另有 1 次新本地版本 hash；相同对象为 2 次源读取加 1 次新版本 hash。不能跨 preview/mutation 直接相信旧 checksum。data writer 使用单独的串行锁，文件读取期间不占用 catalog 锁，状态和审计查询可继续。
++
+ ## 幂等、审计与错误
+ 
+ 所有 POST 都支持幂等 key。同 scope、同 key、同 action 和 body 返回原操作或任务；改变请求返回 HTTP 409、`IDEMPOTENCY_CONFLICT`。同一个 operation_id 不能用于其他 key。采集还受后端 request_id 幂等约束。
+ 
+ 副作用发生前先写 durable intent，记录 operation_id、operator_id、approval_id、action、完整参数、指纹和时间。执行后保存真实结果或安全错误。重启后的未完成 intent 标记失败，不自动执行。接收后发生超时时，状态可能需要按 request_id 查询，不能把 HTTP 错误理解为设备没有收到请求。
++
++operations 列表要求对应 scope token。过滤条件按 AND 组合；`action` 精确匹配 `POST /api/agent/v2/...`，`target_id` 使用 preview 的目标 ID，control 的 `request_id` 使用采集请求 ID。列表仅返回 operation_id、action、status、operator_id、approval_id、target_id、created_at、updated_at 和可选 error.code，按创建时间倒序排列，不返回完整 body、签名、token、secret 或路径。preview 记录也可查询。单条 data operation 只接受 data 操作 ID，跨 scope 返回 404。
+ 
+ 所有 v2 错误使用：
+ 
+@@ -254,6 +275,7 @@
+ | 404 | `NOT_FOUND` |
+ | 409 | `AMBIGUOUS`、`CONFLICT`、`IDEMPOTENCY_CONFLICT`、`VERSION_CONFLICT`、`OPERATION_IN_PROGRESS` |
+ | 422 | `DATA_UNREADABLE`、`ANALYSIS_INVALID` |
++| 429 | `RESOURCE_BUSY`（请求限流） |
+ | 503 | `CAPABILITY_UNAVAILABLE`、`RESOURCE_BUSY` |
+ | 504 | `TIMEOUT` |
+ | 500 | `INTERNAL` |
+@@ -279,9 +301,9 @@
+   /home/whloong/miniconda3/envs/waveform-storage/bin/python tools/run_quality.py
+ ```
+ 
+-accelerator-rag 可以继续使用原 v1。迁移到 v2 时，增加对应 scope token，将日期查询改为 start_date/end_date，使用新 job/artifact URI，并处理新的错误信封和 409 幂等冲突。read 调用不需要人工审批。control/data 调用须先在独立审批端完成操作员确认；data 再执行 preview → 显式目标确认 → 签名提交。
+-
+-v1 没有内建认证，本次为兼容旧客户端继续保留。部署时必须把 v1 限制在原可信网络或单独代理 ACL 内，不能把 v2 token 当作整个监听端口的统一防护。
++accelerator-rag 可以继续使用原 v1。迁移到 v2 时，增加对应 scope token，将日期查询改为 start_date/end_date，使用新 job/artifact URI，并处理新的错误信封和 409 幂等冲突。read 调用不需要人工审批。control 调用须先在独立审批端完成操作员确认；data 使用 DataToken 执行无审批 preview → 查看影响并确认一次 → 签名提交 mutation。旧客户端若仍给 preview 发送审批 header，服务会忽略它们、不占用该 approval；应更新客户端并为 mutation 绑定完整 body。
++
++推荐生产设置 `WAVEFORM_AGENT_V2_ONLY=true`，或将旧 v1 放在独立进程、端口并以代理 ACL 限制访问。默认 `false` 时 v1 仍可启用，无 token 要求；与 v2 同时启用会打印“v1 无认证，必须由网络 ACL/代理限制”。`/health` 在 v2-only 模式仍可用。v1 没有内建认证，本次为兼容旧客户端继续保留。部署时必须把 v1 限制在原可信网络或单独代理 ACL 内，不能把 v2 token 当作整个监听端口的统一防护。
+ 
+ ## 剩余边界
+ 
+--- task-start/docs/agent-api-v2.openapi.json
++++ current/docs/agent-api-v2.openapi.json
+@@ -3,7 +3,7 @@
+   "info": {
+     "title": "Waveform Agent API v2",
+     "version": "2.0.0",
+-    "description": "v1 remains unchanged. Write scopes default disabled and require signed approvals. This service is not an identity provider. No EPICS write API."
++    "description": "v1 remains unchanged. Write scopes default disabled and require signed approvals. This service is not an identity provider. No EPICS write API. Hardening: V2_ONLY disables anonymous v1 routes (default false). Production should enable it or isolate ports with proxy ACL. Preview needs no approval; mutations require one signed confirmation. Catalog schema_version=1. Per-scope quotas default to 60 requests/minute plus 10 control/data writes/minute. APPROVAL_SECRET_PREVIOUS permits a bounded rotation window."
+   },
+   "servers": [
+     {
+@@ -117,6 +117,16 @@
+           },
+           "504": {
+             "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
+             "content": {
+               "application/json": {
+                 "schema": {
+@@ -322,6 +332,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -442,6 +462,16 @@
+           },
+           "504": {
+             "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
+             "content": {
+               "application/json": {
+                 "schema": {
+@@ -621,6 +651,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -757,6 +797,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -912,6 +962,16 @@
+           },
+           "504": {
+             "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
+             "content": {
+               "application/json": {
+                 "schema": {
+@@ -1102,6 +1162,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -1230,6 +1300,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         },
+         "requestBody": {
+@@ -1367,6 +1447,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -1494,6 +1584,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -1652,6 +1752,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -1780,6 +1890,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         },
+         "requestBody": {
+@@ -1917,6 +2037,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -2070,6 +2200,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -2207,6 +2347,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         },
+         "requestBody": {
+@@ -2379,6 +2529,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         },
+         "requestBody": {
+@@ -2516,6 +2676,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -2687,6 +2857,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         },
+         "requestBody": {
+@@ -2814,6 +2994,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -2931,6 +3121,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         }
+       }
+@@ -2957,40 +3157,6 @@
+               "pattern": "^[A-Za-z0-9_-]{1,128}$"
+             },
+             "description": "Same key and body returns original operation/job; changed body returns 409."
+-          },
+-          {
+-            "in": "header",
+-            "name": "X-Operation-Id",
+-            "required": true,
+-            "schema": {
+-              "type": "string",
+-              "format": "uuid"
+-            }
+-          },
+-          {
+-            "in": "header",
+-            "name": "X-Approval-Id",
+-            "required": true,
+-            "schema": {
+-              "type": "string",
+-              "format": "uuid"
+-            }
+-          },
+-          {
+-            "in": "header",
+-            "name": "X-Operator-Id",
+-            "required": true,
+-            "schema": {
+-              "type": "string"
+-            }
+-          },
+-          {
+-            "in": "header",
+-            "name": "X-Approval-Token",
+-            "required": true,
+-            "schema": {
+-              "type": "string"
+-            }
+           }
+         ],
+         "responses": {
+@@ -3086,6 +3252,16 @@
+           },
+           "504": {
+             "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
+             "content": {
+               "application/json": {
+                 "schema": {
+@@ -3104,7 +3280,8 @@
+               }
+             }
+           }
+-        }
++        },
++        "description": "Read-only data preview with DataToken and Idempotency-Key. No approval is required or consumed; audit/idempotency records are retained. Confirm the exact target once and sign the complete mutation body including preview_id, confirm_target and expected_version."
+       }
+     },
+     "/api/agent/v2/data/update": {
+@@ -3258,6 +3435,16 @@
+           },
+           "504": {
+             "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
+             "content": {
+               "application/json": {
+                 "schema": {
+@@ -3437,6 +3624,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         },
+         "requestBody": {
+@@ -3609,6 +3806,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         },
+         "requestBody": {
+@@ -3781,6 +3988,16 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         },
+         "requestBody": {
+@@ -3911,6 +4128,16 @@
+           },
+           "504": {
+             "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
+             "content": {
+               "application/json": {
+                 "schema": {
+@@ -3987,12 +4214,231 @@
+                     "next_cursor": {
+                       "type": "string",
+                       "nullable": true
++                    },
++                    "effect_scope": {
++                      "type": "string",
++                      "enum": [
++                        "agent-v2-overlay"
++                      ]
++                    },
++                    "source_modified": {
++                      "type": "boolean",
++                      "enum": [
++                        false
++                      ]
++                    },
++                    "source_authoritative": {
++                      "type": "boolean",
++                      "enum": [
++                        true
++                      ]
+                     }
+                   },
+                   "required": [
+                     "versions",
+                     "total",
+                     "truncated",
++                    "next_cursor",
++                    "effect_scope",
++                    "source_modified",
++                    "source_authoritative"
++                  ],
++                  "additionalProperties": false
++                }
++              }
++            }
++          },
++          "400": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "401": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "403": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "404": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "409": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "422": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "500": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "503": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "504": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          }
++        },
++        "description": "A successful preview binds target_id to an exact original catalog object. Before the first mutation, GET reads the current object and returns version 0 with SHA-256 and byte count, without writing mutation state, operations, approvals or versions. Unknown IDs return NOT_FOUND; missing, ambiguous or unreadable originals retain safe read errors. Existing overlay histories are returned in full with pagination."
++      }
++    },
++    "/api/agent/v2/data/operations": {
++      "get": {
++        "summary": "List safe operation audit summaries",
++        "operationId": "data_get_operations",
++        "tags": [
++          "data"
++        ],
++        "security": [
++          {
++            "DataToken": []
++          }
++        ],
++        "parameters": [
++          {
++            "in": "query",
++            "name": "limit",
++            "required": false,
++            "schema": {
++              "type": "integer",
++              "minimum": 1,
++              "maximum": 500,
++              "default": 100
++            }
++          },
++          {
++            "in": "query",
++            "name": "cursor",
++            "required": false,
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "in": "query",
++            "name": "operator_id",
++            "required": false,
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "in": "query",
++            "name": "action",
++            "required": false,
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "in": "query",
++            "name": "target_id",
++            "required": false,
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "responses": {
++          "200": {
++            "description": "Success",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "properties": {
++                    "total": {
++                      "type": "integer",
++                      "minimum": 0
++                    },
++                    "truncated": {
++                      "type": "boolean"
++                    },
++                    "next_cursor": {
++                      "type": "string",
++                      "nullable": true
++                    },
++                    "operations": {
++                      "type": "array",
++                      "items": {
++                        "$ref": "#/components/schemas/OperationSummary"
++                      }
++                    }
++                  },
++                  "required": [
++                    "operations",
++                    "total",
++                    "truncated",
+                     "next_cursor"
+                   ],
+                   "additionalProperties": false
+@@ -4089,9 +4535,217 @@
+                 }
+               }
+             }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
+           }
+         },
+-        "description": "A successful preview binds target_id to an exact original catalog object. Before the first mutation, GET reads the current object and returns version 0 with SHA-256 and byte count, without writing mutation state, operations, approvals or versions. Unknown IDs return NOT_FOUND; missing, ambiguous or unreadable originals retain safe read errors. Existing overlay histories are returned in full with pagination."
++        "description": "Scope-isolated paginated audit. action filters the exact method plus path (POST /api/agent/v2/...). Filters combine with AND. Returns no full request body, tokens, secrets or paths; changed listings invalidate cursors."
++      }
++    },
++    "/api/agent/v2/control/operations": {
++      "get": {
++        "summary": "List safe operation audit summaries",
++        "operationId": "control_get_operations",
++        "tags": [
++          "control"
++        ],
++        "security": [
++          {
++            "ControlToken": []
++          }
++        ],
++        "parameters": [
++          {
++            "in": "query",
++            "name": "limit",
++            "required": false,
++            "schema": {
++              "type": "integer",
++              "minimum": 1,
++              "maximum": 500,
++              "default": 100
++            }
++          },
++          {
++            "in": "query",
++            "name": "cursor",
++            "required": false,
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "in": "query",
++            "name": "operator_id",
++            "required": false,
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "in": "query",
++            "name": "action",
++            "required": false,
++            "schema": {
++              "type": "string"
++            }
++          },
++          {
++            "in": "query",
++            "name": "request_id",
++            "required": false,
++            "schema": {
++              "type": "string"
++            }
++          }
++        ],
++        "responses": {
++          "200": {
++            "description": "Success",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "type": "object",
++                  "properties": {
++                    "total": {
++                      "type": "integer",
++                      "minimum": 0
++                    },
++                    "truncated": {
++                      "type": "boolean"
++                    },
++                    "next_cursor": {
++                      "type": "string",
++                      "nullable": true
++                    },
++                    "operations": {
++                      "type": "array",
++                      "items": {
++                        "$ref": "#/components/schemas/OperationSummary"
++                      }
++                    }
++                  },
++                  "required": [
++                    "operations",
++                    "total",
++                    "truncated",
++                    "next_cursor"
++                  ],
++                  "additionalProperties": false
++                }
++              }
++            }
++          },
++          "400": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "401": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "403": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "404": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "409": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "422": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "500": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "503": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "504": {
++            "description": "Error; see error.code and operation_id",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          },
++          "429": {
++            "description": "Per-scope request or write quota exceeded; error.code=RESOURCE_BUSY. Retry after the in-process 60-second fixed window.",
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/Error"
++                }
++              }
++            }
++          }
++        },
++        "description": "Scope-isolated paginated audit. action filters the exact method plus path (POST /api/agent/v2/...). Filters combine with AND. Returns no full request body, tokens, secrets or paths; changed listings invalidate cursors."
+       }
+     }
+   },
+@@ -4640,7 +5294,10 @@
+           "action",
+           "parameters",
+           "status",
+-          "created_at"
++          "created_at",
++          "effect_scope",
++          "source_modified",
++          "source_authoritative"
+         ],
+         "properties": {
+           "operation_id": {
+@@ -4677,8 +5334,36 @@
+           "created_at": {
+             "type": "string",
+             "format": "date-time"
+-          }
+-        }
++          },
++          "effect_scope": {
++            "type": "string",
++            "enum": [
++              "agent-v2-overlay"
++            ]
++          },
++          "source_modified": {
++            "type": "boolean",
++            "enum": [
++              false
++            ]
++          },
++          "source_authoritative": {
++            "type": "boolean",
++            "enum": [
++              true
++            ]
++          },
++          "supersedes_version": {
++            "type": "integer",
++            "minimum": 0,
++            "description": "Previous overlay version superseded by this overwrite."
++          },
++          "updated_at": {
++            "type": "string",
++            "format": "date-time"
++          }
++        },
++        "description": "Agent v2 overlay only. Original Mongo/HDF5 remain authoritative and unmodified; v1 and GUI retain the original view."
+       },
+       "ObjectVersion": {
+         "type": "object",
+@@ -4687,7 +5372,10 @@
+           "target_id",
+           "version",
+           "deleted",
+-          "annotations"
++          "annotations",
++          "effect_scope",
++          "source_modified",
++          "source_authoritative"
+         ],
+         "properties": {
+           "target": {
+@@ -4728,8 +5416,32 @@
+           "operator_id": {
+             "type": "string",
+             "pattern": "^[A-Za-z0-9_-]{1,128}$"
+-          }
+-        }
++          },
++          "effect_scope": {
++            "type": "string",
++            "enum": [
++              "agent-v2-overlay"
++            ]
++          },
++          "source_modified": {
++            "type": "boolean",
++            "enum": [
++              false
++            ]
++          },
++          "source_authoritative": {
++            "type": "boolean",
++            "enum": [
++              true
++            ]
++          },
++          "supersedes_version": {
++            "type": "integer",
++            "minimum": 0,
++            "description": "Previous overlay version superseded by this overwrite."
++          }
++        },
++        "description": "Agent v2 overlay only. Original Mongo/HDF5 remain authoritative and unmodified; v1 and GUI retain the original view."
+       },
+       "Run": {
+         "type": "object",
+@@ -4855,7 +5567,10 @@
+           "expires_at",
+           "operation_id",
+           "approval_id",
+-          "operator_id"
++          "operator_id",
++          "effect_scope",
++          "source_modified",
++          "source_authoritative"
+         ],
+         "properties": {
+           "preview_id": {
+@@ -4896,13 +5611,38 @@
+           },
+           "approval_id": {
+             "type": "string",
+-            "format": "uuid"
++            "nullable": true,
++            "description": "Always null; preview does not consume approval."
+           },
+           "operator_id": {
+             "type": "string",
+-            "pattern": "^[A-Za-z0-9_-]{1,128}$"
+-          }
+-        }
++            "description": "service:data; identity confirmation occurs once on mutation."
++          },
++          "effect_scope": {
++            "type": "string",
++            "enum": [
++              "agent-v2-overlay"
++            ]
++          },
++          "source_modified": {
++            "type": "boolean",
++            "enum": [
++              false
++            ]
++          },
++          "source_authoritative": {
++            "type": "boolean",
++            "enum": [
++              true
++            ]
++          },
++          "supersedes_version": {
++            "type": "integer",
++            "minimum": 0,
++            "description": "Previous overlay version superseded by this overwrite."
++          }
++        },
++        "description": "Agent v2 overlay only. Original Mongo/HDF5 remain authoritative and unmodified; v1 and GUI retain the original view."
+       },
+       "DataUpdate": {
+         "type": "object",
+@@ -5167,6 +5907,68 @@
+             "additionalProperties": false
+           }
+         ]
++      },
++      "OperationSummary": {
++        "type": "object",
++        "properties": {
++          "operation_id": {
++            "type": "string",
++            "format": "uuid"
++          },
++          "action": {
++            "type": "string"
++          },
++          "status": {
++            "type": "string",
++            "enum": [
++              "running",
++              "succeeded",
++              "failed"
++            ]
++          },
++          "operator_id": {
++            "type": "string"
++          },
++          "approval_id": {
++            "type": "string",
++            "nullable": true
++          },
++          "created_at": {
++            "type": "string",
++            "format": "date-time"
++          },
++          "updated_at": {
++            "type": "string",
++            "format": "date-time"
++          },
++          "target_id": {
++            "type": "string",
++            "nullable": true
++          },
++          "error": {
++            "type": "object",
++            "properties": {
++              "code": {
++                "type": "string"
++              }
++            },
++            "required": [
++              "code"
++            ],
++            "additionalProperties": false
++          }
++        },
++        "required": [
++          "operation_id",
++          "action",
++          "status",
++          "operator_id",
++          "approval_id",
++          "created_at",
++          "updated_at",
++          "target_id"
++        ],
++        "additionalProperties": false
+       }
+     }
+   }
+--- task-start/docs/handoffs/waveform-agent-v2-integration-20261021.md
++++ current/docs/handoffs/waveform-agent-v2-integration-20261021.md
+@@ -1,6 +1,6 @@
+ # accelerator-rag Waveform API v2 Integration Handoff
+ 
+-交接日期：2026-10-21。当前交付为源码，现场部署状态为 NO。服务端方案、字段、错误与启动配置见 [API 手册](../agent-api-v2.md)，机器契约见 [OpenAPI](../agent-api-v2.openapi.json)。
++交接日期：2026-10-21；加固更新：2026-10-22。当前交付为源码，现场部署状态为 NO。服务端方案、字段、错误与启动配置见 [API 手册](../agent-api-v2.md)，机器契约见 [OpenAPI](../agent-api-v2.openapi.json)。
+ 
+ ## IMPLEMENTED
+ 
+@@ -16,21 +16,21 @@
+ 
+ ## AUTH / APPROVAL
+ 
+-read/control/data 使用不同 Bearer service token。control/data 默认关闭，生产必须显式启用。写 scope 开启时强制配置 HMAC 审批密钥。
++read/control/data 使用不同 Bearer service token。control/data 默认关闭，生产必须显式启用。写 scope 开启时强制配置 HMAC 审批密钥。可配置 APPROVAL_SECRET_PREVIOUS，在有限轮换窗口内兼容旧签名；新审批只用 current 签发。
+ 
+-read POST（alignment、spectrum、analysis job cancel）不要求人工审批，但需要 read service token 和幂等 key。所有 control/data POST 强制签名审批，需要 operation、approval、operator 引用和签名 token。签名绑定完整 body、action、scope 和过期时间。审批 ID 在服务端持久化占用；更改参数后旧 token 失效。data 修改必须先取得同一操作员的 preview，再确认 target_id 与 expected_version。
++read POST（alignment、spectrum、analysis job cancel）不要求人工审批，但需要 read service token 和幂等 key。data preview 无需审批，只需 DataToken 与幂等 key；control POST 和 data mutation 强制签名审批，需要 operation、approval、operator 引用和签名 token。签名绑定完整 body、action、scope 和过期时间。审批 ID 在服务端持久化占用；更改参数后旧 token 失效。data 流程为无审批 preview → 查看影响并确认一次 → 签名 mutation。完整 mutation body（含 preview_id、confirm_target、expected_version）参与签名；preview 不消耗审批。
+ 
+ 本服务验证审批引用和签名，不验证自然人身份。accelerator-rag 负责操作员登录、确认及可信签发；共享密钥不能提供给 Agent。
+ 
+ ## DATA MODEL
+ 
+-新增 AgentVersionRepository，保存版本目录、操作审计、审批占用、任务状态和幂等绑定。Mongo/HDF5 schema 与 protocol v2 保持不变。
++新增 AgentVersionRepository，保存版本目录、操作审计、审批占用、任务状态和幂等绑定。Mongo/HDF5 schema 与 protocol v2 保持不变。Agent catalog 增加 schema_version=1，无版本旧目录兼容补齐，未知版本拒绝启动。
+ 
+ alignment 的 algorithm source hash 对应实际 alignment 模块；spectrum 只返回实际分析 manifest 的 algorithm_version，省略未定义的 algorithm_source_sha256。
+ 
+ 版本 0 指原始 catalog 文件。成功 preview 后、首次 mutation 前，versions 通过已绑定的目标身份重新读取当前原始对象，返回 version 0 及当前 checksum。GET 不创建 mutation state、operation_id、审批占用或版本；已有 overlay history 时仍返回完整版本历史。覆盖通过现有整数 raw writer 生成新 HDF5 和 manifest，保留原文件及旧版本。restore 生成递增的新版本，不重写旧版本。
+ 
+-软删除影响 v2 可见视图。原 Mongo、v1 和现有 GUI 仍可读取原始历史，这是明确的兼容边界。已有结果附件作为历史证据保留。不能把 v2 软删除当作其他接口的访问控制机制。
++preview、operation、versions 显式返回 effect_scope=agent-v2-overlay、source_modified=false、source_authoritative=true。overwrite 另返回 supersedes_version。软删除影响 v2 可见视图。原 Mongo、v1 和现有 GUI 仍可读取原始历史，这是明确的兼容边界。已有结果附件作为历史证据保留。不能把 v2 软删除当作其他接口的访问控制机制。
+ 
+ ## FILES_CHANGED
+ 
+@@ -48,6 +48,8 @@
+ 
+ ## TESTS
+ 
++2026-10-22 加固：新增 v2-only、无审批 preview、单次审批、下载中断、慢读并发冲突、overlay 字段、审计列表、限流、目录版本及密钥轮换测试。最新结果与真实 HTTP 证据见[加固报告](../../交付/20261021-waveform-agent-v2/evidence/harden-20261022/report.md)。以下小范围整改与初次交付结果保留为历史记录。
++
+ 2026-10-22 小范围整改：20 项 v2 定向测试和一次正式质量门的 275 项测试通过。原 version-0 查询 404 已通过真实 HTTP 测试复现。新 fixture 和整改 diff 见[本轮证据](../../交付/20261021-waveform-agent-v2/evidence/review-fix-20261022/report.md)。
+ 
+ 实现前完整质量门：255 项通过。最终质量门和新增定向测试的实际结果见[交付记录](../../交付/20261021-waveform-agent-v2/README.md)。
+@@ -64,9 +66,13 @@
+ 
+ 旧 accelerator-rag v1 客户端可继续调用原路径。v1 的原有错误信封和同 key 冲突返回 400 的规则保留；v2 使用 message/operation_id/retryable 信封，幂等冲突返回 409。两个版本的 job UUID 与 URI 不混用。
+ 
+-v1 继续依赖可信网络隔离，没有新增强制 token，以免旧客户端失效。v2 的 token 不能防护同监听端口上的 v1；部署时必须对 v1 单独施加代理或 ACL 限制。
++WAVEFORM_AGENT_V2_ONLY 默认 false，v1 仍可启用；true 时 v1 路径返回 404，/health 和认证 v2 可用。共用端口时启动日志明确警告匿名 v1 风险，生产推荐 v2-only 或独立进程和端口。v1 没有新增强制 token，以免旧客户端失效。v2 的 token 不能防护同监听端口上的 v1；部署时必须对 v1 单独施加代理或 ACL 限制。
+ 
+ ## SECURITY
++
++新增 data/control operations 列表，按 scope 鉴权，支持分页和 operator/action/target 或 request 筛选，只输出安全摘要。每个 scope 默认 60 请求/min，control/data mutation 附加 10 次/min；超额返回 429 RESOURCE_BUSY。两个配额可分别配置为 0。
++
++文件读取移出 catalog 锁，读取前后校验版本与 checksum。data writer 使用独立锁，查询不等待文件读取。下载开始响应后异常只断开连接，不再追加 JSON。
+ 
+ 没有任意路径、URL、shell、Mongo 直写、物理删除或 EPICS 写入接口。下载从已授权 catalog 身份解析，限制根目录、文件大小和时间，并提供 checksum。原始数据及二进制附件不进入 JSON。
+ 
+@@ -76,7 +82,7 @@
+ 
+ 源码已完成，尚未部署现场。没有构建新前端/采集服务二进制，没有切换 current 或重启现场服务。没有验证现场设备、MongoDB、远端 SSH/SFTP、TLS 代理或生产性能。
+ 
+-`CAPABILITY_UNAVAILABLE` 仍适用于关闭的 control/data scope，以及现有 writer 无法无损覆盖的浮点历史 raw。物理删除、任意上传、采集科学字段修改和跨系统依赖枚举没有开放。v2 overlay 不同步修改原 Mongo/v1/GUI 视图。
++`CAPABILITY_UNAVAILABLE` 仍适用于关闭的 control/data scope，以及现有 writer 无法无损覆盖的浮点历史 raw。物理删除、任意上传、采集科学字段修改和跨系统依赖枚举没有开放。v2 overlay 不同步修改原 Mongo/v1/GUI 视图。unified 未实现；未来必须单独引入 feature flag、让 v1/GUI 读取 overlay 并验证。限流为单进程配额，不等于代理的多实例限流。
+ 
+ 持久幂等以完整保留同一个 output root 为前提。没有多主机分布式锁、自动 GC 或统一任务硬 deadline。文件先落盘、catalog 后发布，崩溃可能留下未发布文件；重启不自动重放任务或写操作。
+ 
+--- task-start/src/waveform_storage/application/agent_http_api.py
++++ current/src/waveform_storage/application/agent_http_api.py
+@@ -2,12 +2,20 @@
+ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+ from urllib.parse import parse_qs, urlparse
+ import json
++import logging
++import os
+ 
+ from waveform_storage.analysis.service import _json_value
+ from .agent_service import AgentError, HTTP_STATUS, PREFIX, translate_error
+ 
+ 
+-def make_server(service, address=('127.0.0.1', 8771), *, v2=None):
++def make_server(service, address=('127.0.0.1', 8771), *, v2=None, v2_only=None):
++    if v2_only is None:
++        v2_only = os.environ.get('WAVEFORM_AGENT_V2_ONLY', 'false').lower() == 'true'
++    if v2_only and v2 is None:
++        raise ValueError('V2_ONLY requires an enabled v2 service')
++    if v2 is not None and not v2_only:
++        logging.getLogger(__name__).warning('v1 无认证，必须由网络 ACL/代理限制；生产推荐 WAVEFORM_AGENT_V2_ONLY=true 或独立端口')
+     if address[0] not in ('127.0.0.1', 'localhost', '::1'):
+         raise ValueError('Agent HTTP must bind loopback; use a TLS reverse proxy for remote access')
+     class Handler(BaseHTTPRequestHandler):
+@@ -35,6 +43,9 @@
+                 health = service.health()
+                 self._json(200 if health['status'] == 'ok' else 503, health)
+                 return
++            if v2_only:
++                self.close_connection = True
++                raise AgentError('NOT_FOUND', 'Endpoint not found')
+             parts = parsed.path.removeprefix(PREFIX + '/').split('/')
+             if not parsed.path.startswith(PREFIX + '/'):
+                 raise AgentError('NOT_FOUND', 'Endpoint not found')
+@@ -74,6 +85,7 @@
+                 if len(parts) == 4 and parts[0] == 'jobs' and parts[2] == 'artifacts':
+                     path = service.artifact_path(parts[1], parts[3])
+                     with path.open('rb') as stream:
++                        self.headers_sent = True
+                         self.send_response(200)
+                         self.send_header('Content-Type', 'application/octet-stream')
+                         self.send_header('Content-Length', str(path.stat().st_size))
+@@ -85,11 +97,16 @@
+             raise AgentError('NOT_FOUND', 'Endpoint not found')
+ 
+         def _handle(self, method):
++            self.headers_sent = False
+             try:
+                 self._dispatch(method)
+             except (BrokenPipeError, ConnectionResetError):
+                 return
+             except Exception as exc:
++                if self.headers_sent:
++                    self.close_connection = True
++                    logging.getLogger(__name__).warning('Agent response stream interrupted; closing connection')
++                    return
+                 error = translate_error(exc)
+                 self.close_connection = True
+                 self._json(HTTP_STATUS[error.code], error.payload())
+--- task-start/src/waveform_storage/application/agent_v2_contract.py
++++ current/src/waveform_storage/application/agent_v2_contract.py
+@@ -6,6 +6,7 @@
+ import math
+ import re
+ import time
++from threading import Lock
+ from uuid import UUID
+ 
+ PREFIX = '/api/agent/v2'
+@@ -78,10 +79,19 @@
+ 
+ 
+ class AccessPolicy:
+-    def __init__(self, tokens, *, control=False, data=False, secret=''):
++    def __init__(self, tokens, *, control=False, data=False, secret='', previous_secret='',
++                 rate_per_minute=60, write_rate_per_minute=10, clock=time.monotonic):
+         self.tokens = dict(tokens)
+         self.enabled = {'read': True, 'control': control, 'data': data}
+         self.secret = secret
++        self.previous_secret = previous_secret
++        self.rate_per_minute = int(rate_per_minute)
++        self.write_rate_per_minute = int(write_rate_per_minute)
++        if self.rate_per_minute < 0 or self.write_rate_per_minute < 0:
++            raise ValueError('Rate limits must be nonnegative')
++        self._clock = clock
++        self._rate_lock = Lock()
++        self._windows = {}
+         nonempty = [v for v in tokens.values() if v]
+         if len(nonempty) != len(set(nonempty)):
+             raise ValueError('Service scopes must have different tokens')
+@@ -97,7 +107,30 @@
+                     for s in ('read', 'control', 'data')},
+                    control=env.get('WAVEFORM_AGENT_CONTROL_ENABLED', '').lower() == 'true',
+                    data=env.get('WAVEFORM_AGENT_DATA_ENABLED', '').lower() == 'true',
+-                   secret=env.get('WAVEFORM_AGENT_APPROVAL_SECRET', ''))
++                   secret=env.get('WAVEFORM_AGENT_APPROVAL_SECRET', ''),
++                   previous_secret=env.get('WAVEFORM_AGENT_APPROVAL_SECRET_PREVIOUS', ''),
++                   rate_per_minute=int(env.get('WAVEFORM_AGENT_RATE_LIMIT_PER_MINUTE', '60')),
++                   write_rate_per_minute=int(env.get('WAVEFORM_AGENT_WRITE_RATE_LIMIT_PER_MINUTE', '10')))
++
++    def rate_limit(self, scope, method, path):
++        # One configured token per scope; no credential is retained in counters.
++        limits = [('all', self.rate_per_minute)]
++        if method == 'POST' and scope != 'read' and path != PREFIX + '/data/preview':
++            limits.append(('write', self.write_rate_per_minute))
++        stamp = self._clock()
++        with self._rate_lock:
++            for kind, maximum in limits:
++                start, count = self._windows.get((scope, kind), (stamp, 0))
++                if stamp - start >= 60:
++                    start, count = stamp, 0
++                if maximum and count >= maximum:
++                    error = APIError('RESOURCE_BUSY', 'Request rate limit exceeded')
++                    error.http_status = 429
++                    raise error
++                self._windows[(scope, kind)] = (start, count)
++            for kind, _ in limits:
++                start, count = self._windows[(scope, kind)]
++                self._windows[(scope, kind)] = (start, count + 1)
+ 
+     def authenticate(self, scope, headers):
+         authorization = headers.get('Authorization', '')
+@@ -120,8 +153,14 @@
+             approval_id = uuid(headers['X-Approval-Id'])
+             operator_id = identifier(headers['X-Operator-Id'])
+             encoded, signature = headers['X-Approval-Token'].split('.')
+-            expected = hmac.new(self.secret.encode(), encoded.encode(), hashlib.sha256).hexdigest()
+-            if not hmac.compare_digest(signature, expected):
++            valid = False
++            for secret in (self.secret, self.previous_secret):
++                if secret:
++                    expected = hmac.new(secret.encode(), encoded.encode(), hashlib.sha256).hexdigest()
++                    if hmac.compare_digest(signature, expected):
++                        valid = True
++                        break
++            if not valid:
+                 raise ValueError()
+             payload = json.loads(base64.b64decode(encoded + '=' * (-len(encoded) % 4), altchars=b'-_', validate=True))
+             expires = payload['expires_at']
+--- task-start/src/waveform_storage/application/agent_v2_http.py
++++ current/src/waveform_storage/application/agent_v2_http.py
+@@ -1,6 +1,7 @@
+ """Scope-isolated v2 routing, strict bodies, bounded pages and binary responses."""
+ import base64
+ import json
++import logging
+ from urllib.parse import parse_qs, unquote, urlparse
+ from uuid import uuid4
+ 
+@@ -53,6 +54,7 @@
+ 
+ def _send_download(handler, blob):
+     try:
++        handler.headers_sent = True
+         handler.send_response(200)
+         handler.send_header('Content-Type', 'application/octet-stream')
+         handler.send_header('Content-Length', str(blob.size))
+@@ -83,6 +85,7 @@
+             if len(handler.headers.get_all(name, [])) > 1:
+                 raise APIError('INVALID_ARGUMENT', 'Duplicate security header')
+         api.access.authenticate(scope, handler.headers)
++        api.access.rate_limit(scope, method, parsed.path)
+         if handler.headers.get('X-Operation-Id'):
+             operation_id = uuid(handler.headers['X-Operation-Id'])
+         query_multi = parse_qs(parsed.query, keep_blank_values=True)
+@@ -101,6 +104,9 @@
+                 allowed = {'format'}
+         if scope == 'data' and len(route) == 2 and route[1] == 'versions':
+             allowed = {'limit', 'cursor'}
++        if scope in ('data', 'control') and route == ['operations']:
++            allowed = {'limit', 'cursor', 'operator_id', 'action',
++                       'target_id' if scope == 'data' else 'request_id'}
+         if set(query) - allowed or method != 'GET' and query:
+             raise APIError('INVALID_ARGUMENT', 'Unknown query parameters')
+         if method == 'POST':
+@@ -174,6 +180,8 @@
+                     raise APIError('NOT_FOUND')
+             else:
+                 raise APIError('NOT_FOUND')
++        elif route == ['operations']:
++            result = page(api.operations(scope, query), query, 'operations')
+         elif scope == 'control':
+             if route == ['health']:
+                 health = api.backend.check_health()
+@@ -190,15 +198,21 @@
+                 raise APIError('NOT_FOUND')
+         elif len(route) == 2 and route[1] == 'versions':
+             result = page(api.versions(route[0]), query, 'versions')
++            result.update(effect_scope='agent-v2-overlay', source_modified=False, source_authoritative=True)
+         elif len(route) == 1:
+             result = api.operation(route[0])
+         else:
+             raise APIError('NOT_FOUND')
+         handler._json(200, result)
+     except (BrokenPipeError, ConnectionResetError):
++        handler.close_connection = True
++        logging.getLogger(__name__).warning('Agent connection interrupted; closing connection')
+         return True
+     except Exception as exc:
+         error = safe_error(exc)
+         handler.close_connection = True
+-        handler._json(STATUS[error.code], error.payload(operation_id))
++        if getattr(handler, 'headers_sent', False):
++            logging.getLogger(__name__).warning('Agent download interrupted; closing connection')
++        else:
++            handler._json(getattr(error, 'http_status', STATUS[error.code]), error.payload(operation_id))
+     return True
+--- task-start/src/waveform_storage/application/agent_v2_service.py
++++ current/src/waveform_storage/application/agent_v2_service.py
+@@ -6,6 +6,7 @@
+ import hashlib
+ import math
+ from pathlib import Path
++from threading import Lock
+ import tempfile
+ import time
+ import h5py
+@@ -41,6 +42,7 @@
+                                          max_bytes=max_bytes, timeout=timeout)
+         self.worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix='agent-v2')
+         self.closed = False
++        self.mutation_lock = Lock()
+         from waveform_storage.processing import alignment
+         self.alignment_source_hash = hashlib.sha256(Path(alignment.__file__).read_bytes()).hexdigest()
+ 
+@@ -182,7 +184,8 @@
+ 
+     @staticmethod
+     def public_entry(entry):
+-        return {k: deepcopy(v) for k, v in entry.items() if k not in ('file', 'versions')}
++        return {**{k: deepcopy(v) for k, v in entry.items() if k not in ('file', 'versions')},
++                'effect_scope': 'agent-v2-overlay', 'source_modified': False, 'source_authoritative': True}
+ 
+     def versions(self, key):
+         if len(key) != 64 or any(c not in '0123456789abcdef' for c in key):
+@@ -205,27 +208,67 @@
+                 raise APIError('AMBIGUOUS', 'Target identity is not unique')
+             # Hash and decode the current original object, not the preview's
+             # historical snapshot; retain existing safe read errors.
+-            _, source = self._read(identity)
+-            return [{**self.public_entry(self._entry(identity)),
+-                     'sha256': source['sha256'], 'bytes': source['bytes']}]
++            before = self._entry(identity)
++        _, source = self._read(identity)
++        with self.repo.lock:
++            if self._entry(identity) != before:
++                raise APIError('VERSION_CONFLICT')
++        return [{**self.public_entry(before),
++                 'sha256': source['sha256'], 'bytes': source['bytes']}]
+ 
+     def operation(self, operation_id):
+         row = self.repo.get('operations', uuid(operation_id))
+         if row is None:
+             raise APIError('NOT_FOUND')
++        if not row['action'].startswith('POST ' + PREFIX + '/data/'):
++            raise APIError('NOT_FOUND')
++        if '/data/' in row['action']:
++            row.update(effect_scope='agent-v2-overlay', source_modified=False, source_authoritative=True)
++            if row.get('result', {}).get('supersedes_version') is not None:
++                row['supersedes_version'] = row['result']['supersedes_version']
+         return row
+ 
++    def operations(self, scope, query):
++        fields = ('operation_id', 'action', 'status', 'operator_id', 'approval_id',
++                  'target_id', 'created_at', 'updated_at')
++        with self.repo.lock:
++            rows = deepcopy(list(self.repo.state['operations'].values()))
++        result = []
++        for row in rows:
++            if not row['action'].startswith('POST ' + PREFIX + '/' + scope + '/'):
++                continue
++            parameters = row['parameters']
++            try:
++                target_id = target(parameters['target']) if 'target' in parameters else None
++            except (APIError, ValueError, TypeError):
++                # Failed input validation must not make the audit unreadable.
++                target_id = None
++            request_id = parameters.get('request_id', row.get('result', {}).get('request_id'))
++            if scope == 'control' and row['action'].endswith('/cancel'):
++                request_id = row['action'].split('/')[-2]
++            if any(query.get(k) and query[k] != value for k, value in (
++                    ('operator_id', row['operator_id']), ('action', row['action']),
++                    ('target_id', target_id), ('request_id', request_id))):
++                continue
++            item = {field: row.get(field) for field in fields}
++            item['target_id'] = target_id
++            if row.get('error'):
++                item['error'] = {'code': row['error']['code']}
++            result.append(item)
++        return sorted(result, key=lambda r: (r['created_at'], r['operation_id']), reverse=True)
++
+     def post(self, scope, action, body, headers, execute):
+-        """Persist authorization and intent before side effects; serialize commits."""
++        """Commit intent under the catalog lock; perform slow work outside it."""
+         key = headers.get('Idempotency-Key') or body.get('idempotency_key')
+         identifier(key)
+         if body.get('idempotency_key', key) != key:
+             raise APIError('INVALID_ARGUMENT', 'Idempotency header/body mismatch')
+         binding = digest({'scope': scope, 'key': key})
+         fingerprint = digest({'action': action, 'body': body})
++        needs_approval = scope != 'read' and action != 'POST ' + PREFIX + '/data/preview'
+         prior_id = self.repo.get('keys', binding)
+-        refs = (self.access.approval(scope, action, body, headers, allow_expired=bool(prior_id)) if scope != 'read'
+-                else {'operation_id': str(uuid4()), 'approval_id': None, 'operator_id': 'service:read'})
++        refs = (self.access.approval(scope, action, body, headers, allow_expired=bool(prior_id)) if needs_approval
++                else {'operation_id': str(uuid4()), 'approval_id': None, 'operator_id': 'service:' + scope})
+         with self.repo.lock:
+             if self.closed:
+                 raise APIError('RESOURCE_BUSY')
+@@ -234,38 +277,44 @@
+                 op = self.repo.state['operations'][prior]
+                 if op['fingerprint'] != fingerprint:
+                     raise APIError('IDEMPOTENCY_CONFLICT')
+-                if scope != 'read' and any(op[k] != refs[k] for k in refs):
++                if needs_approval and any(op[k] != refs[k] for k in refs):
+                     raise APIError('APPROVAL_INVALID', 'Retry must retain original approval and operation references')
+                 if op['status'] == 'failed':
+                     error = op['error']
+                     raise APIError(error['code'], error['message'])
+                 result = deepcopy(op.get('result', op))
+-                if isinstance(result, dict) and result.get('job_id'):
+-                    return self.job(result['job_id'])
+-                if action.endswith('/control/captures') and op['status'] == 'succeeded':
+-                    return {**result, **self.capture_status(body['request_id'])}
+-                return result
+-            if refs['operation_id'] in self.repo.state['operations']:
+-                raise APIError('CONFLICT', 'Operation ID already exists')
+-            if refs['approval_id'] in self.repo.state['approvals']:
+-                raise APIError('APPROVAL_INVALID', 'Approval already consumed')
+-            op = {**refs, 'action': action, 'parameters': deepcopy(body), 'fingerprint': fingerprint,
+-                  'status': 'running', 'created_at': now(), 'updated_at': now()}
+-            self.repo.state['operations'][refs['operation_id']] = op
+-            self.repo.state['keys'][binding] = refs['operation_id']
+-            if refs['approval_id']:
+-                self.repo.state['approvals'][refs['approval_id']] = refs['operation_id']
+-            self.repo.save()
+-            try:
+-                result = {**execute(op), **refs}
++            else:
++                if refs['operation_id'] in self.repo.state['operations']:
++                    raise APIError('CONFLICT', 'Operation ID already exists')
++                if refs['approval_id'] and refs['approval_id'] in self.repo.state['approvals']:
++                    raise APIError('APPROVAL_INVALID', 'Approval already consumed')
++                op = {**refs, 'action': action, 'parameters': deepcopy(body), 'fingerprint': fingerprint,
++                      'status': 'running', 'created_at': now(), 'updated_at': now()}
++                self.repo.state['operations'][refs['operation_id']] = op
++                self.repo.state['keys'][binding] = refs['operation_id']
++                if refs['approval_id']:
++                    self.repo.state['approvals'][refs['approval_id']] = refs['operation_id']
++                self.repo.save()
++        if prior:
++            if isinstance(result, dict) and result.get('job_id'):
++                return self.job(result['job_id'])
++            if action.endswith('/control/captures') and op['status'] == 'succeeded':
++                return {**result, **self.capture_status(body['request_id'])}
++            return result
++        try:
++            result = {**execute(op), **refs}
++            if scope == 'data':
++                result.update(effect_scope='agent-v2-overlay', source_modified=False, source_authoritative=True)
++            with self.repo.lock:
+                 op.update(status='succeeded', result=result, updated_at=now())
+                 self.repo.save()
+-                return deepcopy(result)
+-            except Exception as exc:
+-                error = safe_error(exc)
++            return deepcopy(result)
++        except Exception as exc:
++            error = safe_error(exc)
++            with self.repo.lock:
+                 op.update(status='failed', error=error.payload(refs['operation_id'])['error'], updated_at=now())
+                 self.repo.save()
+-                raise error from None
++            raise error from None
+ 
+     def capture_status(self, request_id):
+         reply = self.backend._candidate_transport().get_status(uuid(request_id))
+@@ -305,7 +354,7 @@
+         reply = self.backend._candidate_transport().cancel(uuid(request_id))
+         return {**self._capture_reply(reply), 'cancellation_requested': reply.status in ('accepted', 'running')}
+ 
+-    def preview(self, body):
++    def preview(self, body, *, records=None):
+         exact(body, ('action', 'target', 'expected_version'),
+               ('annotations', 'source', 'restore_version', 'idempotency_key'))
+         proposal = {k: v for k, v in body.items() if k != 'idempotency_key'}
+@@ -330,11 +379,18 @@
+                 raise APIError('INVALID_ARGUMENT', 'Only label/comment/tags annotations are mutable')
+         if entry['deleted'] and body['action'] != 'restore':
+             raise APIError('CONFLICT', 'Restore deleted object before modifying')
+-        blob = self.raw(body['target'], include_deleted=True)
+-        try:
+-            sources = [{'target': body['target'], 'sha256': blob.sha256}]
+-        finally:
+-            blob.stream.close()
++        records = {} if records is None else records
++        identities = [body['target']] + ([body['source']] if 'source' in body else [])
++        with self.repo.lock:
++            generations = [self._entry(identity) for identity in identities]
++            if generations[0] != entry:
++                raise APIError('VERSION_CONFLICT')
++        for identity in identities:
++            identity_key = target(identity)
++            if identity_key not in records:
++                records[identity_key] = self._read(identity, include_deleted=identity == body['target'])
++        sources = [{'target': identity, 'sha256': records[target(identity)][1]['sha256']}
++                   for identity in identities]
+         if 'source' in body:
+             target(body['source'])
+             if body['source']['device_id'] != body['target']['device_id']:
+@@ -343,12 +399,7 @@
+             target_run = self.run(body['target']['request_id'])
+             if source_run['frequency_hz'] != target_run['frequency_hz']:
+                 raise APIError('ANALYSIS_INVALID', 'Overwrite source sampling rate differs')
+-            source = self.raw(body['source'])
+-            try:
+-                sources.append({'target': body['source'], 'sha256': source.sha256})
+-            finally:
+-                source.stream.close()
+-            series, _ = self._read(body['source'])
++            series, _ = records[target(body['source'])]
+             if not all(np.issubdtype(np.asarray(a).dtype, np.integer) for a in (series.x, series.y)):
+                 raise APIError('CAPABILITY_UNAVAILABLE', 'Version writer requires production integer raw schema')
+         if 'restore_version' in body:
+@@ -357,14 +408,23 @@
+             if not any(v['version'] == body['restore_version'] for v in entry['versions']):
+                 raise APIError('NOT_FOUND', 'Restore version not found')
+         with self.repo.lock:
++            if [self._entry(identity) for identity in identities] != generations:
++                raise APIError('VERSION_CONFLICT')
+             dependencies = sorted(j['job_id'] for j in self.repo.state['jobs'].values()
+                                   if any(s['target'] == body['target'] for s in j.get('sources', [])))
+-        return {'preview_id': str(uuid4()), 'proposal': proposal, 'target_id': key,
++        return {'effect_scope': 'agent-v2-overlay', 'source_modified': False, 'source_authoritative': True,
++                **({'supersedes_version': entry['version']} if body['action'] == 'overwrite' else {}),
++                'preview_id': str(uuid4()), 'proposal': proposal, 'target_id': key,
+                 'sources': sources, 'dependencies': dependencies,
+                 'impact': 'One Agent v2 object; existing artifacts and v1 original catalog remain retained',
+                 'recoverable': True, 'expires_at': time.time() + 900}
+ 
+     def mutate(self, action, body, op):
++        # Serialize data writers without blocking catalog readers or job status.
++        with self.mutation_lock:
++            return self._mutate(action, body, op)
++
++    def _mutate(self, action, body, op):
+         exact(body, ('target', 'expected_version', 'preview_id', 'confirm_target'),
+               ('annotations', 'source', 'restore_version', 'idempotency_key'))
+         key = target(body['target'])
+@@ -372,14 +432,15 @@
+             raise APIError('APPROVAL_INVALID', 'Explicit target confirmation mismatch')
+         proposal = {'action': action, **{k: v for k, v in body.items() if k not in
+                     ('preview_id', 'confirm_target', 'idempotency_key')}}
+-        previews = [p['result'] for p in self.repo.state['operations'].values()
++        with self.repo.lock:
++            operations = deepcopy(list(self.repo.state['operations'].values()))
++        previews = [p['result'] for p in operations
+                     if p['status'] == 'succeeded' and p['action'].endswith('/data/preview')
+                     and p['result'].get('preview_id') == body['preview_id']]
+         if len(previews) != 1 or previews[0]['proposal'] != proposal or previews[0]['expires_at'] <= time.time():
+             raise APIError('APPROVAL_INVALID', 'Preview is absent, expired or differs from operation')
+-        if previews[0]['operator_id'] != op['operator_id']:
+-            raise APIError('APPROVAL_INVALID', 'Preview operator differs')
+-        current_preview = self.preview(proposal)
++        records = {}
++        current_preview = self.preview(proposal, records=records)
+         if current_preview['sources'] != previews[0]['sources']:
+             raise APIError('VERSION_CONFLICT', 'Source changed since preview')
+         entry = self._entry(body['target'])
+@@ -387,6 +448,7 @@
+             entry['sha256'] = previews[0]['sources'][0]['sha256']
+             entry['versions'].append({k: deepcopy(v) for k, v in entry.items() if k != 'versions'})
+         row = {k: deepcopy(v) for k, v in entry.items() if k != 'versions'}
++        row.pop('supersedes_version', None)
+         row.update(version=entry['version'] + 1, operation_id=op['operation_id'],
+                    approval_id=op['approval_id'], operator_id=op['operator_id'], created_at=now())
+         if action == 'update':
+@@ -404,7 +466,8 @@
+                 row['restored_from_version'] = old['version']
+             row['deleted'] = False
+         elif action == 'overwrite':
+-            series, source = self._read(body['source'])
++            series, source = records[target(body['source'])]
++            row['supersedes_version'] = entry['version']
+             if source['sha256'] != previews[0]['sources'][1]['sha256']:
+                 raise APIError('VERSION_CONFLICT')
+             # An unpublished orphan must never block a later intentional operation.
+@@ -423,11 +486,20 @@
+             write_json(directory / 'manifest.json', {**self.public_entry(row), 'proposal': proposal})
+         entry = {**row, 'versions': entry['versions']}
+         entry['versions'].append(deepcopy(row))
+-        self.repo.state['targets'][key] = entry
+-        # Version pointer and operation result are saved together by post().
+-        return self.public_entry(row)
++        result = {**self.public_entry(row), **{k: op[k] for k in ('operation_id', 'approval_id', 'operator_id')}}
++        with self.repo.lock:
++            if self._entry(body['target'])['version'] != body['expected_version']:
++                raise APIError('VERSION_CONFLICT')
++            self.repo.state['targets'][key] = entry
++            op.update(status='succeeded', result=result, updated_at=now())
++            self.repo.save()
++        return result
+ 
+     def submit(self, kind, body, operation_id=None):
++        with self.repo.lock:
++            return self._submit(kind, body, operation_id)
++
++    def _submit(self, kind, body, operation_id=None):
+         if kind == 'alignment':
+             exact(body, ('request_id', 'capture_sequence', 'device_ids'), ('parameters', 'idempotency_key'))
+             AlignmentParameters(**body.get('parameters', {}))
+@@ -486,14 +558,33 @@
+             devices = body.get('device_ids', [body.get('device_id')])
+             segment = self.segment(body['request_id'], body['capture_sequence'])
+             records, sources = [], []
+-            # Read a consistent overlay generation; mutations cannot interleave.
++            identities = [{'request_id': body['request_id'], 'capture_sequence': body['capture_sequence'],
++                           'device_id': device} for device in devices]
+             with self.repo.lock:
+-                for device in devices:
++                before = [self._entry(identity) for identity in identities]
++            try:
++                for identity in identities:
+                     self._check_cancel(job_id)
+-                    record, source = self._read({'request_id': body['request_id'],
+-                        'capture_sequence': body['capture_sequence'], 'device_id': device})
++                    record, source = self._read(identity)
+                     records.append(record)
+                     sources.append(source)
++                # Original catalogs have no immutable content generation. Rehash once
++                # outside the lock, then compare overlay generations under the lock.
++                for identity, source in zip(identities, sources):
++                    blob = self.raw(identity)
++                    try:
++                        if blob.sha256 != source['sha256']:
++                            raise APIError('VERSION_CONFLICT', 'Source changed during read')
++                    finally:
++                        blob.stream.close()
++                with self.repo.lock:
++                    if before != [self._entry(identity) for identity in identities]:
++                        raise APIError('VERSION_CONFLICT', 'Overlay changed during read')
++            except Exception:
++                with self.repo.lock:
++                    if before != [self._entry(identity) for identity in identities]:
++                        raise APIError('VERSION_CONFLICT', 'Overlay changed during read') from None
++                raise
+             run = self.run(body['request_id'])
+             self._update_job(job_id, sources=sources)
+             rate = run['frequency_hz']
+--- task-start/src/waveform_storage/metadata/agent_version_repository.py
++++ current/src/waveform_storage/metadata/agent_version_repository.py
+@@ -28,6 +28,11 @@
+             path = self.root / 'catalog.json'
+             self.state = json.loads(path.read_text()) if path.exists() else {
+                 'operations': {}, 'keys': {}, 'approvals': {}, 'targets': {}, 'jobs': {}}
++            # Existing unversioned Agent overlays are the compatible version-1 layout.
++            version = self.state.get('schema_version', 1)
++            if type(version) is not int or version != 1:
++                raise ValueError('Unsupported Agent catalog schema_version')
++            self.state['schema_version'] = 1
+             # Recovery is state-only: never resubmit jobs, hardware or file writes.
+             for group in ('operations', 'jobs'):
+                 for row in self.state[group].values():
+--- task-start/tests/test_waveform_agent_v2.py
++++ current/tests/test_waveform_agent_v2.py
+@@ -8,9 +8,11 @@
+ import os
+ from pathlib import Path
+ from tempfile import TemporaryDirectory
+-from threading import Event, Thread
++from threading import Event, Thread, current_thread
+ import time
+ import unittest
++from unittest.mock import patch
++from urllib.parse import urlencode
+ from uuid import uuid4
+ 
+ import h5py
+@@ -51,7 +53,7 @@
+ 
+ 
+ @contextmanager
+-def v2_fixture(root, *, address=('127.0.0.1', 0), access=None):
++def v2_fixture(root, *, address=('127.0.0.1', 0), access=None, v2_only=None):
+     runner = FixtureRunner()
+     with agent_fixture(root, capture_runner=runner, capture_canceller=runner.cancel,
+                        capture_prepare=runner.prepare) as (v1, repository):
+@@ -62,9 +64,10 @@
+                 del h5['Data']
+                 h5.create_dataset('Data', data=values)
+         policy = access or AccessPolicy({s: str(uuid4()) for s in ('read', 'control', 'data')},
+-                              control=True, data=True, secret=str(uuid4()))
++                              control=True, data=True, secret=str(uuid4()),
++                              rate_per_minute=0, write_rate_per_minute=0)
+         api = WaveformAgentV2(v1, load_registry(ROOT / 'config/devices.probe47.json'), policy, roots=[root])
+-        server = make_server(v1, address, v2=api)
++        server = make_server(v1, address, v2=api, v2_only=v2_only)
+         thread = Thread(target=server.serve_forever, daemon=True)
+         thread.start()
+         def request(method, path, body=None, *, scope='read', headers=None):
+@@ -76,6 +79,7 @@
+             connection.close()
+             payload = json.loads(received) if returned.get('Content-Type', '').startswith('application/json') else received
+             return status, payload, returned
++        request.server_address = server.server_address
+         try:
+             yield request, api, repository, runner
+         finally:
+@@ -133,7 +137,8 @@
+     def preview(self, action, **extra):
+         version = self.api._entry(IDENTITY)['version']
+         proposal = {'action': action, 'target': IDENTITY, 'expected_version': version, **extra}
+-        code, preview, _ = self.post('data', 'preview', proposal)
++        code, preview, _ = self.request('POST', PREFIX + '/data/preview', proposal, scope='data',
++                                        headers={'Idempotency-Key': str(uuid4())})
+         self.assertEqual(code, 200, preview)
+         body = {k: v for k, v in proposal.items() if k != 'action'}
+         body.update(preview_id=preview['preview_id'], confirm_target=preview['target_id'])
+@@ -144,6 +149,252 @@
+         self.assertEqual(response[1]['error']['code'], code)
+         self.assertEqual(set(response[1]['error']), {'code', 'message', 'operation_id', 'retryable'})
+         self.assertNotIn(str(self.root), json.dumps(response[1]))
++
++    def test_v2_only_environment_and_startup_warning(self):
++        with self.assertLogs('waveform_storage.application.agent_http_api', level='WARNING') as logs:
++            server = make_server(self.api.v1, v2=self.api, address=('127.0.0.1', 0), v2_only=False)
++            server.server_close()
++        self.assertIn('v1 无认证，必须由网络 ACL/代理限制', ''.join(logs.output))
++        with TemporaryDirectory() as tmp, patch.dict(os.environ, {'WAVEFORM_AGENT_V2_ONLY': 'true'}):
++            with v2_fixture(Path(tmp)) as (request, _, _, _):
++                self.assertEqual(request('GET', '/api/agent/v1/waveform/runs?date=2026-10-08')[0], 404)
++                self.assertEqual(request('POST', '/api/agent/v1/waveform/spectrum', {})[0], 404)
++                self.assertEqual(request('GET', '/health')[0], 200)
++                self.assertEqual(request('GET', PREFIX + '/read/health')[0], 200)
++        self.assertIn('WAVEFORM_AGENT_V2_ONLY', (ROOT / 'docs/agent-api-v2.md').read_text())
++
++    def test_preview_without_approval_and_single_mutation_approval(self):
++        before = deepcopy(self.api.repo.state['approvals'])
++        body, preview = self.preview('update', annotations={'label': 'one-confirmation'})
++        self.assertIsNone(preview['approval_id'])
++        self.assertEqual(before, self.api.repo.state['approvals'])
++        self.assertEqual(self.api.repo.state['targets'], {})
++        headers = approved(self.api, 'data', 'update', body)
++        response = self.request('POST', PREFIX + '/data/update', body, scope='data', headers=headers)
++        self.assertEqual(response[0], 200, response)
++        self.assertEqual(len(self.api.repo.state['approvals']), len(before) + 1)
++        self.assertEqual(self.request('POST', PREFIX + '/data/update', body, scope='data', headers=headers)[1], response[1])
++        self.assertEqual(len(self.api.repo.state['approvals']), len(before) + 1)
++        record_evidence('single-approval', {'preview': preview, 'mutation': response[1]})
++
++    def test_interrupted_download_closes_without_second_response(self):
++        from waveform_storage.application.agent_v2_storage import Download
++        class BrokenStream:
++            closed = False
++            reads = 0
++            def read(self, size):
++                self.reads += 1
++                if self.reads == 1:
++                    return b'first-block'
++                raise OSError('private storage path must not escape')
++            def close(self):
++                self.closed = True
++        stream = BrokenStream()
++        from http.client import IncompleteRead
++        blob = Download(stream, 1000, 'a' * 64, 'waveform.h5')
++        with patch.object(self.api, 'raw', return_value=blob):
++            connection = HTTPConnection(*self.request.server_address, timeout=3)
++            connection.request('GET', PREFIX + '/read/requests/' + REQUEST_ID + '/captures/3/raw/' + DEVICE,
++                               headers={'Authorization': 'Bearer ' + self.api.access.tokens['read']})
++            response = connection.getresponse()
++            self.assertEqual(response.status, 200)
++            self.assertEqual(response.getheader('Content-Length'), '1000')
++            self.assertEqual(response.getheader('X-Content-SHA256'), 'a' * 64)
++            with self.assertRaises(IncompleteRead) as failure:
++                response.read()
++            self.assertEqual(failure.exception.partial, b'first-block')
++            self.assertTrue(response.isclosed())
++            connection.close()
++        self.assertTrue(stream.closed)
++        # Pre-header failure still uses the structured envelope.
++        with patch.object(self.api, 'raw', side_effect=APIError('DATA_UNREADABLE')):
++            self.assert_error(self.request('GET', PREFIX + '/read/requests/' + REQUEST_ID + '/captures/3/raw/' + DEVICE),
++                              422, 'DATA_UNREADABLE')
++
++    def test_slow_job_read_allows_status_and_detects_mutation(self):
++        body, preview = self.preview('update', annotations={'comment': 'during-read'})
++        entered, release = Event(), Event()
++        original = self.api._read
++        def slow(identity, **kwargs):
++            result = original(identity, **kwargs)
++            if current_thread().name.startswith('agent-v2'):
++                entered.set()
++                if not release.wait(5):
++                    raise AssertionError('test reader was not released')
++            return result
++        with patch.object(self.api, '_read', side_effect=slow):
++            response = self.request('POST', PREFIX + '/read/alignments',
++                    {'request_id': REQUEST_ID, 'capture_sequence': 3, 'device_ids': [DEVICE]},
++                    headers={'Idempotency-Key': str(uuid4())})
++            self.assertEqual(response[0], 202, response)
++            job = response[1]
++            try:
++                self.assertTrue(entered.wait(3))
++                start = time.monotonic()
++                self.assertEqual(self.request('GET', PREFIX + '/read/jobs/' + job['job_id'])[0], 200)
++                self.assertEqual(self.request('GET', PREFIX + '/data/' + preview['operation_id'], scope='data')[0], 200)
++                elapsed = time.monotonic() - start
++                self.assertLess(elapsed, .75)
++                update = self.post('data', 'update', body)
++                self.assertEqual(update[0], 200, update)
++            finally:
++                release.set()
++            result = wait_job(self.request, job['job_id'])
++            self.assertEqual(result['status'], 'failed', result)
++            self.assertEqual(result['error']['code'], 'VERSION_CONFLICT')
++            record_evidence('concurrent-read', {'query_elapsed_seconds': elapsed, 'job': result})
++
++    def test_overlay_scope_and_original_v1_view(self):
++        body, preview = self.preview('soft-delete')
++        code, result, _ = self.post('data', 'soft-delete', body)
++        self.assertEqual(code, 200, result)
++        operation = self.request('GET', PREFIX + '/data/' + result['operation_id'], scope='data')[1]
++        version_response = self.request('GET', PREFIX + '/data/' + preview['target_id'] + '/versions', scope='data')[1]
++        versions = version_response['versions']
++        for row in [preview, result, operation, version_response, *versions]:
++            self.assertEqual(row['effect_scope'], 'agent-v2-overlay')
++            self.assertIs(row['source_modified'], False)
++            self.assertIs(row['source_authoritative'], True)
++        self.assertEqual(self.request('GET', PREFIX + '/read/requests/' + REQUEST_ID + '/captures/3/raw/' + DEVICE)[0], 404)
++        code, v1, _ = self.request('GET', '/api/agent/v1/waveform/requests/' + REQUEST_ID + '/captures/3')
++        self.assertEqual(code, 200)
++        self.assertIn(DEVICE, json.dumps(v1))
++        self.assertTrue((self.root / 'segment-3.h5').exists())
++        record_evidence('overlay', {'preview': preview, 'operation': operation, 'versions': versions, 'v1_status': code})
++
++    def test_operation_lists_filter_page_sanitize_and_scope(self):
++        body, preview = self.preview('update', annotations={'comment': 'must-not-appear-in-list'})
++        update = self.post('data', 'update', body)[1]
++        base = PREFIX + '/data/operations'
++        code, first, _ = self.request('GET', base + '?limit=1', scope='data')
++        self.assertEqual(code, 200, first)
++        self.assertEqual(first['total'], 2)
++        self.assertTrue(first['truncated'])
++        second = self.request('GET', base + '?' + urlencode({'limit': 1, 'cursor': first['next_cursor']}), scope='data')[1]
++        self.assertEqual(len(second['operations']), 1)
++        self.assertNotEqual(first['operations'][0]['operation_id'], second['operations'][0]['operation_id'])
++        for field, value in [('operator_id', 'fixture-operator'), ('target_id', preview['target_id']),
++                             ('action', 'POST ' + PREFIX + '/data/update')]:
++            rows = self.request('GET', base + '?' + urlencode({field: value}), scope='data')[1]
++            self.assertEqual(rows['total'], 2 if field == 'target_id' else 1)
++        serialized = json.dumps(first)
++        for private in ('parameters', 'must-not-appear-in-list', 'fingerprint', 'secret', str(self.root), self.api.access.tokens['data']):
++            self.assertNotIn(private, serialized)
++        self.assert_error(self.request('GET', base), 403, 'FORBIDDEN')
++        self.assertEqual(self.request('GET', PREFIX + '/control/operations', scope='control')[1]['total'], 0)
++        self.assert_error(self.request('GET', PREFIX + '/control/operations', scope='data'), 403, 'FORBIDDEN')
++        record_evidence('operations', first)
++        # Invalid bodies and failed cancels remain discoverable in safe audit.
++        bad = {'action': 'soft-delete', 'target': {}, 'expected_version': 0}
++        self.assert_error(self.request('POST', PREFIX + '/data/preview', bad, scope='data',
++                          headers={'Idempotency-Key': str(uuid4())}), 400, 'INVALID_ARGUMENT')
++        failed = self.request('GET', base, scope='data')[1]['operations'][0]
++        self.assertEqual(failed['error'], {'code': 'INVALID_ARGUMENT'})
++        self.assertIsNone(failed['target_id'])
++        missing = str(uuid4())
++        self.assert_error(self.post('control', 'captures/' + missing + '/cancel', {}), 404, 'NOT_FOUND')
++        rows = self.request('GET', PREFIX + '/control/operations?' + urlencode({'request_id': missing}), scope='control')[1]
++        self.assertEqual(rows['total'], 1)
++        self.assertEqual(rows['operations'][0]['error'], {'code': 'NOT_FOUND'})
++
++
++    def test_http_rate_limits_scope_window_and_write_quota(self):
++        stamp = [10.0]
++        access = self.api.access
++        access._clock = lambda: stamp[0]
++        access._windows.clear()
++        access.rate_per_minute = 2
++        for _ in range(2):
++            self.assertEqual(self.request('GET', PREFIX + '/read/health')[0], 200)
++        self.assert_error(self.request('GET', PREFIX + '/read/health'), 429, 'RESOURCE_BUSY')
++        self.assertEqual(self.request('GET', PREFIX + '/control/health', scope='control')[0], 200)
++        stamp[0] += 60
++        self.assertEqual(self.request('GET', PREFIX + '/read/health')[0], 200)
++        access.rate_per_minute = 0
++        access.write_rate_per_minute = 1
++        self.assert_error(self.request('POST', PREFIX + '/control/captures', {}, scope='control',
++                          headers={'Idempotency-Key': str(uuid4())}), 403, 'APPROVAL_REQUIRED')
++        self.assert_error(self.request('POST', PREFIX + '/control/captures', {}, scope='control',
++                          headers={'Idempotency-Key': str(uuid4())}), 429, 'RESOURCE_BUSY')
++
++    def test_source_checksum_change_during_job_read_is_conflict(self):
++        entered, release = Event(), Event()
++        original = self.api._read
++        def slow(identity, **kwargs):
++            result = original(identity, **kwargs)
++            entered.set()
++            release.wait(5)
++            return result
++        with patch.object(self.api, '_read', side_effect=slow):
++            response = self.request('POST', PREFIX + '/read/alignments',
++                    {'request_id': REQUEST_ID, 'capture_sequence': 3, 'device_ids': [DEVICE]},
++                    headers={'Idempotency-Key': str(uuid4())})
++            self.assertEqual(response[0], 202)
++            try:
++                self.assertTrue(entered.wait(3))
++                with h5py.File(self.root / 'segment-3.h5', 'a') as h5:
++                    h5['Data'][0, 0] += 1
++            finally:
++                release.set()
++            job = wait_job(self.request, response[1]['job_id'])
++            self.assertEqual(job['status'], 'failed', job)
++            self.assertEqual(job['error']['code'], 'VERSION_CONFLICT')
++
++    def test_approval_previous_secret_rotation_window(self):
++        body, _ = self.preview('update', annotations={'label': 'rotated'})
++        headers = approved(self.api, 'data', 'update', body)
++        configured = AccessPolicy.from_env({'WAVEFORM_AGENT_READ_TOKEN': 'test-read',
++                  'WAVEFORM_AGENT_APPROVAL_SECRET': 'current', 'WAVEFORM_AGENT_APPROVAL_SECRET_PREVIOUS': 'previous'})
++        self.assertEqual(configured.previous_secret, 'previous')
++        self.assertEqual(configured.rate_per_minute, 60)
++        self.assertEqual(configured.write_rate_per_minute, 10)
++        old_secret = self.api.access.secret
++        self.api.access.secret = str(uuid4())
++        self.assert_error(self.request('POST', PREFIX + '/data/update', body, scope='data', headers=headers), 403, 'APPROVAL_INVALID')
++        self.api.access.previous_secret = old_secret
++        self.assertEqual(self.request('POST', PREFIX + '/data/update', body, scope='data', headers=headers)[0], 200)
++        self.api.access.previous_secret = ''
++        self.assert_error(self.request('POST', PREFIX + '/data/update', body, scope='data', headers=headers), 403, 'APPROVAL_INVALID')
++        body, _ = self.preview('update', annotations={'label': 'current'})
++        self.assertEqual(self.post('data', 'update', body)[0], 200)
++
++    def test_catalog_schema_version_legacy_and_future_rejection(self):
++        self.assertEqual(self.api.repo.state['schema_version'], 1)
++        with TemporaryDirectory() as tmp:
++            root = Path(tmp)
++            legacy = {'operations': {}, 'keys': {}, 'approvals': {}, 'targets': {}, 'jobs': {}}
++            (root / 'catalog.json').write_text(json.dumps(legacy))
++            repository = AgentVersionRepository(root)
++            self.assertEqual(repository.state['schema_version'], 1)
++            repository.close()
++            self.assertEqual(json.loads((root / 'catalog.json').read_text())['schema_version'], 1)
++            legacy['schema_version'] = 2
++            original = json.dumps(legacy)
++            (root / 'catalog.json').write_text(original)
++            with self.assertRaisesRegex(ValueError, 'schema_version'):
++                AgentVersionRepository(root)
++            self.assertEqual((root / 'catalog.json').read_text(), original)
++
++    def test_preview_mutation_snapshot_counts_and_overwrite_scope(self):
++        original = self.api.snapshots.snapshot
++        with patch.object(self.api.snapshots, 'snapshot', wraps=original) as snapshot:
++            body, preview = self.preview('overwrite', source={**IDENTITY, 'capture_sequence': 0})
++            self.assertEqual(snapshot.call_count, 2)
++            result = self.post('data', 'overwrite', body)
++            self.assertEqual(result[0], 200, result)
++            # Two original reads in preview + two revalidation reads in mutation;
++            # one additional hash reads the newly written local version.
++            originals = [c for c in snapshot.call_args_list if not c.kwargs.get('version')]
++            self.assertEqual(len(originals), 4)
++            self.assertEqual(snapshot.call_count, 5)
++            self.assertEqual(preview['supersedes_version'], 0)
++            self.assertEqual(result[1]['supersedes_version'], 0)
++        record_evidence('overwrite-counts', {'source_snapshots': len(originals), 'total_snapshots': 5, 'result': result[1]})
++        with patch.object(self.api.snapshots, 'snapshot', wraps=original) as snapshot:
++            body, _ = self.preview('overwrite', source=IDENTITY)
++            self.assertEqual(snapshot.call_count, 1)
++            self.assertEqual(self.post('data', 'overwrite', body)[0], 200)
++            self.assertEqual(snapshot.call_count, 3)
+ 
+     def test_read_runs_captures_devices_and_v1_compatibility(self):
+         request = self.request
+@@ -196,18 +447,18 @@
+         self.assertNotEqual(self.request('GET', path)[0], 200)
+ 
+     def test_approval_signature_scope_expiry_hash_and_replay(self):
+-        body = {'action': 'soft-delete', 'target': IDENTITY, 'expected_version': 0}
+-        path = PREFIX + '/data/preview'
++        body, _ = self.preview('soft-delete')
++        path = PREFIX + '/data/soft-delete'
+         self.assert_error(self.request('POST', path, body, scope='data', headers={'Idempotency-Key': str(uuid4())}), 403, 'APPROVAL_REQUIRED')
+         self.assert_error(self.request('POST', PREFIX + '/control/captures', {}, scope='control',
+                           headers={'Idempotency-Key': str(uuid4())}), 403, 'APPROVAL_REQUIRED')
+         for override in ({'scope': 'control'}, {'expires_at': time.time() - 1}, {'action_hash': 'bad'}):
+-            headers = approved(self.api, 'data', 'preview', body, **override)
++            headers = approved(self.api, 'data', 'soft-delete', body, **override)
+             self.assert_error(self.request('POST', path, body, scope='data', headers=headers), 403, 'APPROVAL_INVALID')
+-        headers = approved(self.api, 'data', 'preview', body)
++        headers = approved(self.api, 'data', 'soft-delete', body)
+         headers['X-Approval-Token'] += 'broken'
+         self.assert_error(self.request('POST', path, body, scope='data', headers=headers), 403, 'APPROVAL_INVALID')
+-        headers = approved(self.api, 'data', 'preview', body)
++        headers = approved(self.api, 'data', 'soft-delete', body)
+         first = self.request('POST', path, body, scope='data', headers=headers)
+         self.assertEqual(first[0], 200, first)
+         self.assertEqual(self.request('POST', path, body, scope='data', headers=headers)[1], first[1])
+@@ -315,8 +566,9 @@
+             self.assertEqual(operation['security'], [{scope.title() + 'Token': []}])
+             self.assertTrue(headers['Idempotency-Key']['required'])
+             approval_headers = {'X-Operation-Id', 'X-Approval-Id', 'X-Operator-Id', 'X-Approval-Token'}
+-            if scope == 'read':
+-                read_posts.append(path)
++            if scope == 'read' or path.endswith('/data/preview'):
++                if scope == 'read':
++                    read_posts.append(path)
+                 self.assertFalse(approval_headers & headers.keys())
+             else:
+                 self.assertTrue(all(headers[h]['required'] for h in approval_headers))
+@@ -419,6 +671,13 @@
+         self.assertEqual(self.post('control', 'captures', body2, refs=refs2)[0], 202)
+         self.assertEqual(self.runner.calls, 1)
+         code, cancel, _ = self.post('control', 'captures/' + request_id + '/cancel', {})
++        listing = self.request('GET', PREFIX + '/control/operations?' + urlencode({'request_id': request_id, 'limit': 1}), scope='control')[1]
++        self.assertGreaterEqual(listing['total'], 2)
++        self.assertTrue(listing['truncated'])
++        self.assertEqual(listing['operations'][0]['action'], 'POST ' + PREFIX + '/control/captures/' + request_id + '/cancel')
++        self.assertNotIn('parameters', json.dumps(listing))
++        self.assert_error(self.request('GET', PREFIX + '/data/' + listing['operations'][0]['operation_id'], scope='data'), 404, 'NOT_FOUND')
++
+         self.assertEqual(code, 202, cancel)
+         self.assertIn(cancel['status'], ('running', 'accepted'))
+         self.assertTrue(cancel['cancellation_requested'])
+--- task-start/tools/run_waveform_agent_api.py
++++ current/tools/run_waveform_agent_api.py
+@@ -1,4 +1,4 @@
+-"""Serve compatible v1 and authenticated v2 over the existing Candidate backend."""
++"""Serve Candidate-backed Agent APIs; WAVEFORM_AGENT_V2_ONLY=true disables v1."""
+ import argparse
+ from pathlib import Path
+ import sys
+--- task-start/交付/20261021-waveform-agent-v2/README.md
++++ current/交付/20261021-waveform-agent-v2/README.md
+@@ -1,6 +1,6 @@
+ # Waveform Agent API v2 源码交付
+ 
+-交付日期：2026-10-21。状态：代码完成，尚未部署现场。
++交付日期：2026-10-21；加固更新：2026-10-22。状态：代码完成，尚未部署现场。
+ 
+ ## IMPLEMENTED
+ 
+@@ -12,11 +12,11 @@
+ 
+ ## AUTH / APPROVAL
+ 
+-三类 token 隔离。read POST 不要求人工审批，但需要 read service token 和幂等 key。control/data 默认关闭，所有 control/data POST 在启用后强制 HMAC 签名审批。签名绑定 action、完整 body、scope、operator、approval 和 TTL。data 修改绑定 preview、target_id、expected_version。审批 UI 和操作员认证由 accelerator-rag 负责。
++三类 token 隔离。read POST 不要求人工审批，但需要 read service token 和幂等 key。control/data 默认关闭。data preview 只需 DataToken 与幂等 key，不要求或消耗审批。control POST 和 data mutation 强制 HMAC 签名审批，操作员在 preview 后只确认一次。签名绑定 action、完整 body、scope、operator、approval 和 TTL。data 修改绑定 preview、target_id、expected_version。审批 UI 和操作员认证由 accelerator-rag 负责。APPROVAL_SECRET_PREVIOUS 支持有期限的旧密钥验签窗口，新审批只用 current。
+ 
+ ## DATA MODEL
+ 
+-新增独立 Agent 元数据版本目录；原 Mongo/HDF5 schema 和 protocol v2 不变。原始 HDF5 保留，新版本由现有 writer 生成，并带 manifest 和来源。软删除只影响 v2；v1、原 catalog、GUI 和历史 artifact 保留原视图。恢复通过新版本执行。
++新增独立 Agent 元数据版本目录；原 Mongo/HDF5 schema 和 protocol v2 不变。原始 HDF5 保留，新版本由现有 writer 生成，并带 manifest 和来源。catalog 写入 schema_version=1，兼容无版本旧目录并拒绝未知版本。preview、operation、versions 明确返回 effect_scope=agent-v2-overlay、source_modified=false、source_authoritative=true；overwrite 包含 supersedes_version。软删除只影响 v2；v1、原 catalog、GUI 和历史 artifact 保留原视图。恢复通过新版本执行。
+ 
+ 成功 preview 后、首次 mutation 前，versions 可通过已绑定的身份读取当前原始对象并返回 version 0、checksum 和字节数。GET 不写 Mongo 或 mutation state，不新增 operation_id、审批占用或版本；已有 overlay history 时返回完整历史。
+ 
+@@ -27,6 +27,8 @@
+ 实现位于 `src/waveform_storage/application/agent_v2_*.py` 和 `metadata/agent_version_repository.py`。更新 Agent HTTP 装配、两个启动工具、v1 fixture、v2 测试与文档。逐项清单见 handoff；AOCI 托管资产单独收尾。
+ 
+ ## TESTS
++
++最新加固结果、下载中断与并发证据见[加固报告](evidence/harden-20261022/report.md)。以下结果按原验证日期保留。
+ 
+ 实现前，允许 loopback socket 后的质量门通过 255 项。初次沙箱执行因禁止 socket 产生 9 项环境错误，未把该结果当作代码失败或通过。
+ 
+@@ -51,9 +53,13 @@
+ 
+ ## COMPATIBILITY
+ 
+-v1 端点和响应保留，既有测试通过。v2 的日期区间、分页、错误信封、409 幂等冲突和 scope 认证须由客户端显式迁移。v1 继续由部署层限制网络访问。
++v1 端点和响应保留，既有测试通过。v2 的日期区间、分页、错误信封、409 幂等冲突和 scope 认证须由客户端显式迁移。WAVEFORM_AGENT_V2_ONLY 默认 false，保留匿名 v1；true 时关闭 v1 路由，/health 与认证 v2 正常。生产推荐 v2-only 或独立端口；v1/v2 共用端口时启动日志警告必须以 ACL/代理限制 v1。
+ 
+ ## SECURITY
++
++新增对应 scope 的 operations 审计列表，支持安全字段、分页与筛选。每个 scope 默认 60 请求/min，control/data 写操作附加 10 次/min；超额为 429 RESOURCE_BUSY。preview 不占写配额。
++
++下载开始响应后失败只断开连接，不追加 JSON。catalog 锁只覆盖状态读取和提交；文件读取在锁外，读取后验证版本与 checksum。preview/mutation 复用单次读取和解码记录，overwrite 的不同 target/source 最多读取源对象 4 次，另校验本地新版本 1 次。
+ 
+ 无任意路径、URL、shell、Mongo 直写、物理删除和 EPICS 写入接口。raw 绑定完整对象身份；本机 no-follow 根目录读取、远端严格 SSH 主机信任、大小/时间限制、checksum 和 HDF5 外部链接拒绝均已实现。远端 SFTP 未做现场验证。签名和 token 不进入审计或响应。
+ 
+@@ -61,7 +67,7 @@
+ 
+ 尚未部署现场，未构建新二进制，未切换 current，未核验现场运行版本。未测试真实设备、远端 SFTP、生产 Mongo、TLS 代理或生产负载。未实现 EPICS 写入。
+ 
+-`CAPABILITY_UNAVAILABLE` 用于关闭的写 scope 和浮点历史 raw 覆盖。物理删除、任意上传、科学元数据修改、跨系统依赖枚举及多主机一致性未开放。v2 软删除不修改 v1/GUI。没有自动 GC 或统一任务硬 deadline；重启不重放。
++`CAPABILITY_UNAVAILABLE` 用于关闭的写 scope 和浮点历史 raw 覆盖。物理删除、任意上传、科学元数据修改、跨系统依赖枚举及多主机一致性未开放。v2 软删除不修改 v1/GUI。本轮未实现 unified 视图；未来需独立 feature flag 与跨视图测试。限流是进程内配额，重启清零。没有自动 GC 或统一任务硬 deadline；重启不重放。
+ 
+ 本次只计算接口要求的源、下载和算法 provenance 摘要，没有执行完整 manifest、发布二进制身份校验、真实桌面 smoke 或完整发布验收。
+ 

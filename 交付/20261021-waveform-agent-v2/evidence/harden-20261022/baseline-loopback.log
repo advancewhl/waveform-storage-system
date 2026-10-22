@@ -1,0 +1,76 @@
+test_agent_queue_is_bounded (test_waveform_agent_api.AgentV1Tests) ... ok
+test_artifact_security_unknown_job_and_read_only_router (test_waveform_agent_api.AgentV1Tests) ... ok
+test_async_resolution_failures_preserve_domain_errors (test_waveform_agent_api.AgentV1Tests) ... Agent operation failed
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_service.py", line 144, in _execute
+    segment = self._segment(request_id, values['capture_sequence'])
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_service.py", line 102, in _segment
+    segments = self.backend.retrieve_segments(request_id)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1114, in __call__
+    return self._mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1118, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1173, in _execute_mock_call
+    raise effect
+RuntimeError: SECRET_TOKEN /home/private
+Agent operation failed
+Traceback (most recent call last):
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 89, in _handle
+    self._dispatch(method)
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_http_api.py", line 63, in _dispatch
+    self._json(200, {'captures': service.list_captures(parts[1])})
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_service.py", line 93, in list_captures
+    segments = self.backend.retrieve_segments(request_id)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1114, in __call__
+    return self._mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1118, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1173, in _execute_mock_call
+    raise effect
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_service.py", line 144, in _execute
+    segment = self._segment(request_id, values['capture_sequence'])
+  File "/home/whloong/waveform-storage/waveform-storage-system/src/waveform_storage/application/agent_service.py", line 102, in _segment
+    segments = self.backend.retrieve_segments(request_id)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1114, in __call__
+    return self._mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1118, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+  File "/home/whloong/miniconda3/envs/waveform-storage/lib/python3.10/unittest/mock.py", line 1173, in _execute_mock_call
+    raise effect
+RuntimeError: SECRET_TOKEN /home/private
+ok
+test_basic_argument_errors_are_synchronous (test_waveform_agent_api.AgentV1Tests) ... ok
+test_classification_invalid_is_succeeded_but_infrastructure_failure_is_failed (test_waveform_agent_api.AgentV1Tests) ... Analysis job 3f2576fb-974b-49d5-8f02-774193f7c36b failed: RuntimeError：SECRET_TOKEN /home/private
+ok
+test_complete_v1_catalog_to_peak_download_and_provenance (test_waveform_agent_api.AgentV1Tests) ... ok
+test_fast_accept_lifecycle_and_concurrent_idempotency (test_waveform_agent_api.AgentV1Tests) ... ok
+test_hdf_conflict_and_unreadable_are_job_failures (test_waveform_agent_api.AgentV1Tests) ... ok
+test_health_real_candidate_closed_and_unreachable (test_waveform_agent_api.AgentV1Tests) ... ok
+test_restart_incomplete_job_fails_without_replay (test_waveform_agent_api.AgentV1Tests) ... ok
+test_restart_recovers_idempotency_and_result (test_waveform_agent_api.AgentV1Tests) ... ok
+test_single_registry_owner_and_closed_service (test_waveform_agent_api.AgentV1Tests) ... ok
+test_acquisition_restart_via_http_does_not_replay (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_alignment_spectrum_artifacts_real_http_e2e (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_all_post_idempotency_and_conflict (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_analysis_sampling_rate_conflict_is_explicit (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_approval_signature_scope_expiry_hash_and_replay (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_auth_scope_isolation_and_default_disabled (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_bounded_analysis_queue_and_errors (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_control_start_status_cancel_duplicate_request_and_limits (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_data_preview_target_parameter_and_version_conflicts (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_data_preview_update_delete_restore_overwrite_and_versions (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_data_same_target_concurrency_has_single_commit (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_hdf5_external_links_are_not_followed_by_analysis (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_job_cancellation_is_idempotent_and_reports_actual_state (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_openapi_approval_and_provenance_contract (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_preview_expiry_change_in_source_and_checksum_mismatch (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_raw_exact_identity_checksum_limits_and_escaping (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_read_runs_captures_devices_and_v1_compatibility (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_restart_journal_preserves_versions_and_never_replays (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_unmutated_versions_use_live_source_and_safe_read_errors (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_versions_after_preview_before_mutation_are_read_only (test_waveform_agent_v2.AgentV2Tests) ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 18.988s
+
+OK

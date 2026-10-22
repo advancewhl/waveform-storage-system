@@ -1,0 +1,452 @@
+{
+  "e_scale": {
+    "checked": 293,
+    "mismatched": 0,
+    "items": []
+  },
+  "ok": true,
+  "exit_code": 0,
+  "structure_valid": true,
+  "governance_aligned": true,
+  "findings": [
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/diagrams/waveform-storage.dataflow.visual-check.1440x900.dark.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/diagrams/waveform-storage.dataflow.visual-check.1440x900.light.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/diagrams/waveform-storage.dataflow.visual-check.2048x1320.dark.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/diagrams/waveform-storage.dataflow.visual-check.2048x1320.light.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/experimental-device-waveform-nature-style.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/experimental-device-waveform-windows.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/experimental-error-dialog.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/experimental-main-windows-v2.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/experimental-main-windows.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/formal/20261003/bpm-dialog-preview.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/formal/20261003/history-bpm-selection-preview.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/formal/20261005/desktop-final-connected.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/integrated-383-registry-v1.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/reference-bpm-blue.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/spectrum-analysis-layout.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/spectrum-analysis-results.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "docs/ui-preview/spectrum-analysis.png",
+      "cause": "binary"
+    },
+    {
+      "code": "code_skipped",
+      "domain": "code",
+      "target": "pdf2zh_files/Attachment Conference Handbook.pdf",
+      "cause": "oversize"
+    }
+  ],
+  "next_action": "none",
+  "governance": {
+    "version": "volumes-governance-facts/v1",
+    "layout": "volumes-v1",
+    "enabled_domains": [
+      "code"
+    ],
+    "structure_valid": true,
+    "governance_aligned": true,
+    "composite_identity": "b24f56405b86ef333b3bee29f827b93112426f3916feb0e84f2c0695672eb027",
+    "root": {
+      "enabled": true,
+      "applicable": true,
+      "domain_state": "enabled",
+      "asset_state": "present",
+      "path": "aoci.txt",
+      "sha256": "fc7730421a5a9dcf50ab6c2a8f933ede5a37aaa4d54c43d0266fa24a8574c659",
+      "object_count": 0
+    },
+    "meta": {
+      "enabled": true,
+      "applicable": true,
+      "domain_state": "enabled",
+      "asset_state": "present",
+      "path": "aoci.meta.txt",
+      "sha256": "fbc304fa05182547e96f1f8404c7c30ad6c366bba9589523f1019c2c1da0427c",
+      "object_count": 0
+    },
+    "code": {
+      "enabled": true,
+      "applicable": true,
+      "domain_state": "enabled",
+      "asset_state": "present",
+      "path": "aoci.code.txt",
+      "sha256": "357182d061afd53a62e16552941b5eac70891c297d38df2aaaa1403a31ffe9b7",
+      "object_count": 293
+    },
+    "database": {
+      "enabled": false,
+      "applicable": false,
+      "domain_state": "not_applicable",
+      "asset_state": "absent",
+      "path": "aoci.database.txt",
+      "object_count": 0
+    },
+    "code_source_count": 311,
+    "code_entry_count": 293,
+    "database_entry_count": 0,
+    "database_binding_count": 0,
+    "code_drift": {
+      "missing": [],
+      "orphan": [],
+      "stale": [],
+      "unbaselined": [],
+      "line_ending_only": [],
+      "observed_new": [],
+      "observed_changed": [],
+      "observed_removed": [],
+      "skipped": [
+        "docs/diagrams/waveform-storage.dataflow.visual-check.1440x900.dark.png",
+        "docs/diagrams/waveform-storage.dataflow.visual-check.1440x900.light.png",
+        "docs/diagrams/waveform-storage.dataflow.visual-check.2048x1320.dark.png",
+        "docs/diagrams/waveform-storage.dataflow.visual-check.2048x1320.light.png",
+        "docs/ui-preview/experimental-device-waveform-nature-style.png",
+        "docs/ui-preview/experimental-device-waveform-windows.png",
+        "docs/ui-preview/experimental-error-dialog.png",
+        "docs/ui-preview/experimental-main-windows-v2.png",
+        "docs/ui-preview/experimental-main-windows.png",
+        "docs/ui-preview/formal/20261003/bpm-dialog-preview.png",
+        "docs/ui-preview/formal/20261003/history-bpm-selection-preview.png",
+        "docs/ui-preview/formal/20261005/desktop-final-connected.png",
+        "docs/ui-preview/integrated-383-registry-v1.png",
+        "docs/ui-preview/reference-bpm-blue.png",
+        "docs/ui-preview/spectrum-analysis-layout.png",
+        "docs/ui-preview/spectrum-analysis-results.png",
+        "docs/ui-preview/spectrum-analysis.png",
+        "pdf2zh_files/Attachment Conference Handbook.pdf"
+      ],
+      "curation_excluded": []
+    },
+    "managed_scope": {
+      "aligned": true,
+      "scope_change_required": false,
+      "policy_identity": "ffa015ffd719152abbe2b285c764f643378535ca9674e7267e54a21d28160a90",
+      "active_policy_identity": "ffa015ffd719152abbe2b285c764f643378535ca9674e7267e54a21d28160a90",
+      "index_count": 314,
+      "observe_count": 38,
+      "exclude_count": 189647,
+      "observed_pending_review": 0
+    },
+    "budget": {
+      "mode": "enforce",
+      "status": "healthy",
+      "whole_index_tokens": 44686,
+      "target_tokens": 200000,
+      "warning_tokens": 300000,
+      "max_tokens": 400000,
+      "r": [
+        {
+          "min_c": 1,
+          "max_c": 4,
+          "target_tokens": 25,
+          "max_tokens": 50
+        },
+        {
+          "min_c": 5,
+          "max_c": 7,
+          "target_tokens": 45,
+          "max_tokens": 90
+        },
+        {
+          "min_c": 8,
+          "max_c": 8,
+          "target_tokens": 70,
+          "max_tokens": 140
+        },
+        {
+          "min_c": 9,
+          "max_c": 9,
+          "target_tokens": 90,
+          "max_tokens": 180
+        }
+      ],
+      "s": [
+        {
+          "min_c": 1,
+          "max_c": 4,
+          "target_tokens": 20,
+          "max_tokens": 40
+        },
+        {
+          "min_c": 5,
+          "max_c": 7,
+          "target_tokens": 40,
+          "max_tokens": 80
+        },
+        {
+          "min_c": 8,
+          "max_c": 8,
+          "target_tokens": 70,
+          "max_tokens": 140
+        },
+        {
+          "min_c": 9,
+          "max_c": 9,
+          "target_tokens": 100,
+          "max_tokens": 200
+        }
+      ],
+      "violations": [],
+      "s_coverage": [
+        {
+          "min_c": 1,
+          "max_c": 4,
+          "entries": 44,
+          "s_present": 24
+        },
+        {
+          "min_c": 5,
+          "max_c": 7,
+          "entries": 141,
+          "s_present": 128
+        },
+        {
+          "min_c": 8,
+          "max_c": 8,
+          "entries": 71,
+          "s_present": 70
+        },
+        {
+          "min_c": 9,
+          "max_c": 9,
+          "entries": 37,
+          "s_present": 37
+        }
+      ],
+      "high_importance_entries": 155,
+      "high_importance_s_absent": 1,
+      "high_importance_s_absent_percent": 0
+    },
+    "database_cognition": {
+      "version": 1,
+      "configured_sources": 0,
+      "blocking_source_count": 0,
+      "database_volume_state": "absent",
+      "evidence_table_count": 0,
+      "cognition_entry_count": 0,
+      "cognition_current": true,
+      "network_accessed": false,
+      "summary": {
+        "current": 0,
+        "missing": 0,
+        "stale": 0,
+        "unbaselined": 0,
+        "orphan": 0,
+        "evidence_unavailable": 0,
+        "evidence_invalid": 0,
+        "source_disabled": 0
+      },
+      "sources": [],
+      "items": [],
+      "next_action": "no_database_configuration"
+    },
+    "database_evidence": {
+      "state": "not_applicable",
+      "configured_sources": 0,
+      "accepted_sources": 0,
+      "baseline_current": false
+    },
+    "relation_findings": [],
+    "pending_transactions": 0,
+    "recovery_pending": false,
+    "third_party_conflict": false,
+    "network_accessed": false,
+    "business_source_sha256": "1b85ff1530f84c31233c846b37cee42f2380b19db110ff32dc305e3b37204291",
+    "result": "aligned",
+    "affected_domains": [
+      "code"
+    ],
+    "next_required_action": "none",
+    "findings": [
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/diagrams/waveform-storage.dataflow.visual-check.1440x900.dark.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/diagrams/waveform-storage.dataflow.visual-check.1440x900.light.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/diagrams/waveform-storage.dataflow.visual-check.2048x1320.dark.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/diagrams/waveform-storage.dataflow.visual-check.2048x1320.light.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/experimental-device-waveform-nature-style.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/experimental-device-waveform-windows.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/experimental-error-dialog.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/experimental-main-windows-v2.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/experimental-main-windows.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/formal/20261003/bpm-dialog-preview.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/formal/20261003/history-bpm-selection-preview.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/formal/20261005/desktop-final-connected.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/integrated-383-registry-v1.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/reference-bpm-blue.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/spectrum-analysis-layout.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/spectrum-analysis-results.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "docs/ui-preview/spectrum-analysis.png",
+        "cause": "binary"
+      },
+      {
+        "code": "code_skipped",
+        "domain": "code",
+        "target": "pdf2zh_files/Attachment Conference Handbook.pdf",
+        "cause": "oversize"
+      }
+    ]
+  }
+}

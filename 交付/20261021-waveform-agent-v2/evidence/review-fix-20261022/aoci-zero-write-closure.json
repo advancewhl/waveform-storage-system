@@ -1,0 +1,8 @@
+{
+  "failed_step": "scope acknowledge policy-bound auto authorization",
+  "error": "deterministic_replay_failed",
+  "formal_index_and_baseline_unchanged": true,
+  "pending_transactions": 0,
+  "recovery_pending": false,
+  "next_action": "Re-plan instruction from aoci_maintain: acknowledge reviewed observe evidence; retry once with output outside repository and stable workspace."
+}

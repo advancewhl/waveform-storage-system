@@ -1,0 +1,25 @@
+test_acquisition_restart_via_http_does_not_replay (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_alignment_spectrum_artifacts_real_http_e2e (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_all_post_idempotency_and_conflict (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_analysis_sampling_rate_conflict_is_explicit (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_approval_signature_scope_expiry_hash_and_replay (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_auth_scope_isolation_and_default_disabled (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_bounded_analysis_queue_and_errors (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_control_start_status_cancel_duplicate_request_and_limits (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_data_preview_target_parameter_and_version_conflicts (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_data_preview_update_delete_restore_overwrite_and_versions (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_data_same_target_concurrency_has_single_commit (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_hdf5_external_links_are_not_followed_by_analysis (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_job_cancellation_is_idempotent_and_reports_actual_state (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_openapi_approval_and_provenance_contract (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_preview_expiry_change_in_source_and_checksum_mismatch (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_raw_exact_identity_checksum_limits_and_escaping (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_read_runs_captures_devices_and_v1_compatibility (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_restart_journal_preserves_versions_and_never_replays (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_unmutated_versions_use_live_source_and_safe_read_errors (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_versions_after_preview_before_mutation_are_read_only (test_waveform_agent_v2.AgentV2Tests) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 12.997s
+
+OK

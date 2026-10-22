@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "status": "applied",
+  "aligned": true,
+  "attempted": 6,
+  "applied": 6,
+  "remaining": 0,
+  "formal_writes_started": true,
+  "finding_count": 0,
+  "cognition_receipt": {
+    "asset_state": "present",
+    "cognition_scope": "all",
+    "cognition_state": "uncertain",
+    "composite_identity": "76925737424065e0fd7794f82a5dd30551f807029de436c6973319cd4dd30314",
+    "delivered_volumes": [],
+    "effective_scope": "all",
+    "layout_mode": "volumes-v1",
+    "mcp_service_version": "v0.1.0-rc20-4-ge0c3ea1",
+    "meta_sha256": "fbc304fa05182547e96f1f8404c7c30ad6c366bba9589523f1019c2c1da0427c",
+    "model_full_cognition_reliable": false,
+    "model_scope_cognition_reliable": false,
+    "pending_refresh_reasons": [],
+    "refresh_generation": 0,
+    "requested_scope": "all",
+    "root_sha256": "fc7730421a5a9dcf50ab6c2a8f933ede5a37aaa4d54c43d0266fa24a8574c659",
+    "runtime_repository_root": "/home/whloong/waveform-storage/waveform-storage-system",
+    "scope_available": true,
+    "scope_identity": "7343507870f5fcb2da950dea8446fed08be3c44d327884bffb90e9ed76a7565f",
+    "scope_object_count": 293,
+    "state_owner": "host_model",
+    "version": 2
+  },
+  "metrics": {
+    "deterministic_ms": 141819,
+    "aoci_tool_calls": 1,
+    "shell_aoci_calls": 0,
+    "overview_reads": 0,
+    "local_recalls": 0,
+    "semantic_files": 6,
+    "format_only_files": 0,
+    "duplicate_applies": 0,
+    "repeated_maintains": 0
+  },
+  "audit": {
+    "p23_content_sha256": "2d3d5bf9be7d0919582ad1017859ce609665f539cde552ae88d91485e659bddc",
+    "diff_files": 6,
+    "volume": "code",
+    "volumes": [
+      "code"
+    ]
+  },
+  "findings": [],
+  "preserve_other_candidates": false,
+  "retry_scope": [],
+  "next_action": "最后一个Volumes批次已应用且remaining=0；不得再次调用aoci_maintain或执行正式认知写入。现在依次执行Verify、Aggregate Check和Guide完成终态证明；只有Guide证明complete=true且next_action=none后才结束",
+  "next_commands": [
+    "'/home/whloong/.local/opt/aoci/v0.1.0-rc20-p0-e0c3ea1/aoci' verify --json",
+    "'/home/whloong/.local/opt/aoci/v0.1.0-rc20-p0-e0c3ea1/aoci' check --json",
+    "'/home/whloong/.local/opt/aoci/v0.1.0-rc20-p0-e0c3ea1/aoci' index agent guide --agent {agent} --json"
+  ]
+}

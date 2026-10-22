@@ -1,0 +1,325 @@
+--- task-start/src/waveform_storage/application/agent_v2_service.py
++++ current/src/waveform_storage/application/agent_v2_service.py
+@@ -187,10 +187,27 @@
+     def versions(self, key):
+         if len(key) != 64 or any(c not in '0123456789abcdef' for c in key):
+             raise APIError('INVALID_ARGUMENT', 'Expected target_id from preview')
+-        entry = self.repo.get('targets', key)
+-        if entry is None:
+-            raise APIError('NOT_FOUND')
+-        return [self.public_entry(v) for v in entry['versions']]
++        with self.repo.lock:
++            entry = self.repo.get('targets', key)
++            if entry is not None:
++                return [self.public_entry(v) for v in entry['versions']]
++            # A successful preview already binds the opaque ID to an exact
++            # catalog identity. Resolve it without creating mutation state.
++            identities = [op['result']['proposal']['target']
++                          for op in self.repo.state['operations'].values()
++                          if op['status'] == 'succeeded'
++                          and op['action'] == 'POST ' + PREFIX + '/data/preview'
++                          and op['result'].get('target_id') == key]
++            if not identities:
++                raise APIError('NOT_FOUND')
++            identity = identities[0]
++            if any(value != identity for value in identities) or target(identity) != key:
++                raise APIError('AMBIGUOUS', 'Target identity is not unique')
++            # Hash and decode the current original object, not the preview's
++            # historical snapshot; retain existing safe read errors.
++            _, source = self._read(identity)
++            return [{**self.public_entry(self._entry(identity)),
++                     'sha256': source['sha256'], 'bytes': source['bytes']}]
+ 
+     def operation(self, operation_id):
+         row = self.repo.get('operations', uuid(operation_id))
+@@ -534,6 +551,10 @@
+                 channel = next(c for c in analysis.channels if c.channel == body['device_id'] + '_' + body['channel'])
+                 summary = {k: getattr(channel, k) for k in ('classification', 'display_status', 'reason',
+                            'peak_hz', 'resolution_hz', 'sample_rate_hz', 'data_points', 'quality', 'warnings')}
++                # The analysis manifest defines a spectrum version, not a
++                # stable source-file set. Never label the alignment hash as
++                # the spectrum implementation's source identity.
++                provenance.pop('algorithm_source_sha256')
+                 provenance.update(algorithm_version=analysis.manifest['algorithm_version'], parameters=asdict(config))
+                 summary['provenance'] = provenance
+                 artifacts = sorted(ARTIFACTS)
+--- task-start/tests/test_waveform_agent_v2.py
++++ current/tests/test_waveform_agent_v2.py
+@@ -1,6 +1,7 @@
+ """Real loopback HTTP + Candidate ZMQ + HDF5 + analysis v2 acceptance tests."""
+ from concurrent.futures import ThreadPoolExecutor
+ from contextlib import contextmanager
++from copy import deepcopy
+ from http.client import HTTPConnection
+ import hashlib
+ import json
+@@ -198,6 +199,8 @@
+         body = {'action': 'soft-delete', 'target': IDENTITY, 'expected_version': 0}
+         path = PREFIX + '/data/preview'
+         self.assert_error(self.request('POST', path, body, scope='data', headers={'Idempotency-Key': str(uuid4())}), 403, 'APPROVAL_REQUIRED')
++        self.assert_error(self.request('POST', PREFIX + '/control/captures', {}, scope='control',
++                          headers={'Idempotency-Key': str(uuid4())}), 403, 'APPROVAL_REQUIRED')
+         for override in ({'scope': 'control'}, {'expires_at': time.time() - 1}, {'action_hash': 'bad'}):
+             headers = approved(self.api, 'data', 'preview', body, **override)
+             self.assert_error(self.request('POST', path, body, scope='data', headers=headers), 403, 'APPROVAL_INVALID')
+@@ -251,6 +254,78 @@
+         record_evidence('data', {'updated': update, 'deleted': deleted, 'overwritten': overwritten,
+                                 'versions': versions, 'original_retained': True, 'restored_bytes_equal': True})
+ 
++    def test_versions_after_preview_before_mutation_are_read_only(self):
++        _, preview = self.preview('soft-delete')
++        before = deepcopy(self.api.repo.state)
++        catalog = (self.api.repo.root / 'catalog.json').read_bytes()
++        original_catalog = deepcopy(self.repository.files)
++        code, response, _ = self.request('GET', PREFIX + '/data/' + preview['target_id'] + '/versions', scope='data')
++        self.assertEqual(code, 200, response)
++        self.assertEqual(response['total'], 1)
++        self.assertFalse(response['truncated'])
++        self.assertIsNone(response['next_cursor'])
++        version = response['versions'][0]
++        self.assertEqual(version['target'], IDENTITY)
++        self.assertEqual(version['target_id'], preview['target_id'])
++        self.assertEqual(version['version'], 0)
++        self.assertFalse(version['deleted'])
++        self.assertEqual(version['annotations'], {})
++        self.assertEqual(version['sha256'], hashlib.sha256((self.root / 'segment-3.h5').read_bytes()).hexdigest())
++        self.assertNotIn('operation_id', version)
++        self.assertNotIn('approval_id', version)
++        self.assertEqual(self.api.repo.state, before)
++        self.assertEqual((self.api.repo.root / 'catalog.json').read_bytes(), catalog)
++        self.assertEqual(self.repository.files, original_catalog)
++
++    def test_unmutated_versions_use_live_source_and_safe_read_errors(self):
++        _, preview = self.preview('soft-delete')
++        path = PREFIX + '/data/' + preview['target_id'] + '/versions'
++        original_hash = preview['sources'][0]['sha256']
++        with h5py.File(self.root / 'segment-3.h5', 'a') as h5:
++            h5['Data'][0, 0] += 1
++        code, response, _ = self.request('GET', path, scope='data')
++        self.assertEqual(code, 200, response)
++        live_hash = hashlib.sha256((self.root / 'segment-3.h5').read_bytes()).hexdigest()
++        self.assertEqual(response['versions'][0]['sha256'], live_hash)
++        self.assertNotEqual(live_hash, original_hash)
++        self.assertEqual(self.api.repo.state['targets'], {})
++        with h5py.File(self.root / 'segment-3.h5', 'a') as h5:
++            h5.attrs['Device'] = 'wrong-device'
++        self.assert_error(self.request('GET', path, scope='data'), 422, 'DATA_UNREADABLE')
++        with h5py.File(self.root / 'segment-3.h5', 'a') as h5:
++            h5.attrs['Device'] = DEVICE
++        duplicate = next(deepcopy(r) for r in self.repository.files.values() if r['capture_sequence'] == 3)
++        self.repository.files['duplicate'] = duplicate
++        self.assert_error(self.request('GET', path, scope='data'), 409, 'AMBIGUOUS')
++        del self.repository.files['duplicate']
++        (self.root / 'segment-3.h5').unlink()
++        self.assert_error(self.request('GET', path, scope='data'), 404, 'NOT_FOUND')
++        self.assert_error(self.request('GET', PREFIX + '/data/' + '0' * 64 + '/versions', scope='data'), 404, 'NOT_FOUND')
++        self.assertEqual(self.api.repo.state['targets'], {})
++
++    def test_openapi_approval_and_provenance_contract(self):
++        spec = json.loads((ROOT / 'docs/agent-api-v2.openapi.json').read_text())
++        read_posts = []
++        for path, methods in spec['paths'].items():
++            if 'post' not in methods:
++                continue
++            operation = methods['post']
++            scope = path.split('/')[4]
++            headers = {p['name']: p for p in operation['parameters'] if p['in'] == 'header'}
++            self.assertEqual(operation['security'], [{scope.title() + 'Token': []}])
++            self.assertTrue(headers['Idempotency-Key']['required'])
++            approval_headers = {'X-Operation-Id', 'X-Approval-Id', 'X-Operator-Id', 'X-Approval-Token'}
++            if scope == 'read':
++                read_posts.append(path)
++                self.assertFalse(approval_headers & headers.keys())
++            else:
++                self.assertTrue(all(headers[h]['required'] for h in approval_headers))
++        self.assertEqual(set(read_posts), {PREFIX + '/read/alignments', PREFIX + '/read/spectrum',
++                                         PREFIX + '/read/jobs/{job_id}/cancel'})
++        provenance = spec['components']['schemas']['Provenance']
++        self.assertNotIn('algorithm_source_sha256', provenance['required'])
++        self.assertIn('spectrum', provenance['properties']['algorithm_source_sha256']['description'])
++
+     def test_data_preview_target_parameter_and_version_conflicts(self):
+         body, _ = self.preview('update', annotations={'comment': 'first'})
+         changed = {**body, 'annotations': {'comment': 'changed'}}
+@@ -294,6 +369,10 @@
+         self.assertEqual(code, 202, accepted)
+         row = wait_job(self.request, accepted['job_id'])
+         self.assertEqual(row['status'], 'succeeded', row)
++        from waveform_storage.processing import alignment as alignment_module
++        alignment_hash = hashlib.sha256(Path(alignment_module.__file__).read_bytes()).hexdigest()
++        self.assertEqual(row['result']['provenance']['algorithm_version'], 'bunch-id-alignment:' + alignment_hash[:16])
++        self.assertEqual(row['result']['provenance']['algorithm_source_sha256'], alignment_hash)
+         evidence['alignment'] = row
+         for fmt in ('legacy', 'v2'):
+             code, binary, headers = self.request('GET', PREFIX + '/read/alignments/' + row['job_id'] + '/export?format=' + fmt)
+@@ -307,6 +386,11 @@
+         row = wait_job(self.request, accepted['job_id'])
+         self.assertEqual(row['status'], 'succeeded', row)
+         self.assertAlmostEqual(row['result']['peak_hz'], 47.6, places=3)
++        from waveform_storage.analysis.engine import ALGORITHM_VERSION
++        self.assertEqual(row['result']['provenance']['algorithm_version'], ALGORITHM_VERSION)
++        self.assertEqual(row['result']['provenance']['algorithm_version'],
++                         self.api.v1.jobs.result(row['analysis_job_id']).manifest['algorithm_version'])
++        self.assertNotIn('algorithm_source_sha256', row['result']['provenance'])
+         evidence['spectrum'] = row
+         for name in ('results.zip', 'results.json', 'spectra.npz', 'run-manifest.json'):
+             code, binary, headers = self.request('GET', PREFIX + '/read/jobs/' + row['job_id'] + '/artifacts/' + name)
+--- task-start/docs/agent-api-v2.md
++++ current/docs/agent-api-v2.md
+@@ -49,7 +49,7 @@
+ 
+ 每个 v2 请求都需要对应 scope 的 `Authorization: Bearer …`。缺失或错误 token 返回 401；使用其他 scope 的有效 token 返回 403。已关闭 scope 返回 503、`CAPABILITY_UNAVAILABLE`。
+ 
+-control/data 的每个 POST，包括 data preview，都需要：
++read scope 的 POST alignment、spectrum 和 analysis job cancel 不要求人工审批或 `X-Approval-*` header，但需要 read service token 和幂等 key。所有 control/data POST，包括 data preview，都强制签名审批，并需要：
+ 
+ ```http
+ Idempotency-Key: <stable key>
+@@ -143,7 +143,7 @@
+ 
+ v2 任务由一个后台 worker 执行，最多 8 个未完成任务。频谱与 v1 共用 AnalysisJobs 的单 worker 和最多 8 个待完成任务限制。取消在安全边界生效，终态以 GET 为准。重启将未完成任务置为失败，不重放。
+ 
+-provenance 包含每个源对象的身份、版本、字节数和 SHA-256，以及采样率来源、参数、采集时间和生成时间。对齐算法版本绑定现有 alignment 源码摘要；频谱算法版本来自实际分析 manifest。附件 URI 始终使用 v2 job UUID，内部 `analysis_job_id` 是另一身份。
++provenance 包含每个源对象的身份、版本、字节数和 SHA-256，以及采样率来源、参数、采集时间和生成时间。alignment 的 `algorithm_version` 绑定现有 alignment 源码摘要，`algorithm_source_sha256` 对应该模块的实际源码。spectrum 的 `algorithm_version` 来自实际分析 manifest；该 manifest 没有定义稳定的频谱源码集合，因此 spectrum 省略 `algorithm_source_sha256`，不沿用 alignment hash。附件 URI 始终使用 v2 job UUID，内部 `analysis_job_id` 是另一身份。
+ 
+ 对齐附件为 `alignment-v2.h5`，符合条件时另有 `alignment-legacy.h5`。频谱附件为 `results.zip`、`results.json`、`spectra.npz`、`run-manifest.json`、`report.md`、`spectrum-summary.csv`、`spectrum-blocks.csv`、`data-quality.csv`。下载使用二进制响应，不能把附件直接放进模型上下文。
+ 
+@@ -218,6 +218,8 @@
+ overwrite 在两个请求中增加 `source`，结构同 target。source 必须是同一设备的可读对象，历史采样率必须相同。输入不接受路径、URL、任意数组或上传文件。writer 只接受生产整数 raw 格式；浮点历史文件的版本覆盖返回 `CAPABILITY_UNAVAILABLE`，避免隐式量化。
+ 
+ 现有 Mongo repository 仅有 upsert 和读取，没有删除或历史版本。本次新增 `AgentVersionRepository` 作为兼容的 Agent 元数据层，存于 output root 的 `agent-v2/catalog.json`。没有变更 Mongo 集合、索引、HDF5 schema 或 protocol v2。版本 0 指原 catalog 文件；新文件写在 `agent-v2/versions/<target_id>/<version>-<operation_id>/`，使用现有 writer，并保存 manifest 和来源。原始文件从不原地改写。
++
++成功 preview 会绑定 target_id 与精确原始对象身份。在首次 mutation 前，GET versions 根据该绑定重新读取当前原始对象，返回 version 0、当前 SHA-256 和字节数。该 GET 不写 Mongo 或 mutation state，不新增 operation_id、审批占用或版本；未知 target_id 返回 `NOT_FOUND`。对象缺失、不唯一或不可读取时，沿用安全读取错误。已有 overlay history 时返回完整的已记录版本历史。
+ 
+ catalog 将版本指针、操作结果、审批占用与幂等绑定原子提交，并使用 fsync 和单所有者锁。文件先写到新的版本目录，catalog 发布指针后才可见。崩溃可能留下未发布的孤立版本文件，但不会自动重放。管理员应保留这些文件供审计，不能仅凭目录存在推断操作成功。
+ 
+--- task-start/docs/agent-api-v2.openapi.json
++++ current/docs/agent-api-v2.openapi.json
+@@ -3924,7 +3924,7 @@
+     },
+     "/api/agent/v2/data/{target}/versions": {
+       "get": {
+-        "summary": "Retained versions; target is preview target_id",
++        "summary": "Object versions, including live version 0 after preview and before mutation",
+         "operationId": "data_get__target_versions",
+         "tags": [
+           "data"
+@@ -4090,7 +4090,8 @@
+               }
+             }
+           }
+-        }
++        },
++        "description": "A successful preview binds target_id to an exact original catalog object. Before the first mutation, GET reads the current object and returns version 0 with SHA-256 and byte count, without writing mutation state, operations, approvals or versions. Unknown IDs return NOT_FOUND; missing, ambiguous or unreadable originals retain safe read errors. Existing overlay histories are returned in full with pagination."
+       }
+     }
+   },
+@@ -4516,7 +4517,8 @@
+             "type": "string"
+           },
+           "algorithm_source_sha256": {
+-            "type": "string"
++            "type": "string",
++            "description": "Alignment implementation source SHA-256 only. Omitted for spectrum: the analysis manifest defines algorithm_version, without a stable source-file set hash."
+           },
+           "parameters": {
+             "type": "object"
+--- task-start/docs/CURRENT_STATUS.md
++++ current/docs/CURRENT_STATUS.md
+@@ -1,8 +1,14 @@
+-# 波形存储当前状态（2026-10-21）
++# 波形存储当前状态（2026-10-22）
++
++## 2026-10-22 Agent API v2 小范围审查整改
++
++本轮修复 3 项已确认问题。spectrum 省略误用的 alignment 算法源码 hash，算法版本仍来自真实分析 manifest。审批文档明确区分 read POST 与 control/data POST。成功 preview 后、首次 mutation 前，versions 返回当前原始对象的 version 0、checksum 和字节数；GET 不创建 mutation state、operation_id、审批占用或版本。
++
++先用真实 HTTP fixture 确认原行为为 404，再完成修复。v2 定向测试 20 项通过；本轮正式质量门仅运行一次，275 项全部通过。科学算法、审批实现、HTTP 路由、metadata repository 和 protocol v2 未修改，v1 回归通过。证据见[审查整改记录](../交付/20261021-waveform-agent-v2/evidence/review-fix-20261022/report.md)。本轮未 commit、push 或现场部署；fixture 不代表生产验证。
+ 
+ ## 2026-10-21 Agent HTTP API v2 源码交付
+ 
+-v2 已实现 read/control/data 三个命名空间。v1 保留原端点和只读语义。v2 使用独立 service token；control/data 默认关闭，所有 POST 强制签名审批。data 修改要求 preview、显式目标确认和预期版本。数据版本目录保留原始 HDF5，通过现有 writer 生成新版本与 manifest；软删除只影响 v2，原 Mongo/v1/GUI 视图保持原状。
++v2 已实现 read/control/data 三个命名空间。v1 保留原端点和只读语义。v2 使用独立 service token；control/data 默认关闭，所有 control/data POST 强制签名审批；read POST 不要求人工审批，但需要 read service token 和幂等 key。data 修改要求 preview、显式目标确认和预期版本。数据版本目录保留原始 HDF5，通过现有 writer 生成新版本与 manifest；软删除只影响 v2，原 Mongo/v1/GUI 视图保持原状。
+ 
+ 实现前质量门 255 项通过；最终 `tools/run_quality.py` 运行 272 项测试并通过，其中新增 v2 测试 17 项。真实 loopback HTTP、Candidate ZMQ 和 HDF5 fixture 覆盖 read、对齐、legacy/v2 导出、47.6 Hz 频谱、附件、合成采集 start/status/cancel、重启不重放，以及临时副本上的软删除、恢复和版本化覆盖。证据见[本次交付记录](../交付/20261021-waveform-agent-v2/README.md)。
+ 
+@@ -133,7 +139,7 @@
+ 
+ | 组件 | 最近记录的 release | current 或部署位置 | 状态 | 验证日期 |
+ | --- | --- | --- | --- | --- |
+-| 当前 Git 源码 | Agent API v2（无二进制 release） | 当前工作树 | 源码及 272 项质量门完成，尚未部署现场 | 2026-10-21 |
++| 当前 Git 源码 | Agent API v2 审查整改（无二进制 release） | 当前工作树 | 20 项定向测试和 275 项质量门通过，尚未部署现场 | 2026-10-22 |
+ | 本机最近已记录 release | `20261017-history-wording-r6-local` | `outputs/operator-local/current → releases/20261017-history-wording-r6-local/waveform-operator` | 本机激活入口仍指向 r6；本次未重建二进制，当前源码比该 release 更新 | 2026-10-19（仅检查链接） |
+ | 现场 operator（desktop-user-a、desktop-user-b） | `waveform-operator-r6-20261009` | `/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009` | 2026-10-09 历史记录为双账号验收通过；本轮未连接复核，未由本任务部署 | 2026-10-09（历史记录） |
+ | 现场 acquisition server | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/current → releases/20261008-history-release-r4` | 2026-10-08 历史记录为 packaged/current 和 systemd active；本轮未连接复核 | 2026-10-08（历史记录） |
+--- task-start/docs/handoffs/waveform-agent-v2-integration-20261021.md
++++ current/docs/handoffs/waveform-agent-v2-integration-20261021.md
+@@ -18,7 +18,7 @@
+ 
+ read/control/data 使用不同 Bearer service token。control/data 默认关闭，生产必须显式启用。写 scope 开启时强制配置 HMAC 审批密钥。
+ 
+-所有 control/data POST 都需要 operation、approval、operator 引用和签名 token。签名绑定完整 body、action、scope 和过期时间。审批 ID 在服务端持久化占用；更改参数后旧 token 失效。data 修改必须先取得同一操作员的 preview，再确认 target_id 与 expected_version。
++read POST（alignment、spectrum、analysis job cancel）不要求人工审批，但需要 read service token 和幂等 key。所有 control/data POST 强制签名审批，需要 operation、approval、operator 引用和签名 token。签名绑定完整 body、action、scope 和过期时间。审批 ID 在服务端持久化占用；更改参数后旧 token 失效。data 修改必须先取得同一操作员的 preview，再确认 target_id 与 expected_version。
+ 
+ 本服务验证审批引用和签名，不验证自然人身份。accelerator-rag 负责操作员登录、确认及可信签发；共享密钥不能提供给 Agent。
+ 
+@@ -26,7 +26,9 @@
+ 
+ 新增 AgentVersionRepository，保存版本目录、操作审计、审批占用、任务状态和幂等绑定。Mongo/HDF5 schema 与 protocol v2 保持不变。
+ 
+-版本 0 指原始 catalog 文件。覆盖通过现有整数 raw writer 生成新 HDF5 和 manifest，保留原文件及旧版本。restore 生成递增的新版本，不重写旧版本。
++alignment 的 algorithm source hash 对应实际 alignment 模块；spectrum 只返回实际分析 manifest 的 algorithm_version，省略未定义的 algorithm_source_sha256。
++
++版本 0 指原始 catalog 文件。成功 preview 后、首次 mutation 前，versions 通过已绑定的目标身份重新读取当前原始对象，返回 version 0 及当前 checksum。GET 不创建 mutation state、operation_id、审批占用或版本；已有 overlay history 时仍返回完整版本历史。覆盖通过现有整数 raw writer 生成新 HDF5 和 manifest，保留原文件及旧版本。restore 生成递增的新版本，不重写旧版本。
+ 
+ 软删除影响 v2 可见视图。原 Mongo、v1 和现有 GUI 仍可读取原始历史，这是明确的兼容边界。已有结果附件作为历史证据保留。不能把 v2 软删除当作其他接口的访问控制机制。
+ 
+@@ -45,6 +47,8 @@
+ 路径均相对于 `src/waveform_storage/`，文档、测试和工具路径除外。AOCI 托管资产的收尾结果另见交付记录。
+ 
+ ## TESTS
++
++2026-10-22 小范围整改：20 项 v2 定向测试和一次正式质量门的 275 项测试通过。原 version-0 查询 404 已通过真实 HTTP 测试复现。新 fixture 和整改 diff 见[本轮证据](../../交付/20261021-waveform-agent-v2/evidence/review-fix-20261022/report.md)。
+ 
+ 实现前完整质量门：255 项通过。最终质量门和新增定向测试的实际结果见[交付记录](../../交付/20261021-waveform-agent-v2/README.md)。
+ 
+--- task-start/交付/20261021-waveform-agent-v2/README.md
++++ current/交付/20261021-waveform-agent-v2/README.md
+@@ -12,11 +12,15 @@
+ 
+ ## AUTH / APPROVAL
+ 
+-三类 token 隔离。control/data 默认关闭，开启后强制 HMAC 签名审批。签名绑定 action、完整 body、scope、operator、approval 和 TTL。data 修改绑定 preview、target_id、expected_version。审批 UI 和操作员认证由 accelerator-rag 负责。
++三类 token 隔离。read POST 不要求人工审批，但需要 read service token 和幂等 key。control/data 默认关闭，所有 control/data POST 在启用后强制 HMAC 签名审批。签名绑定 action、完整 body、scope、operator、approval 和 TTL。data 修改绑定 preview、target_id、expected_version。审批 UI 和操作员认证由 accelerator-rag 负责。
+ 
+ ## DATA MODEL
+ 
+ 新增独立 Agent 元数据版本目录；原 Mongo/HDF5 schema 和 protocol v2 不变。原始 HDF5 保留，新版本由现有 writer 生成，并带 manifest 和来源。软删除只影响 v2；v1、原 catalog、GUI 和历史 artifact 保留原视图。恢复通过新版本执行。
++
++成功 preview 后、首次 mutation 前，versions 可通过已绑定的身份读取当前原始对象并返回 version 0、checksum 和字节数。GET 不写 Mongo 或 mutation state，不新增 operation_id、审批占用或版本；已有 overlay history 时返回完整历史。
++
++alignment 的算法源码 hash 对应实际 alignment 模块；spectrum 的版本来自实际分析 manifest，省略未定义的算法源码 hash。
+ 
+ ## FILES_CHANGED
+ 
+@@ -26,13 +30,18 @@
+ 
+ 实现前，允许 loopback socket 后的质量门通过 255 项。初次沙箱执行因禁止 socket 产生 9 项环境错误，未把该结果当作代码失败或通过。
+ 
+-最终质量门：272 项测试全部通过，包含新增 v2 测试 17 项。compileall、注册表校验、源码质量、密钥启发式扫描、diff 检查和 import 检查通过。
++2026-10-21 原交付质量门：272 项测试全部通过，包含当时新增的 v2 测试 17 项。compileall、注册表校验、源码质量、密钥启发式扫描、diff 检查和 import 检查通过。
+ 
+ - [实现前质量门日志](evidence/quality-baseline.log)
+ - [最终质量门日志](evidence/quality-final.log)
+-- [真实 HTTP fixture 响应与结果](evidence/http-fixture.json)
++- [原交付 HTTP fixture（整改前历史证据）](evidence/http-fixture.json)
++- [2026-10-22 审查整改证据](evidence/review-fix-20261022/)
++
++原交付 fixture 的 spectrum 算法源码 hash 有误。本轮已移除该字段，新返回以整改证据为准；原日志和 JSON 保留为历史记录。
+ 
+ 验证使用 `/home/whloong/miniconda3/envs/waveform-storage/bin/python`，环境为 `QT_QPA_PLATFORM=offscreen MPLCONFIGDIR=/tmp/waveform-mpl`。命令为 `python tools/run_quality.py`，通过 `WAVEFORM_V2_EVIDENCE_PATH` 保存 fixture 响应。
++
++2026-10-22 小范围整改已完成：20 项 v2 定向测试通过，正式质量门运行一次、275 项通过。具体范围、起始工作树和 Git 状态见[整改报告](evidence/review-fix-20261022/report.md)。
+ 
+ ## REAL HTTP E2E
+ 
