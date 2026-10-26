@@ -16,7 +16,9 @@ accepted/running 任务。未修改或重启服务端。`desktop-user-a` 可更�
 不可由该账号读取，独立会话验证待完成。未执行 SHA-256、完整 manifest、二进制身份、
 真实桌面 smoke、完整发布验收或额外全量测试。
 
-AOCI 收尾：两份测试文件的 observe 复核事务已应用，正式语义索引仍待同步。后续维护调用被自动审批拒绝，理由是可能存在并发或重放风险；本次保留该待办，未绕过审批。
+AOCI 收尾：两份测试文件的 observe 复核事务已应用，相关语义条目已完成维护。
+最终校验结果见[维护记录](../交付/20261026-pv-frequency-r2/evidence/aoci-closure.json)。
+此前自动审批拦截已在用户批准后解除。
 
 以下带日期的条目保留各次交付时的事实。当前版本以本节、版本表和本轮交付记录为准。
 
@@ -228,7 +230,7 @@ Production desktop frontend releases apply to both desktop-user-a and desktop-us
 | 服务 ExecStart | `/home/storage-user/waveform-storage-v2/current/waveform-acquisition-v2/waveform-acquisition-v2` |
 | 日志页 | `http://192.0.2.2:8765/` |
 | 只读元数据查询 | `tools/query_waveform_mongodb.py` |
-| 正式交付 | [20261008-history-release-r4](../交付/20261008-history-release-r4/README.md) |
+| 正式交付 | [20261026-pv-frequency-r2](../交付/20261026-pv-frequency-r2/README.md) |
 | 固定发布规范 | [RELEASE_CHECKLIST](RELEASE_CHECKLIST.md) |
 
 ## 历史版本对与验收证据

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-10T02:17:16Z",
-  "updated_at": "2026-10-26T08:02:43Z",
+  "updated_at": "2026-10-26T13:00:14Z",
   "files": {
     ".env.example": {
       "role": "index",
@@ -35,9 +35,9 @@
     },
     "README.md": {
       "role": "index",
-      "sha256": "a4d3f070d30f2c420e0561117abaf663af1404b1186aaeae01688492c571a70a",
-      "size": 3104,
-      "normalized_sha256": "a4d3f070d30f2c420e0561117abaf663af1404b1186aaeae01688492c571a70a"
+      "sha256": "0591fa56028dafc11d672fa5ec848f5dd0fb00bf0af5f6198812906da2dceb1c",
+      "size": 3230,
+      "normalized_sha256": "0591fa56028dafc11d672fa5ec848f5dd0fb00bf0af5f6198812906da2dceb1c"
     },
     "analysis/high_frequency/README.md": {
       "role": "index",
@@ -47,9 +47,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "325dd596599378700eddc76f7360c4dce975c432185d21d6b83d9148023f4cef",
-      "size": 131815,
-      "normalized_sha256": "325dd596599378700eddc76f7360c4dce975c432185d21d6b83d9148023f4cef"
+      "sha256": "41a056d81ba16cbd263958741c8b0e1fcadfd1be8a5abd177cad5cfbc27e675e",
+      "size": 135441,
+      "normalized_sha256": "41a056d81ba16cbd263958741c8b0e1fcadfd1be8a5abd177cad5cfbc27e675e"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -233,9 +233,9 @@
     },
     "docs/CURRENT_STATUS.md": {
       "role": "index",
-      "sha256": "0ce499e398dd45e4640c8a04cba666048a10067b4359e563e91c9d1047434411",
-      "size": 32299,
-      "normalized_sha256": "0ce499e398dd45e4640c8a04cba666048a10067b4359e563e91c9d1047434411"
+      "sha256": "c48954b94303a5bed5b403430a2c332bcdda0263d08179350c445aeb651bc3cb",
+      "size": 36554,
+      "normalized_sha256": "c48954b94303a5bed5b403430a2c332bcdda0263d08179350c445aeb651bc3cb"
     },
     "docs/MongoDB元数据模块设计.md": {
       "role": "index",
@@ -245,9 +245,9 @@
     },
     "docs/README.md": {
       "role": "index",
-      "sha256": "0574fa5e3130e902cace7507c2f0634603f0c8c2e28ee7f5d1c5d5cdc6edba4d",
-      "size": 1752,
-      "normalized_sha256": "0574fa5e3130e902cace7507c2f0634603f0c8c2e28ee7f5d1c5d5cdc6edba4d"
+      "sha256": "586eae18f7abd07b9eeab5c9dcb6517ff08a3f341ed2b09c4e338b742233def6",
+      "size": 1939,
+      "normalized_sha256": "586eae18f7abd07b9eeab5c9dcb6517ff08a3f341ed2b09c4e338b742233def6"
     },
     "docs/RELEASE_CHECKLIST.md": {
       "role": "index",
@@ -263,15 +263,15 @@
     },
     "docs/agent-api-v2.md": {
       "role": "index",
-      "sha256": "3b38d4937f3d74f19245c97c4ef18053eb025821fb08c6da1153183bcb7f98a3",
-      "size": 24945,
-      "normalized_sha256": "3b38d4937f3d74f19245c97c4ef18053eb025821fb08c6da1153183bcb7f98a3"
+      "sha256": "96086364e4a69f99ee8628f0f3fca16c6d2d5240b663a5d8d62ef9e4e6e965a5",
+      "size": 24950,
+      "normalized_sha256": "96086364e4a69f99ee8628f0f3fca16c6d2d5240b663a5d8d62ef9e4e6e965a5"
     },
     "docs/agent-api-v2.openapi.json": {
       "role": "index",
-      "sha256": "749f271d93e2f3b8dfed8e1fec624a7841ecb92631880e213b8cca17517cea65",
-      "size": 166586,
-      "normalized_sha256": "749f271d93e2f3b8dfed8e1fec624a7841ecb92631880e213b8cca17517cea65"
+      "sha256": "b50800fff27a2af72dd12df2dd21ee4ce65142b2e46ebd8cd3649dd7753e41ab",
+      "size": 166604,
+      "normalized_sha256": "b50800fff27a2af72dd12df2dd21ee4ce65142b2e46ebd8cd3649dd7753e41ab"
     },
     "docs/audits/device-readiness-20261003/README.md": {
       "role": "index",
@@ -305,9 +305,9 @@
     },
     "docs/candidate_v2服务部署与灰度验证.md": {
       "role": "index",
-      "sha256": "191dd326c22a64ea63a30cc0220f85fc67400557ba6ceb597b7ddcd36a707ed1",
-      "size": 6937,
-      "normalized_sha256": "191dd326c22a64ea63a30cc0220f85fc67400557ba6ceb597b7ddcd36a707ed1"
+      "sha256": "a8949a346e3f7e0203ad929f2b487231b71c9416f312ea7ce7cae3c3a70009c4",
+      "size": 6990,
+      "normalized_sha256": "a8949a346e3f7e0203ad929f2b487231b71c9416f312ea7ce7cae3c3a70009c4"
     },
     "docs/deployment/20261005/前端更新记录-20261005.md": {
       "role": "index",
@@ -558,9 +558,9 @@
     },
     "docs/新服务端补齐工作交接_2026-07-26.md": {
       "role": "index",
-      "sha256": "c4204d9bea7cee9f5c3cd59930a5217a26bd9c08dbab4d4ccce06a1597c0efe4",
-      "size": 18820,
-      "normalized_sha256": "c4204d9bea7cee9f5c3cd59930a5217a26bd9c08dbab4d4ccce06a1597c0efe4"
+      "sha256": "b5bfea37aaa040f213d8ccfe88c2684b27115ea3b7fbf8110296254dd6591235",
+      "size": 18959,
+      "normalized_sha256": "b5bfea37aaa040f213d8ccfe88c2684b27115ea3b7fbf8110296254dd6591235"
     },
     "docs/日志前端使用说明.md": {
       "role": "index",
@@ -618,9 +618,9 @@
     },
     "docs/采集协议v2候选.md": {
       "role": "index",
-      "sha256": "58560d9f0b02e975b883d2a7e808d51d7a070033c9bc94415a10f4ba0a5a69d5",
-      "size": 4276,
-      "normalized_sha256": "58560d9f0b02e975b883d2a7e808d51d7a070033c9bc94415a10f4ba0a5a69d5"
+      "sha256": "ca20eb338e155db1e3a9b1ff1aca707d080d6889e66d956252a653e420797eb5",
+      "size": 4347,
+      "normalized_sha256": "ca20eb338e155db1e3a9b1ff1aca707d080d6889e66d956252a653e420797eb5"
     },
     "docs/问题清单与改进路线.md": {
       "role": "index",
@@ -654,9 +654,9 @@
     },
     "packaging/OPERATOR_FORMAL_PACKAGE.md": {
       "role": "index",
-      "sha256": "46791705ccdfe6ac4bf503221f7d86d21820b1da2e3befb902e8a599c0d7ab50",
-      "size": 2524,
-      "normalized_sha256": "46791705ccdfe6ac4bf503221f7d86d21820b1da2e3befb902e8a599c0d7ab50"
+      "sha256": "e1089f14ba7eabb6a613a5b7d3071150280827a2883278169e5d0e7e822b1c66",
+      "size": 2900,
+      "normalized_sha256": "e1089f14ba7eabb6a613a5b7d3071150280827a2883278169e5d0e7e822b1c66"
     },
     "packaging/PACKAGE_AUDIT_2026-09-29.md": {
       "role": "index",
@@ -666,9 +666,9 @@
     },
     "packaging/README.md": {
       "role": "index",
-      "sha256": "4efc6edd120a1e52bcc78169b101fd52841bcbe39f65ae8ff74c7ab202f812e6",
-      "size": 1109,
-      "normalized_sha256": "4efc6edd120a1e52bcc78169b101fd52841bcbe39f65ae8ff74c7ab202f812e6"
+      "sha256": "5a594befa57843a75f3e2a0c6041e74623562b6dd9d014cad3ec0027b7512c5a",
+      "size": 1147,
+      "normalized_sha256": "5a594befa57843a75f3e2a0c6041e74623562b6dd9d014cad3ec0027b7512c5a"
     },
     "packaging/SERVER_FORMAL_PACKAGE.md": {
       "role": "index",
@@ -720,9 +720,9 @@
     },
     "packaging/direct-operator/README.md": {
       "role": "index",
-      "sha256": "9f4152becb2199f828945528af3da3c716c7027603bcca635b445a8a63846bb0",
-      "size": 8661,
-      "normalized_sha256": "9f4152becb2199f828945528af3da3c716c7027603bcca635b445a8a63846bb0"
+      "sha256": "c51902353f57f3081bb17ff2680233f6f79369e56704bae8dfc0db131e7c8b9c",
+      "size": 9008,
+      "normalized_sha256": "c51902353f57f3081bb17ff2680233f6f79369e56704bae8dfc0db131e7c8b9c"
     },
     "packaging/direct-operator/connection.env.example": {
       "role": "index",
@@ -852,9 +852,9 @@
     },
     "src/waveform_storage/acquisition/runtime.py": {
       "role": "index",
-      "sha256": "1ded935aa089739415988da474f6a56a0d12906d8f3b9590dfff95783fa883a4",
-      "size": 21720,
-      "normalized_sha256": "1ded935aa089739415988da474f6a56a0d12906d8f3b9590dfff95783fa883a4"
+      "sha256": "bae3ad545afeaaba34912ac7f3eb382f37fe40509b96f7843d85c17b7998af2e",
+      "size": 21883,
+      "normalized_sha256": "bae3ad545afeaaba34912ac7f3eb382f37fe40509b96f7843d85c17b7998af2e"
     },
     "src/waveform_storage/acquisition/server.py": {
       "role": "index",
@@ -1098,9 +1098,9 @@
     },
     "src/waveform_storage/gui/operator_window.py": {
       "role": "index",
-      "sha256": "3c7b01afbcc2e21f940766cf9cff1240677503ba8b9c70395cde4dfc41dc366d",
-      "size": 139826,
-      "normalized_sha256": "3c7b01afbcc2e21f940766cf9cff1240677503ba8b9c70395cde4dfc41dc366d"
+      "sha256": "39d8a8ab8e039b9b51c40ce3679d31e420d384a2dd3a990721449d24af416181",
+      "size": 139167,
+      "normalized_sha256": "39d8a8ab8e039b9b51c40ce3679d31e420d384a2dd3a990721449d24af416181"
     },
     "src/waveform_storage/gui/plotting.py": {
       "role": "index",
@@ -1642,6 +1642,12 @@
       "size": 2505,
       "normalized_sha256": "9d429adea5d32f5c4b6fb9d5bb7095c12e02e2ebb345c7df9cb9ff8b2fe0f62a"
     },
+    "tools/systemd/user/waveform-log-dashboard.service": {
+      "role": "index",
+      "sha256": "ea2eea3d9a1f41a210d2d14cd74e1bcc98c58f7beec2c7a115e3bae8582c2874",
+      "size": 1520,
+      "normalized_sha256": "ea2eea3d9a1f41a210d2d14cd74e1bcc98c58f7beec2c7a115e3bae8582c2874"
+    },
     "tools/verify_history_release.py": {
       "role": "index",
       "sha256": "bc08ea52e5a2f682661b4707cdc269da34f8f88c98326c1a3911295b16172047",
@@ -1860,9 +1866,9 @@
     },
     "交付/20261009-spectrum-ui-r6-desktop/README.md": {
       "role": "index",
-      "sha256": "cbcd3d78084b47edd1f49d7599b7e33f94b30f8f16ad97084764c4646233c105",
-      "size": 5395,
-      "normalized_sha256": "cbcd3d78084b47edd1f49d7599b7e33f94b30f8f16ad97084764c4646233c105"
+      "sha256": "0f4df9c52fe1ef8eb9bcda01b437d045dc149b232b2609d5f874583ad03b40d6",
+      "size": 5579,
+      "normalized_sha256": "0f4df9c52fe1ef8eb9bcda01b437d045dc149b232b2609d5f874583ad03b40d6"
     },
     "交付/20261009-spectrum-ui-r6-desktop/release-record.json": {
       "role": "index",
@@ -2056,11 +2062,47 @@
       "size": 6930,
       "normalized_sha256": "b5fd6657815d7660db747ed04bb7dd8003af1e6d95037767f3fde8121d1c8f90"
     },
+    "交付/20261026-pv-frequency-r2/BUILD-INFO-desktop.json": {
+      "role": "index",
+      "sha256": "2efadabadffea56864087e524913204aabd889d84dfa4512dc9cbdf28fab6139",
+      "size": 908,
+      "normalized_sha256": "2efadabadffea56864087e524913204aabd889d84dfa4512dc9cbdf28fab6139"
+    },
+    "交付/20261026-pv-frequency-r2/BUILD-INFO-local.json": {
+      "role": "index",
+      "sha256": "4c799c6d05c0d7adbca59a30ccda5f65b568613a2e0c3bcb58b3a0fad9be6b2e",
+      "size": 783,
+      "normalized_sha256": "4c799c6d05c0d7adbca59a30ccda5f65b568613a2e0c3bcb58b3a0fad9be6b2e"
+    },
+    "交付/20261026-pv-frequency-r2/README.md": {
+      "role": "index",
+      "sha256": "d7923fde23d09cd3825474ff57abe33320423527191c9a509c89e386d165f5e2",
+      "size": 3807,
+      "normalized_sha256": "d7923fde23d09cd3825474ff57abe33320423527191c9a509c89e386d165f5e2"
+    },
+    "交付/20261026-pv-frequency-r2/release-pair.json": {
+      "role": "index",
+      "sha256": "a1a8c66ce36a8e591d0cb983b3ad579f84c4f36ba1d3cf853e9c0eb9d30f8d86",
+      "size": 2776,
+      "normalized_sha256": "a1a8c66ce36a8e591d0cb983b3ad579f84c4f36ba1d3cf853e9c0eb9d30f8d86"
+    },
+    "交付/20261026-timing-10hz-r1/README.md": {
+      "role": "index",
+      "sha256": "6f45ceb15baa62e0fdcd1f10632abdbe3312dba8ba5baee72a78536f93ceadf2",
+      "size": 6467,
+      "normalized_sha256": "6f45ceb15baa62e0fdcd1f10632abdbe3312dba8ba5baee72a78536f93ceadf2"
+    },
+    "交付/20261026-timing-10hz-r1/release-pair.json": {
+      "role": "index",
+      "sha256": "b042baca5e9df6a323f58b0b994320319f9c38d4d1db329698e0cbbde0883b99",
+      "size": 2524,
+      "normalized_sha256": "b042baca5e9df6a323f58b0b994320319f9c38d4d1db329698e0cbbde0883b99"
+    },
     "交付/README_先看.md": {
       "role": "index",
-      "sha256": "96fe7245b1885ae575df99b900642eae45c14edc3b3ca73dc33094865d732c6c",
-      "size": 989,
-      "normalized_sha256": "96fe7245b1885ae575df99b900642eae45c14edc3b3ca73dc33094865d732c6c"
+      "sha256": "5aac5aa054e4117842591c142f86860d8d370cc9ffcc2eca6091dda5da431cb2",
+      "size": 1205,
+      "normalized_sha256": "5aac5aa054e4117842591c142f86860d8d370cc9ffcc2eca6091dda5da431cb2"
     },
     "交付/前端安装-20261004/安装与使用说明.md": {
       "role": "index",
