@@ -1,5 +1,7 @@
 # 现场桌面机 r6 发布记录
 
+> 本文为 2026-10-09 的历史发布记录。共享前端已于 2026-10-26 更新至 [PV 频率只读显示 r2](../20261026-pv-frequency-r2/README.md)，r6 保留为回滚版本。
+
 ## 最终结果
 
 **生产状态：** `PRODUCTION ACTIVATED AND VERIFIED`

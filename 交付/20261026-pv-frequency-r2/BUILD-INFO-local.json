@@ -1,0 +1,19 @@
+{
+  "kind": "operator",
+  "release_id": "20261026-pv-frequency-r2",
+  "built_at": "2026-10-26T15:42:45.366009+08:00",
+  "source_revision": "5f17b67ad3629d7b00ba4e6eb706043e0e99bc1c",
+  "source_state": "working-tree",
+  "protocol": "v2 + history-run-segment extension",
+  "protocol_capabilities": [
+    "health",
+    "list_capture_runs",
+    "list_capture_segments",
+    "find_waveform_files_by_segment"
+  ],
+  "validation_scope": "41 focused regression tests plus 1 capture submission test; offline source and packaged UI including live PV display; no real desktop smoke",
+  "sha256_verification": "not_run_per_task_scope",
+  "manifest_verification": "not_run_per_task_scope",
+  "binary_identity_verification": "not_run_per_task_scope",
+  "desktop_smoke": "not_run_per_task_scope"
+}

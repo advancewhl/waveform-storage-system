@@ -493,6 +493,9 @@ _CAPTURE_INTERVAL_SECONDS = {
     500.0: 4,
     100.0: 12,
     50.0: 22,
+    # Field-confirmed on 2026-10-26 with the same 20000-point segment target as
+    # 5 Hz: 20000 triggers / 10 Hz = 2000 s, plus the 5 Hz margin.
+    10.0: 2100,
     5.0: 4200,
     2.0: 512,
 }

@@ -1,0 +1,11 @@
+{
+  "verified_from": "本机 GUI 同一路径 tcp://127.0.0.1:5001",
+  "command": "get_timing_frequency",
+  "accepted": true,
+  "error_code": null,
+  "message": "timing frequency read from PV on waveform server",
+  "payload": {
+    "frequency_hz": 10.0,
+    "source": "timing_pv"
+  }
+}

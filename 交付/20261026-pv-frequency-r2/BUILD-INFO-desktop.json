@@ -1,0 +1,20 @@
+{
+  "kind": "operator",
+  "release_id": "20261026-pv-frequency-r2",
+  "built_at": "2026-10-26T15:49:21.853161+08:00",
+  "source_revision": "5f17b67ad3629d7b00ba4e6eb706043e0e99bc1c",
+  "source_state": "working-tree",
+  "protocol": "v2 + history-run-segment extension",
+  "protocol_capabilities": [
+    "health",
+    "list_capture_runs",
+    "list_capture_segments",
+    "find_waveform_files_by_segment"
+  ],
+  "validation_scope": "Debian 10 compatible build; desktop-user-a connected offscreen capture page displays 10 Hz; shared launcher and public path permissions checked; desktop-user-b private session not verified",
+  "sha256_verification": "not_run_per_task_scope",
+  "manifest_verification": "not_run_per_task_scope",
+  "binary_identity_verification": "not_run_per_task_scope",
+  "desktop_smoke": "not_run_per_task_scope",
+  "build_environment": "python:3.10-buster; Python 3.10.12; glibc 2.28; PyInstaller 6.11.1"
+}

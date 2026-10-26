@@ -1,0 +1,109 @@
+{
+  "recorded_at": "2026-10-26T15:55:06.070622+08:00",
+  "host": "AC-GT-CN-S2-OPI21",
+  "current": "/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026",
+  "launcher": "/home/site-user/bin/startWaveform.sh",
+  "launcher_contents": "#!/usr/bin/env bash\nset -e\nexec /home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026/run-operator.sh \"$@\"\n",
+  "previous_release": "/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009",
+  "launcher_backup": "/home/site-user/bin/startWaveform.sh.backup-20261026-pv-frequency-r2",
+  "accounts": {
+    "desktop-user-a": {
+      "uid": 1001,
+      "offscreen_pv_display": "10 Hz",
+      "real_desktop_smoke": "not_run"
+    },
+    "desktop-user-b": {
+      "uid": 1003,
+      "shared_installation": "updated; public path access recorded",
+      "private_session": "not_verified_no_authorized_login_available"
+    }
+  },
+  "permissions": [
+    {
+      "path": "/home",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/bin",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/bin/startWaveform.sh",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/work",
+      "mode": "0o775",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026/run-operator.sh",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026/bin",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026/bin/waveform-operator",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026/bin/waveform-operator/waveform-operator",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026/config",
+      "mode": "0o755",
+      "readable_by_other": true,
+      "executable_by_other": true
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026/config/devices.operator.json",
+      "mode": "0o644",
+      "readable_by_other": true,
+      "executable_by_other": false
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026/config/devices.probe47.json",
+      "mode": "0o644",
+      "readable_by_other": true,
+      "executable_by_other": false
+    }
+  ],
+  "credentials": "existing account credentials preserved; no private key permission changes",
+  "status": "SHARED FRONTEND ACTIVATED; CTRL01 OFFSCREEN PV VERIFIED; PHY01 SESSION PENDING"
+}

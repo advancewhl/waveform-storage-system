@@ -1,0 +1,15 @@
+ACTIVATED=/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026
+BACKUP=/home/site-user/bin/startWaveform.sh.backup-20261026-pv-frequency-r2
+f: /home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026/bin/waveform-operator/waveform-operator
+dr-xr-xr-x root   root /
+drwxr-xr-x root   root home
+drwxr-xr-x desktop-user-a ctrl site-user
+drwxrwxr-x desktop-user-a ctrl work
+drwxr-xr-x desktop-user-a ctrl StreamDataPro_new
+drwxr-xr-x desktop-user-a ctrl waveform-operator-pv-frequency-r2-20261026
+drwxr-xr-x desktop-user-a ctrl bin
+drwxr-xr-x desktop-user-a ctrl waveform-operator
+-rwxr-xr-x desktop-user-a ctrl waveform-operator
+#!/usr/bin/env bash
+set -e
+exec /home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026/run-operator.sh "$@"

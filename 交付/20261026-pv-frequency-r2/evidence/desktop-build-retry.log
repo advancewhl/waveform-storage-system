@@ -1,0 +1,19 @@
+Collecting PyInstaller==6.11.1
+  Downloading pyinstaller-6.11.1-py3-none-manylinux2014_x86_64.whl (710 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 710.1/710.1 kB 639.7 kB/s eta 0:00:00
+Collecting PyQt5<6,>=5.15
+  Downloading PyQt5-5.15.11-cp38-abi3-manylinux_2_17_x86_64.whl (8.2 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 8.2/8.2 MB 789.4 kB/s eta 0:00:00
+Collecting caproto>=1.1
+  Downloading caproto-1.3.0-py3-none-any.whl (407 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 407.0/407.0 kB 19.4 MB/s eta 0:00:00
+Collecting h5py>=3.8
+  Downloading h5py-3.16.0-cp310-cp310-manylinux_2_28_x86_64.whl (5.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.1/5.1 MB 2.1 MB/s eta 0:00:00
+Collecting matplotlib>=3.7
+  Downloading matplotlib-3.10.9-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (8.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸   8.3/8.8 MB 122.7 kB/s eta 0:00:04
+ERROR: THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE. If you have updated the package versions, please update the hashes. Otherwise, examine the package contents carefully; someone may have tampered with them.
+    matplotlib>=3.7 from https://files.pythonhosted.org/packages/fc/b7/d8bcec2626c35f96972bff656299fef4578113ea6193c8fdad324710410c/matplotlib-3.10.9-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (from -r packaging/requirements-operator-formal.txt (line 4)):
+        Expected sha256 1aa972116abb4c9d201bf245620b433726cb6856f3bef6a78f776a00f5c92d37
+             Got        24ac5e3ed3b60898ed3d44ffbc2a1d046ccf6389f70a46676b51a381b3619e3f

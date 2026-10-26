@@ -27,10 +27,12 @@ the authenticated SSH control socket. A standalone installation may set
 `WAVEFORM_STORAGE_SSH_CONTROL_SOCKET` to an existing OpenSSH control socket;
 otherwise it needs direct storage-server SSH credentials and reachability.
 
-On the history page, choose the capture's start date, retrieve its available
-times, select a time, and click **选择BPM**. The picker lists only BPMs with
-waveform files at that time. Check the devices to align or download, then use
-**确认并对齐**. History BPM selection is independent of the capture-area tree.
+On the history page, choose the capture start date, retrieve the tasks, and
+select a task and one real capture segment. Click **选择BPM**, select devices
+with files in that segment, then use **确认并对齐**. Queries retain the full
+`request_id + capture_sequence`; segments are never concatenated implicitly.
+History BPM selection is independent of the capture-area tree. Bunch IDs are
+opaque identifiers and do not establish elapsed time or sampling frequency.
 
 `MANIFEST.sha256` records every package file besides itself and `BUILD-INFO`.
 The build script extracts the actual archive in a temporary directory, checks
@@ -43,3 +45,7 @@ enter the capture's actual sample rate for HDF5 files without rate metadata.
 Analysis is also available in UI-only mode. Use **保存结果包** to export the
 manifest, quality checks, spectra, block statistics, and report as a ZIP file.
 The history page can pass its current aligned data to this analysis page.
+
+The capture page displays the server timing PV frequency as a read-only value.
+It reads the PV at startup and reads it again before capture submission.
+The GUI always follows that fresh value; there is no frequency selector.

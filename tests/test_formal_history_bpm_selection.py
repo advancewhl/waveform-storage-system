@@ -16,7 +16,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 from PyQt5.QtCore import QDate, Qt
-from PyQt5.QtWidgets import QApplication, QComboBox, QDialog
+from PyQt5.QtWidgets import QApplication, QComboBox, QDialog, QMessageBox
 
 from waveform_storage.config.registry import load_registry
 from waveform_storage.gui.operator_contract import OperatorMode
@@ -315,7 +315,7 @@ class FormalHistorySelectionTests(unittest.TestCase):
 
             def get_timing_frequency(self):
                 self.frequency_calls += 1
-                return 5.0
+                return 10.0
 
         backend = FrequencyBackend()
         registry = load_registry(ROOT / "config/devices.operator.json")
@@ -329,11 +329,38 @@ class FormalHistorySelectionTests(unittest.TestCase):
             )
             window.show()
             deadline = time.monotonic() + 5
-            while window.frequency_value.text() != "5 Hz" and time.monotonic() < deadline:
+            while window.frequency_value.text() != "10 Hz" and time.monotonic() < deadline:
                 self.app.processEvents()
                 time.sleep(0.01)
-            self.assertEqual(window.frequency_value.text(), "5 Hz")
+            self.assertEqual(window.frequency_value.text(), "10 Hz")
             self.assertEqual(backend.frequency_calls, 1)
+            window.close()
+
+    def test_capture_submission_follows_fresh_pv_without_frequency_override(self):
+        registry = load_registry(ROOT / "config/devices.operator.json")
+        capture_registry = load_registry(ROOT / "config/devices.probe47.json")
+        device = next(item for item in capture_registry.devices
+                      if item.enabled and item.acquisition_enabled)
+        backend = Backend()
+        with TemporaryDirectory() as temporary:
+            window = OperatorMainWindow(
+                registry, backend=backend, capture_registry=capture_registry,
+                ui_only=True, journal_path=Path(temporary) / "journal.jsonl",
+            )
+            window.ui_only = False
+            with patch.object(window.area_model, "selected_devices",
+                              return_value=(device.id,)), patch.object(
+                window, "_run_task"
+            ) as task, patch.object(
+                backend, "start_capture", create=True
+            ) as start, patch(
+                "waveform_storage.gui.operator_window.QMessageBox.question",
+                return_value=QMessageBox.Yes,
+            ) as confirmation:
+                window._request_start()
+                task.call_args.args[1]()
+                start.assert_called_once_with((device.section,), (device.id,), 4200)
+                self.assertIn("频率跟随服务端当前 PV", confirmation.call_args.args[2])
             window.close()
 
     def test_offline_window_marks_frequency_unavailable(self):
@@ -348,8 +375,7 @@ class FormalHistorySelectionTests(unittest.TestCase):
                 journal_path=Path(temporary) / "journal.jsonl",
             )
             self.assertEqual(window.frequency_value.text(), "未连接")
-            self.assertIn("500 Hz", [window.frequency_combo.itemText(i)
-                                     for i in range(window.frequency_combo.count())])
+            self.assertFalse(hasattr(window, "frequency_combo"))
             first_area = window.area_model.item(0, 0)
             self.assertEqual(first_area.text(), "ING")
             self.assertEqual(

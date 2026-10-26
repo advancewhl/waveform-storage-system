@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-10T02:17:16Z",
-  "updated_at": "2026-10-22T08:43:01Z",
+  "updated_at": "2026-10-26T08:02:43Z",
   "files": {
     ".env.example": {
       "role": "index",
@@ -1296,9 +1296,9 @@
     },
     "tests/test_acquisition_server.py": {
       "role": "observe",
-      "sha256": "908d4129eb87eec1f303a54945c8f296c6ebb891af1ff6500890b577c7004ace",
-      "size": 26820,
-      "normalized_sha256": "908d4129eb87eec1f303a54945c8f296c6ebb891af1ff6500890b577c7004ace"
+      "sha256": "9ff2db980fd80f0d8082071cf8865fa7dfe207f1fefc35d9074355ab1c6d5c57",
+      "size": 26834,
+      "normalized_sha256": "9ff2db980fd80f0d8082071cf8865fa7dfe207f1fefc35d9074355ab1c6d5c57"
     },
     "tests/test_acquisition_services.py": {
       "role": "observe",
@@ -1368,9 +1368,9 @@
     },
     "tests/test_formal_history_bpm_selection.py": {
       "role": "observe",
-      "sha256": "4319d8b4016acce8ca37fb8312c78426172e5daaae88ccb1d4e2225eeef3158c",
-      "size": 31204,
-      "normalized_sha256": "4319d8b4016acce8ca37fb8312c78426172e5daaae88ccb1d4e2225eeef3158c"
+      "sha256": "341a7d480aa0d95a2f149aa0b9210d9d734da142ec7b94fb53ad5df7f67dd917",
+      "size": 32558,
+      "normalized_sha256": "341a7d480aa0d95a2f149aa0b9210d9d734da142ec7b94fb53ad5df7f67dd917"
     },
     "tests/test_gui_alignment_adapter.py": {
       "role": "observe",

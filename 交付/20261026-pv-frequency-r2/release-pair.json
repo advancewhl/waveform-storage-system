@@ -1,0 +1,65 @@
+{
+  "release_id": "20261026-pv-frequency-r2",
+  "protocol": "v2 + history-run-segment extension",
+  "operator_local": {
+    "kind": "operator",
+    "release_id": "20261026-pv-frequency-r2",
+    "built_at": "2026-10-26T15:42:45.366009+08:00",
+    "source_revision": "5f17b67ad3629d7b00ba4e6eb706043e0e99bc1c",
+    "source_state": "working-tree",
+    "protocol": "v2 + history-run-segment extension",
+    "protocol_capabilities": [
+      "health",
+      "list_capture_runs",
+      "list_capture_segments",
+      "find_waveform_files_by_segment"
+    ],
+    "validation_scope": "41 focused regression tests plus 1 capture submission test; offline source and packaged UI including live PV display; no real desktop smoke",
+    "sha256_verification": "not_run_per_task_scope",
+    "manifest_verification": "not_run_per_task_scope",
+    "binary_identity_verification": "not_run_per_task_scope",
+    "desktop_smoke": "not_run_per_task_scope"
+  },
+  "operator_desktop": {
+    "kind": "operator",
+    "release_id": "20261026-pv-frequency-r2",
+    "built_at": "2026-10-26T15:49:21.853161+08:00",
+    "source_revision": "5f17b67ad3629d7b00ba4e6eb706043e0e99bc1c",
+    "source_state": "working-tree",
+    "protocol": "v2 + history-run-segment extension",
+    "protocol_capabilities": [
+      "health",
+      "list_capture_runs",
+      "list_capture_segments",
+      "find_waveform_files_by_segment"
+    ],
+    "validation_scope": "Debian 10 compatible build; desktop-user-a connected offscreen capture page displays 10 Hz; shared launcher and public path permissions checked; desktop-user-b private session not verified",
+    "sha256_verification": "not_run_per_task_scope",
+    "manifest_verification": "not_run_per_task_scope",
+    "binary_identity_verification": "not_run_per_task_scope",
+    "desktop_smoke": "not_run_per_task_scope",
+    "build_environment": "python:3.10-buster; Python 3.10.12; glibc 2.28; PyInstaller 6.11.1"
+  },
+  "server": {
+    "release_id": "20261026-timing-10hz-r1",
+    "status": "existing deployment confirmed active; unchanged in r2"
+  },
+  "deployment_status": "LOCAL AND REMOTE SHARED FRONTENDS ACTIVATED; CTRL01 OFFSCREEN PV VERIFIED; PHY01 PRIVATE SESSION PENDING",
+  "verification": {
+    "focused_regression_tests": 41,
+    "capture_submission_test": 1,
+    "live_local_pv": "10 Hz",
+    "live_ctrl01_offscreen_pv": "10 Hz",
+    "sha256": "not_run",
+    "manifest": "not_run",
+    "binary_identity": "not_run",
+    "real_desktop_smoke": "not_run",
+    "real_capture": "not_run"
+  },
+  "rollback": {
+    "local": "20261017-history-wording-r6-local",
+    "desktop": "waveform-operator-r6-20261009",
+    "desktop_launcher_backup": "/home/site-user/bin/startWaveform.sh.backup-20261026-pv-frequency-r2"
+  },
+  "compatibility": "existing protocol and capabilities unchanged"
+}

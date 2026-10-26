@@ -1,0 +1,19 @@
+{
+  "host": "AC-GT-CN-S2-OPI21",
+  "previous_release": "/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009",
+  "connection_env_keys": [
+    "WAVEFORM_STORAGE_HOST",
+    "WAVEFORM_STORAGE_USER",
+    "WAVEFORM_STORAGE_PORT",
+    "export QT_SCALE_FACTOR",
+    "WAVEFORM_OPERATOR_STATE_DIR"
+  ],
+  "shared_launcher": "#!/usr/bin/env bash\nset -e\nexec /home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009/run-operator.sh \"$@\"\n",
+  "config_path": "/home/site-user/work/StreamDataPro_new/waveform-operator-direct-offline-20261004/connection.env",
+  "credential_directory": "/home/site-user/work/StreamDataPro_new/waveform-operator-direct-offline-20261004/credentials",
+  "accounts": [
+    "desktop-user-a",
+    "desktop-user-b"
+  ],
+  "phy01_private_session": "not_accessible_by_ctrl01"
+}

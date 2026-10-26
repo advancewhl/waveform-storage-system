@@ -1,0 +1,401 @@
+Collecting PyInstaller==6.11.1
+  Downloading pyinstaller-6.11.1-py3-none-manylinux2014_x86_64.whl (710 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 710.1/710.1 kB 167.6 kB/s eta 0:00:00
+Collecting caproto==1.3.0
+  Downloading caproto-1.3.0-py3-none-any.whl (407 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 407.0/407.0 kB 398.9 kB/s eta 0:00:00
+Collecting h5py==3.16.0
+  Downloading h5py-3.16.0-cp310-cp310-manylinux_2_28_x86_64.whl (5.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.1/5.1 MB 65.3 kB/s eta 0:00:00
+Collecting numpy==2.2.6
+  Downloading numpy-2.2.6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (16.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.8/16.8 MB 14.4 MB/s eta 0:00:00
+Collecting paramiko==5.0.0
+  Downloading paramiko-5.0.0-py3-none-any.whl (208 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 208.9/208.9 kB 1.9 MB/s eta 0:00:00
+Collecting pymongo==4.17.0
+  Downloading pymongo-4.17.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 4.1 MB/s eta 0:00:00
+Collecting pyzmq==27.1.0
+  Downloading pyzmq-27.1.0-cp310-cp310-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (854 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 854.1/854.1 kB 4.8 MB/s eta 0:00:00
+Collecting altgraph
+  Downloading altgraph-0.17.5-py2.py3-none-any.whl (21 kB)
+Collecting packaging>=22.0
+  Downloading packaging-26.3-py3-none-any.whl (129 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 130.0/130.0 kB 1.5 MB/s eta 0:00:00
+Collecting pyinstaller-hooks-contrib>=2024.9
+  Downloading pyinstaller_hooks_contrib-2026.9-py3-none-any.whl (462 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 462.9/462.9 kB 3.5 MB/s eta 0:00:00
+Requirement already satisfied: setuptools>=42.0.0 in /usr/local/lib/python3.10/site-packages (from PyInstaller==6.11.1->-r packaging/requirements-acquisition-v2-build.txt (line 1)) (65.5.1)
+Collecting cryptography>=3.3
+  Downloading cryptography-50.0.2-cp39-abi3-manylinux_2_28_x86_64.whl (4.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.8/4.8 MB 9.2 MB/s eta 0:00:00
+Collecting bcrypt>=3.2
+  Downloading bcrypt-5.0.0-cp39-abi3-manylinux_2_28_x86_64.whl (278 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 278.7/278.7 kB 2.4 MB/s eta 0:00:00
+Collecting invoke>=2.0
+  Downloading invoke-3.0.3-py3-none-any.whl (160 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 161.0/161.0 kB 933.1 kB/s eta 0:00:00
+Collecting pynacl>=1.5
+  Downloading pynacl-1.6.2-cp38-abi3-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (1.4 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 2.5 MB/s eta 0:00:00
+Collecting dnspython<3.0.0,>=2.6.1
+  Downloading dnspython-2.8.0-py3-none-any.whl (331 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 331.1/331.1 kB 2.8 MB/s eta 0:00:00
+Collecting typing-extensions>=4.13.2
+  Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 45.6/45.6 kB 982.1 kB/s eta 0:00:00
+Collecting cffi>=2.0.0
+  Downloading cffi-2.1.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (218 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 218.7/218.7 kB 1.8 MB/s eta 0:00:00
+Collecting pycparser
+  Downloading pycparser-3.11-py3-none-any.whl (51 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 51.2/51.2 kB 1.1 MB/s eta 0:00:00
+Installing collected packages: altgraph, typing-extensions, pyzmq, pycparser, packaging, numpy, invoke, dnspython, caproto, bcrypt, pymongo, pyinstaller-hooks-contrib, h5py, cffi, pynacl, PyInstaller, cryptography, paramiko
+Successfully installed PyInstaller-6.11.1 altgraph-0.17.5 bcrypt-5.0.0 caproto-1.3.0 cffi-2.1.1 cryptography-50.0.2 dnspython-2.8.0 h5py-3.16.0 invoke-3.0.3 numpy-2.2.6 packaging-26.3 paramiko-5.0.0 pycparser-3.11 pyinstaller-hooks-contrib-2026.9 pymongo-4.17.0 pynacl-1.6.2 pyzmq-27.1.0 typing-extensions-4.16.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+63 INFO: PyInstaller: 6.11.1, contrib hooks: 2026.9
+64 INFO: Python: 3.10.12
+66 INFO: Platform: Linux-6.8.0-138-generic-x86_64-with-glibc2.28
+66 INFO: Python environment: /usr/local
+91 WARNING: Failed to collect submodules for 'caproto.trio' because importing 'caproto.trio' raised: ModuleNotFoundError: No module named 'trio'
+184 WARNING: Failed to collect submodules for 'h5py.tests.test_vds' because importing 'h5py.tests.test_vds' raised: ModuleNotFoundError: No module named 'pytest'
+46 WARNING: Failed to collect submodules for 'zmq.tests' because importing 'zmq.tests' raised: ModuleNotFoundError: No module named 'pytest'
+1788 INFO: Module search paths (PYTHONPATH):
+['/workspace',
+ '/usr/local/lib/python310.zip',
+ '/usr/local/lib/python3.10',
+ '/usr/local/lib/python3.10/lib-dynload',
+ '/usr/local/lib/python3.10/site-packages',
+ '/workspace/apps/acquisition_server',
+ '/workspace/src']
+1958 INFO: Appending 'datas' from .spec
+1976 INFO: checking Analysis
+1977 INFO: Building Analysis because Analysis-00.toc is non existent
+1977 INFO: Running Analysis Analysis-00.toc
+1977 INFO: Target bytecode optimization level: 0
+1977 INFO: Initializing module dependency graph...
+1978 INFO: Initializing module graph hook caches...
+1986 INFO: Analyzing base_library.zip ...
+2318 INFO: Processing standard module hook 'hook-heapq.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+2362 INFO: Processing standard module hook 'hook-encodings.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+3230 INFO: Processing standard module hook 'hook-pickle.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+4197 INFO: Caching module dependency graph...
+4262 INFO: Looking for Python shared library...
+4271 INFO: Using Python shared library: /usr/local/lib/libpython3.10.so.1.0
+4271 INFO: Analyzing /workspace/apps/acquisition_server/main.py
+4342 INFO: Processing standard module hook 'hook-cryptography.py' from '/usr/local/lib/python3.10/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+4643 INFO: hook-cryptography: cryptography does not seem to be using dynamically linked OpenSSL.
+5003 INFO: Processing standard module hook 'hook-difflib.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+5146 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+5240 INFO: Processing standard module hook 'hook-xml.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+5741 INFO: Processing standard module hook 'hook-bcrypt.py' from '/usr/local/lib/python3.10/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+5859 INFO: Processing standard module hook 'hook-nacl.py' from '/usr/local/lib/python3.10/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+6015 INFO: Processing standard module hook 'hook-platform.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+6161 INFO: Processing standard module hook 'hook-numpy.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+6410 INFO: Processing standard module hook 'hook-sysconfig.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+8201 INFO: Processing standard module hook 'hook-zmq.py' from '/usr/local/lib/python3.10/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+8389 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks/pre_safe_import_module'
+8389 INFO: SetuptoolsInfo: initializing cached setuptools info...
+9003 INFO: Processing standard module hook 'hook-pycparser.py' from '/usr/local/lib/python3.10/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+9090 INFO: Processing standard module hook 'hook-setuptools.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+9094 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks/pre_safe_import_module'
+9094 INFO: Processing pre-find-module-path hook 'hook-distutils.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks/pre_find_module_path'
+9412 INFO: Processing standard module hook 'hook-distutils.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+9452 INFO: Processing standard module hook 'hook-distutils.util.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+9602 INFO: Processing standard module hook 'hook-pkg_resources.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+10197 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks/pre_safe_import_module'
+10260 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks/pre_safe_import_module'
+10263 INFO: Processing standard module hook 'hook-packaging.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+10908 INFO: Processing standard module hook 'hook-h5py.py' from '/usr/local/lib/python3.10/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+11353 INFO: Processing standard module hook 'hook-zoneinfo.py' from '/usr/local/lib/python3.10/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+12090 INFO: Processing standard module hook 'hook-dns.rdata.py' from '/usr/local/lib/python3.10/site-packages/_pyinstaller_hooks_contrib/stdhooks'
+13251 INFO: Analyzing hidden import 'caproto.asyncio'
+13295 INFO: Analyzing hidden import 'caproto.benchmarking'
+13300 INFO: Analyzing hidden import 'caproto.commandline'
+13300 INFO: Analyzing hidden import 'caproto.commandline.cli_print_formats'
+13304 INFO: Analyzing hidden import 'caproto.commandline.get'
+13324 INFO: Analyzing hidden import 'caproto.commandline.monitor'
+13328 INFO: Analyzing hidden import 'caproto.commandline.put'
+13331 INFO: Analyzing hidden import 'caproto.commandline.repeater'
+13333 INFO: Analyzing hidden import 'caproto.commandline.shark'
+13372 INFO: Analyzing hidden import 'caproto.docs'
+13377 INFO: Analyzing hidden import 'caproto.docs.templates.autosummary'
+13377 INFO: Analyzing hidden import 'caproto.examples'
+13377 INFO: Analyzing hidden import 'caproto.examples.asyncio_client_simple'
+13379 INFO: Analyzing hidden import 'caproto.examples.benchmark_connections'
+13380 INFO: Analyzing hidden import 'caproto.examples.thread_client_simple'
+13381 INFO: Analyzing hidden import 'caproto.examples.trio_server_simple'
+13391 INFO: Analyzing hidden import 'caproto.ioc_examples'
+13391 INFO: Analyzing hidden import 'caproto.ioc_examples.advanced'
+13392 INFO: Analyzing hidden import 'caproto.ioc_examples.advanced.raw_timestamp'
+13393 INFO: Analyzing hidden import 'caproto.ioc_examples.advanced.thread_client_monitor'
+13395 INFO: Analyzing hidden import 'caproto.ioc_examples.advanced.type_varieties'
+13396 INFO: Analyzing hidden import 'caproto.ioc_examples.autosave'
+13403 INFO: Analyzing hidden import 'caproto.ioc_examples.big_image_noisy_neighbor'
+13404 INFO: Analyzing hidden import 'caproto.ioc_examples.chirp'
+13406 INFO: Analyzing hidden import 'caproto.ioc_examples.client_monitor_async'
+13407 INFO: Analyzing hidden import 'caproto.ioc_examples.custom_write'
+13408 INFO: Analyzing hidden import 'caproto.ioc_examples.decay'
+13410 INFO: Analyzing hidden import 'caproto.ioc_examples.enums'
+13411 INFO: Analyzing hidden import 'caproto.ioc_examples.fake_motor_record'
+13414 INFO: Analyzing hidden import 'caproto.ioc_examples.formula_ioc'
+13416 INFO: Analyzing hidden import 'caproto.ioc_examples.hardware_specific'
+13416 INFO: Analyzing hidden import 'caproto.ioc_examples.hardware_specific.barcode_reader'
+13418 INFO: Analyzing hidden import 'caproto.ioc_examples.hardware_specific.gamepad'
+13420 INFO: Analyzing hidden import 'caproto.ioc_examples.io_interrupt'
+13422 INFO: Analyzing hidden import 'caproto.ioc_examples.lakeshore'
+13428 INFO: Analyzing hidden import 'caproto.ioc_examples.macros'
+13429 INFO: Analyzing hidden import 'caproto.ioc_examples.mini_beamline'
+13433 INFO: Analyzing hidden import 'caproto.ioc_examples.mirror'
+13435 INFO: Analyzing hidden import 'caproto.ioc_examples.no_pvproperty'
+13436 INFO: Analyzing hidden import 'caproto.ioc_examples.pathological'
+13436 INFO: Analyzing hidden import 'caproto.ioc_examples.pathological.defaultdict_server'
+13437 INFO: Analyzing hidden import 'caproto.ioc_examples.pathological.reading_counter'
+13438 INFO: Analyzing hidden import 'caproto.ioc_examples.pathological.spoof_beamline'
+13441 INFO: Analyzing hidden import 'caproto.ioc_examples.random_walk'
+13442 INFO: Analyzing hidden import 'caproto.ioc_examples.records'
+13444 INFO: Analyzing hidden import 'caproto.ioc_examples.records_subclass'
+13445 INFO: Analyzing hidden import 'caproto.ioc_examples.rpc_function'
+13446 INFO: Analyzing hidden import 'caproto.ioc_examples.scalars_and_arrays'
+13447 INFO: Analyzing hidden import 'caproto.ioc_examples.scan_rate'
+13448 INFO: Analyzing hidden import 'caproto.ioc_examples.setpoint_rbv_pair'
+13449 INFO: Analyzing hidden import 'caproto.ioc_examples.simple'
+13450 INFO: Analyzing hidden import 'caproto.ioc_examples.simple_with_type_hints'
+13451 INFO: Analyzing hidden import 'caproto.ioc_examples.skip_write'
+13452 INFO: Analyzing hidden import 'caproto.ioc_examples.startup_and_shutdown_hooks'
+13453 INFO: Analyzing hidden import 'caproto.ioc_examples.states'
+13454 INFO: Analyzing hidden import 'caproto.ioc_examples.subgroups'
+13456 INFO: Analyzing hidden import 'caproto.ioc_examples.thermo_sim'
+13457 INFO: Analyzing hidden import 'caproto.ioc_examples.too_clever'
+13458 INFO: Analyzing hidden import 'caproto.ioc_examples.too_clever.areadetector_image'
+13464 INFO: Analyzing hidden import 'caproto.ioc_examples.too_clever.caproto_to_ophyd'
+13466 INFO: Analyzing hidden import 'caproto.ioc_examples.too_clever.caproto_to_typhos'
+13468 INFO: Analyzing hidden import 'caproto.ioc_examples.too_clever.dynamic_calc'
+13472 INFO: Analyzing hidden import 'caproto.ioc_examples.too_clever.dynamic_pvgroups'
+13474 INFO: Analyzing hidden import 'caproto.ioc_examples.too_clever.shared_memory'
+13479 INFO: Analyzing hidden import 'caproto.ioc_examples.too_clever.trigger_with_pc'
+13481 INFO: Analyzing hidden import 'caproto.ioc_examples.worker_thread'
+13483 INFO: Analyzing hidden import 'caproto.ioc_examples.worker_thread_pc'
+13484 INFO: Analyzing hidden import 'caproto.server.records.registry'
+13484 INFO: Analyzing hidden import 'caproto.server.stats'
+13494 INFO: Analyzing hidden import 'caproto.tests.conftest'
+13517 INFO: Analyzing hidden import 'caproto.tests.epics_test_utils'
+13521 INFO: Analyzing hidden import 'caproto.tests.example_runner'
+13522 INFO: Analyzing hidden import 'caproto.tests.ioc_all_in_one'
+13524 INFO: Analyzing hidden import 'caproto.tests.ioc_any_record'
+13525 INFO: Analyzing hidden import 'caproto.tests.ioc_inline_style'
+13526 INFO: Analyzing hidden import 'caproto.tests.ioc_process'
+13527 INFO: Analyzing hidden import 'caproto.tests.issue_797_server'
+13530 INFO: Analyzing hidden import 'caproto.tests.test_catvs'
+13535 INFO: Analyzing hidden import 'caproto.tests.test_channel_filters'
+13538 INFO: Analyzing hidden import 'caproto.tests.test_cli_scripts'
+13542 INFO: Analyzing hidden import 'caproto.tests.test_core'
+13550 INFO: Analyzing hidden import 'caproto.tests.test_data_conversion'
+13559 INFO: Analyzing hidden import 'caproto.tests.test_data_copy'
+13562 INFO: Analyzing hidden import 'caproto.tests.test_dbr_types'
+13571 INFO: Analyzing hidden import 'caproto.tests.test_doc_utils'
+13573 INFO: Analyzing hidden import 'caproto.tests.test_events_off'
+13575 INFO: Analyzing hidden import 'caproto.tests.test_examples'
+13598 INFO: Analyzing hidden import 'caproto.tests.test_fixtures'
+13599 INFO: Analyzing hidden import 'caproto.tests.test_logging'
+13601 INFO: Analyzing hidden import 'caproto.tests.test_macros'
+13602 INFO: Analyzing hidden import 'caproto.tests.test_nonet'
+13607 INFO: Analyzing hidden import 'caproto.tests.test_pyepics_compat'
+13647 INFO: Analyzing hidden import 'caproto.tests.test_pyepics_compat2'
+13691 INFO: Analyzing hidden import 'caproto.tests.test_record_compliance'
+13694 INFO: Analyzing hidden import 'caproto.tests.test_records'
+13695 INFO: Analyzing hidden import 'caproto.tests.test_repeater'
+13696 INFO: Analyzing hidden import 'caproto.tests.test_serialization'
+13704 INFO: Analyzing hidden import 'caproto.tests.test_server'
+13713 INFO: Analyzing hidden import 'caproto.tests.test_shark'
+13713 INFO: Analyzing hidden import 'caproto.tests.test_status'
+13717 INFO: Analyzing hidden import 'caproto.tests.test_timestamp'
+13718 INFO: Analyzing hidden import 'caproto.tests.test_utils'
+13722 INFO: Analyzing hidden import 'caproto.tests.view_leaks'
+13766 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+13767 INFO: Analyzing hidden import 'cryptography.cobblestone'
+13768 INFO: Analyzing hidden import 'cryptography.fernet'
+13772 INFO: Analyzing hidden import 'cryptography.hazmat.asn1'
+13780 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.cmac'
+13781 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.hpke'
+13781 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.kdf'
+13782 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.kdf.argon2'
+13783 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.kdf.concatkdf'
+13783 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.kdf.hkdf'
+13784 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.kdf.kbkdf'
+13784 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.kdf.pbkdf2'
+13785 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.kdf.scrypt'
+13785 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.kdf.x963kdf'
+13786 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.keywrap'
+13786 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.poly1305'
+13787 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.serialization.pkcs12'
+13789 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.serialization.pkcs7'
+13794 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.twofactor'
+13795 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.twofactor.hotp'
+13797 INFO: Analyzing hidden import 'cryptography.hazmat.primitives.twofactor.totp'
+13798 INFO: Analyzing hidden import 'dns.btree'
+13814 INFO: Analyzing hidden import 'dns.btreezone'
+13826 INFO: Analyzing hidden import 'dns.dnssec'
+13869 INFO: Analyzing hidden import 'dns.e164'
+13871 INFO: Analyzing hidden import 'dns.namedict'
+13873 INFO: Analyzing hidden import 'dns.rdtypes.ANY.AFSDB'
+13876 INFO: Analyzing hidden import 'dns.rdtypes.ANY.AMTRELAY'
+13878 INFO: Analyzing hidden import 'dns.rdtypes.ANY.AVC'
+13880 INFO: Analyzing hidden import 'dns.rdtypes.ANY.CAA'
+13881 INFO: Analyzing hidden import 'dns.rdtypes.ANY.CERT'
+13883 INFO: Analyzing hidden import 'dns.rdtypes.ANY.CNAME'
+13884 INFO: Analyzing hidden import 'dns.rdtypes.ANY.CSYNC'
+13885 INFO: Analyzing hidden import 'dns.rdtypes.ANY.DLV'
+13886 INFO: Analyzing hidden import 'dns.rdtypes.ANY.DNAME'
+13886 INFO: Analyzing hidden import 'dns.rdtypes.ANY.DSYNC'
+13888 INFO: Analyzing hidden import 'dns.rdtypes.ANY.EUI48'
+13890 INFO: Analyzing hidden import 'dns.rdtypes.ANY.EUI64'
+13890 INFO: Analyzing hidden import 'dns.rdtypes.ANY.GPOS'
+13893 INFO: Analyzing hidden import 'dns.rdtypes.ANY.HINFO'
+13894 INFO: Analyzing hidden import 'dns.rdtypes.ANY.HIP'
+13896 INFO: Analyzing hidden import 'dns.rdtypes.ANY.ISDN'
+13897 INFO: Analyzing hidden import 'dns.rdtypes.ANY.L32'
+13898 INFO: Analyzing hidden import 'dns.rdtypes.ANY.L64'
+13899 INFO: Analyzing hidden import 'dns.rdtypes.ANY.LOC'
+13906 INFO: Analyzing hidden import 'dns.rdtypes.ANY.LP'
+13908 INFO: Analyzing hidden import 'dns.rdtypes.ANY.MX'
+13908 INFO: Analyzing hidden import 'dns.rdtypes.ANY.NID'
+13909 INFO: Analyzing hidden import 'dns.rdtypes.ANY.NINFO'
+13910 INFO: Analyzing hidden import 'dns.rdtypes.ANY.NS'
+13910 INFO: Analyzing hidden import 'dns.rdtypes.ANY.NSEC3'
+13913 INFO: Analyzing hidden import 'dns.rdtypes.ANY.OPENPGPKEY'
+13914 INFO: Analyzing hidden import 'dns.rdtypes.ANY.RESINFO'
+13914 INFO: Analyzing hidden import 'dns.rdtypes.ANY.RP'
+13915 INFO: Analyzing hidden import 'dns.rdtypes.ANY.RT'
+13916 INFO: Analyzing hidden import 'dns.rdtypes.ANY.SPF'
+13916 INFO: Analyzing hidden import 'dns.rdtypes.ANY.SSHFP'
+13917 INFO: Analyzing hidden import 'dns.rdtypes.ANY.TKEY'
+13920 INFO: Analyzing hidden import 'dns.rdtypes.ANY.TLSA'
+13920 INFO: Analyzing hidden import 'dns.rdtypes.ANY.TXT'
+13921 INFO: Analyzing hidden import 'dns.rdtypes.ANY.URI'
+13922 INFO: Analyzing hidden import 'dns.rdtypes.ANY.WALLET'
+13923 INFO: Analyzing hidden import 'dns.rdtypes.ANY.X25'
+13924 INFO: Analyzing hidden import 'dns.rdtypes.CH'
+13924 INFO: Analyzing hidden import 'dns.rdtypes.CH.A'
+13925 INFO: Analyzing hidden import 'dns.rdtypes.IN'
+13926 INFO: Analyzing hidden import 'dns.rdtypes.IN.A'
+13927 INFO: Analyzing hidden import 'dns.rdtypes.IN.AAAA'
+13928 INFO: Analyzing hidden import 'dns.rdtypes.IN.APL'
+13931 INFO: Analyzing hidden import 'dns.rdtypes.IN.DHCID'
+13932 INFO: Analyzing hidden import 'dns.rdtypes.IN.HTTPS'
+13932 INFO: Analyzing hidden import 'dns.rdtypes.IN.IPSECKEY'
+13934 INFO: Analyzing hidden import 'dns.rdtypes.IN.KX'
+13935 INFO: Analyzing hidden import 'dns.rdtypes.IN.NAPTR'
+13937 INFO: Analyzing hidden import 'dns.rdtypes.IN.NSAP'
+13938 INFO: Analyzing hidden import 'dns.rdtypes.IN.NSAP_PTR'
+13938 INFO: Analyzing hidden import 'dns.rdtypes.IN.PX'
+13940 INFO: Analyzing hidden import 'dns.rdtypes.IN.SRV'
+13941 INFO: Analyzing hidden import 'dns.rdtypes.IN.SVCB'
+13942 INFO: Analyzing hidden import 'dns.rdtypes.IN.WKS'
+13944 INFO: Analyzing hidden import 'dns.tsigkeyring'
+13945 INFO: Analyzing hidden import 'h5py._npystrings'
+13946 INFO: Analyzing hidden import 'h5py._proxy'
+13946 INFO: Analyzing hidden import 'h5py.defs'
+13946 INFO: Analyzing hidden import 'h5py.h5ac'
+13946 INFO: Analyzing hidden import 'h5py.tests.common'
+13951 INFO: Analyzing hidden import 'h5py.tests.conftest'
+13952 INFO: Analyzing hidden import 'h5py.tests.data_files'
+13952 INFO: Analyzing hidden import 'h5py.tests.test_attribute_create'
+13955 INFO: Analyzing hidden import 'h5py.tests.test_attrs'
+13962 INFO: Analyzing hidden import 'h5py.tests.test_attrs_data'
+13969 INFO: Analyzing hidden import 'h5py.tests.test_base'
+13972 INFO: Analyzing hidden import 'h5py.tests.test_big_endian_file'
+13975 INFO: Analyzing hidden import 'h5py.tests.test_completions'
+13976 INFO: Analyzing hidden import 'h5py.tests.test_dataset'
+14130 INFO: Analyzing hidden import 'h5py.tests.test_dataset_getitem'
+14143 INFO: Analyzing hidden import 'h5py.tests.test_dataset_swmr'
+14146 INFO: Analyzing hidden import 'h5py.tests.test_datatype'
+14147 INFO: Analyzing hidden import 'h5py.tests.test_dimension_scales'
+14152 INFO: Analyzing hidden import 'h5py.tests.test_dims_dimensionproxy'
+14152 INFO: Analyzing hidden import 'h5py.tests.test_dtype'
+14165 INFO: Analyzing hidden import 'h5py.tests.test_errors'
+14168 INFO: Analyzing hidden import 'h5py.tests.test_file'
+14190 INFO: Analyzing hidden import 'h5py.tests.test_file2'
+14197 INFO: Analyzing hidden import 'h5py.tests.test_file_alignment'
+14199 INFO: Analyzing hidden import 'h5py.tests.test_file_image'
+14201 INFO: Analyzing hidden import 'h5py.tests.test_filters'
+14203 INFO: Analyzing hidden import 'h5py.tests.test_group'
+14238 INFO: Analyzing hidden import 'h5py.tests.test_h5'
+14240 INFO: Analyzing hidden import 'h5py.tests.test_h5d_direct_chunk'
+14244 INFO: Analyzing hidden import 'h5py.tests.test_h5f'
+14247 INFO: Analyzing hidden import 'h5py.tests.test_h5o'
+14248 INFO: Analyzing hidden import 'h5py.tests.test_h5p'
+14252 INFO: Analyzing hidden import 'h5py.tests.test_h5pl'
+14253 INFO: Analyzing hidden import 'h5py.tests.test_h5s'
+14255 INFO: Analyzing hidden import 'h5py.tests.test_h5t'
+14258 INFO: Analyzing hidden import 'h5py.tests.test_h5z'
+14259 INFO: Analyzing hidden import 'h5py.tests.test_native_complex'
+14262 INFO: Analyzing hidden import 'h5py.tests.test_npystrings'
+14266 INFO: Analyzing hidden import 'h5py.tests.test_objects'
+14267 INFO: Analyzing hidden import 'h5py.tests.test_ros3'
+14269 INFO: Analyzing hidden import 'h5py.tests.test_selections'
+14272 INFO: Analyzing hidden import 'h5py.tests.test_slicing'
+14338 INFO: Analyzing hidden import 'h5py.utils'
+14339 INFO: Analyzing hidden import 'paramiko.ber'
+14341 INFO: Analyzing hidden import 'pymongo.auth'
+14342 INFO: Analyzing hidden import 'pymongo.auth_oidc'
+14342 INFO: Analyzing hidden import 'pymongo.encryption'
+14343 INFO: Analyzing hidden import 'pymongo.event_loggers'
+14346 INFO: Analyzing hidden import 'pymongo.mongo_client'
+14346 INFO: Analyzing hidden import 'pymongo.pool'
+14347 INFO: Analyzing hidden import 'zmq._future'
+14357 INFO: Analyzing hidden import 'zmq.asyncio'
+14361 INFO: Analyzing hidden import 'zmq.auth'
+14370 INFO: Analyzing hidden import 'zmq.auth.asyncio'
+14372 INFO: Analyzing hidden import 'zmq.auth.ioloop'
+14373 INFO: Analyzing hidden import 'zmq.auth.thread'
+14377 INFO: Analyzing hidden import 'zmq.backend.cython'
+14378 INFO: Analyzing hidden import 'zmq.decorators'
+14380 INFO: Analyzing hidden import 'zmq.devices'
+14390 INFO: Analyzing hidden import 'zmq.log'
+14391 INFO: Analyzing hidden import 'zmq.log.__main__'
+14393 INFO: Analyzing hidden import 'zmq.log.handlers'
+14395 INFO: Analyzing hidden import 'zmq.ssh'
+14402 INFO: Analyzing hidden import 'zmq.utils.garbage'
+14414 INFO: Analyzing hidden import 'zmq.utils.monitor'
+14415 INFO: Analyzing hidden import 'zmq.utils.strtypes'
+14416 INFO: Analyzing hidden import 'zmq.utils.win32'
+14417 INFO: Processing module hooks (post-graph stage)...
+14422 WARNING: Hidden import "pycparser.lextab" not found!
+14422 WARNING: Hidden import "pycparser.yacctab" not found!
+14450 INFO: Processing standard module hook 'hook-setuptools._vendor.importlib_metadata.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+14524 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks'
+15132 INFO: Processing pre-safe-import-module hook 'hook-win32com.py' from '/usr/local/lib/python3.10/site-packages/_pyinstaller_hooks_contrib/pre_safe_import_module'
+15633 INFO: Performing binary vs. data reclassification (774 entries)
+15653 INFO: Looking for ctypes DLLs
+15725 INFO: Analyzing run-time hooks ...
+15740 INFO: Including run-time hook 'pyi_rth_inspect.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks/rthooks'
+15743 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks/rthooks'
+15744 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks/rthooks'
+15745 INFO: Including run-time hook 'pyi_rth_setuptools.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks/rthooks'
+15745 INFO: Including run-time hook 'pyi_rth_pkgres.py' from '/usr/local/lib/python3.10/site-packages/PyInstaller/hooks/rthooks'
+15748 INFO: Including run-time hook 'pyi_rth_cryptography_openssl.py' from '/usr/local/lib/python3.10/site-packages/_pyinstaller_hooks_contrib/rthooks'
+15797 INFO: Looking for dynamic libraries
+17755 INFO: Warnings written to /tmp/server-release-build/acquisition-v2/warn-acquisition-v2.txt
+17844 INFO: Graph cross-reference written to /tmp/server-release-build/acquisition-v2/xref-acquisition-v2.html
+17893 INFO: checking PYZ
+17894 INFO: Building PYZ because PYZ-00.toc is non existent
+17894 INFO: Building PYZ (ZlibArchive) /tmp/server-release-build/acquisition-v2/PYZ-00.pyz
+18848 INFO: Building PYZ (ZlibArchive) /tmp/server-release-build/acquisition-v2/PYZ-00.pyz completed successfully.
+18875 INFO: checking PKG
+18875 INFO: Building PKG because PKG-00.toc is non existent
+18875 INFO: Building PKG (CArchive) waveform-acquisition-v2.pkg
+18884 INFO: Building PKG (CArchive) waveform-acquisition-v2.pkg completed successfully.
+18885 INFO: Bootloader /usr/local/lib/python3.10/site-packages/PyInstaller/bootloader/Linux-64bit-intel/run
+18885 INFO: checking EXE
+18885 INFO: Building EXE because EXE-00.toc is non existent
+18885 INFO: Building EXE from EXE-00.toc
+18885 INFO: Copying bootloader EXE to /tmp/server-release-build/acquisition-v2/waveform-acquisition-v2
+18885 INFO: Appending PKG archive to custom ELF section in EXE
+18900 INFO: Building EXE from EXE-00.toc completed successfully.
+18907 INFO: checking COLLECT
+18907 INFO: Building COLLECT because COLLECT-00.toc is non existent
+18907 INFO: Building COLLECT COLLECT-00.toc
+19064 INFO: Building COLLECT COLLECT-00.toc completed successfully.

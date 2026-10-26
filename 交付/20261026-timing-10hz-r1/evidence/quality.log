@@ -1,0 +1,323 @@
+test_control_request_round_trip_is_strict (test_acquisition_protocol.CaptureRequestTests) ... ok
+test_metadata_query_round_trip_is_strict (test_acquisition_protocol.CaptureRequestTests) ... ok
+test_request_rejects_duplicate_devices_and_invalid_duration (test_acquisition_protocol.CaptureRequestTests) ... ok
+test_request_rejects_missing_or_duplicate_areas (test_acquisition_protocol.CaptureRequestTests) ... ok
+test_request_rejects_unknown_or_missing_fields (test_acquisition_protocol.CaptureRequestTests) ... ok
+test_request_round_trip_is_versioned_and_stable (test_acquisition_protocol.CaptureRequestTests) ... ok
+test_server_accepts_approved_partial_area_device_snapshot (test_acquisition_protocol.CaptureRequestTests) ... ok
+test_metadata_response_round_trip_preserves_payload (test_acquisition_protocol.CaptureResponseTests) ... ok
+test_rejected_and_failed_responses_require_error_code (test_acquisition_protocol.CaptureResponseTests) ... ok
+test_response_round_trip_preserves_task_identity (test_acquisition_protocol.CaptureResponseTests) ... ok
+test_task_transitions_reject_terminal_or_skipped_states (test_acquisition_protocol.CaptureResponseTests) ... ok
+test_all_new_commands_round_trip_exact_fields_and_sequence_validation (test_acquisition_protocol.SegmentProtocolTests) ... ok
+test_transport_preserves_old_and_new_request_shapes (test_acquisition_protocol.SegmentProtocolTests) ... ok
+test_accepts_asynchronously_and_duplicate_is_idempotent (test_acquisition_server.PersistentServerTests) ... ok
+test_active_task_can_be_cancelled_at_a_safe_boundary (test_acquisition_server.PersistentServerTests) ... ok
+test_busy_conflict_registry_and_control_requests_are_explicit (test_acquisition_server.PersistentServerTests) ... ok
+test_capture_rejects_stale_client_frequency (test_acquisition_server.PersistentServerTests) ... ok
+test_invalid_json_is_rejected_with_zero_request_id (test_acquisition_server.PersistentServerTests) ... ok
+test_metadata_queries_are_served_without_directory_scans (test_acquisition_server.PersistentServerTests) ... ok
+test_partial_cycles_report_saved_data (test_acquisition_server.PersistentServerTests) ... ok
+test_run_segment_and_precise_file_routes (test_acquisition_server.PersistentServerTests) ... ok
+test_server_reads_timing_pv_before_capture_request (test_acquisition_server.PersistentServerTests) ... ok
+test_stalled_frequency_read_does_not_block_health (test_acquisition_server.PersistentServerTests) ... ok
+test_timing_pv_error_does_not_create_capture (test_acquisition_server.PersistentServerTests) ... ok
+test_incomplete_task_is_failed_on_restart (test_acquisition_server.RestartRecoveryTests) ... ok
+test_capture_intervals_match_legacy_field_rules (test_acquisition_server.ServerSettingsTests) ... ok
+test_preflight_requires_keys_for_all_deployment_devices (test_acquisition_server.ServerSettingsTests) ... ok
+test_requires_known_hosts_and_keeps_secrets_private (test_acquisition_server.ServerSettingsTests) ... ok
+test_runner_repeats_cycles_and_aggregates_all_paths (test_acquisition_server.ServerSettingsTests) ... ok
+test_timing_frequency_read_uses_server_pv_and_restores_epics_settings (test_acquisition_server.ServerSettingsTests) ... ok
+test_zmq_loop_handles_health_and_stops_cleanly (test_acquisition_server.WireServerTests) ... ok
+test_failure_stage_identifies_download_parse_and_write (test_acquisition_services.CaptureServiceTests) ... ok
+test_partial_device_failure_is_structured (test_acquisition_services.CaptureServiceTests) ... ok
+test_default_selector_requires_new_stable_completed_file (test_acquisition_services.DeviceSshGatewayTests) ... ok
+test_selector_download_and_resources_are_closed (test_acquisition_services.DeviceSshGatewayTests) ... ok
+test_device_failure_does_not_block_later_device (test_acquisition_services.EpicsGatewayTests) ... ok
+test_legacy_risks_remain_explicitly_isolated (test_acquisition_services.LegacyAcquisitionCharacterizationTests) ... ok
+test_bad_column_count_line_count_and_range_are_rejected (test_acquisition_services.TxtParserTests) ... ok
+test_strict_parser_preserves_raw_values_without_scaling (test_acquisition_services.TxtParserTests) ... ok
+test_coverage_handles_200_devices_without_order_dependent_selection (test_alignment.CoverageAlignmentTests) ... ok
+test_coverage_output_uses_mask_for_missing_values (test_alignment.CoverageAlignmentTests) ... ok
+test_dominant_consensus_is_order_independent (test_alignment.CoverageAlignmentTests) ... ok
+test_equal_disjoint_groups_do_not_choose_by_input_order (test_alignment.CoverageAlignmentTests) ... ok
+test_duplicate_bunch_id_rejects_device_with_reason (test_alignment.InputQualityTests) ... ok
+test_duplicate_first_policy_is_deterministic (test_alignment.InputQualityTests) ... ok
+test_empty_device_id_is_rejected (test_alignment.InputQualityTests) ... ok
+test_length_mismatch_skips_only_bad_device (test_alignment.InputQualityTests) ... ok
+test_zero_drop_policy_removes_only_zero_id_samples (test_alignment.InputQualityTests) ... ok
+test_empty_input_is_safe (test_alignment.StrictAlignmentTests) ... ok
+test_no_intersection_returns_reasons_instead_of_crashing (test_alignment.StrictAlignmentTests) ... ok
+test_preserves_large_uint64_ids_and_extracts_values (test_alignment.StrictAlignmentTests) ... ok
+test_unsorted_input_is_sorted_with_xy (test_alignment.StrictAlignmentTests) ... ok
+test_zero_bunch_id_is_kept_by_default_and_xy_zero_is_data (test_alignment.StrictAlignmentTests) ... ok
+test_legacy_support_files_are_thin_facades (test_apps_are_facades.AppBoundaryTests) ... ok
+test_irregular_raw_gaps_and_zero_ids_do_not_look_compatible (test_bunch_id_diagnostics.RawStepDiagnosticsTests) ... ok
+test_missing_failed_and_nonmonotonic_devices_are_retained (test_bunch_id_diagnostics.RawStepDiagnosticsTests) ... ok
+test_no_strict_majority_is_reported_as_unknown (test_bunch_id_diagnostics.RawStepDiagnosticsTests) ... ok
+test_reports_observed_mode_and_only_clear_cross_device_majority (test_bunch_id_diagnostics.RawStepDiagnosticsTests) ... ok
+test_capture_frequency_override_avoids_local_timing_pv (test_candidate_metadata_backend.CandidateMetadataBackendTests) ... ok
+test_explicit_local_mode_reads_catalog_hdf5_without_ssh (test_candidate_metadata_backend.CandidateMetadataBackendTests) ... ok
+test_gui_file_query_uses_catalog_paths (test_candidate_metadata_backend.CandidateMetadataBackendTests) ... ok
+test_gui_surfaces_metadata_query_failure (test_candidate_metadata_backend.CandidateMetadataBackendTests) ... ok
+test_gui_time_query_uses_candidate_service_metadata (test_candidate_metadata_backend.CandidateMetadataBackendTests) ... ok
+test_candidate_dispatch_keeps_request_identity_and_status (test_communication_service.CommunicationServiceTests) ... ok
+test_candidate_mismatched_response_is_rejected (test_communication_service.CommunicationServiceTests) ... ok
+test_candidate_protocol_runs_capture_service_in_local_closed_loop (test_communication_service.CommunicationServiceTests) ... ok
+test_legacy_dispatch_preserves_exact_message (test_communication_service.CommunicationServiceTests) ... ok
+test_legacy_rejects_unrepresentable_seconds_without_sending (test_communication_service.CommunicationServiceTests) ... ok
+test_protocol_request_maps_to_application_plan (test_communication_service.CommunicationServiceTests) ... ok
+test_candidate_registry_contains_all_audited_devices_safely (test_device_registry.CurrentProjectRegistryTests) ... ok
+test_committed_registry_reproduces_current_legacy_files (test_device_registry.CurrentProjectRegistryTests) ... ok
+test_acquisition_must_be_subset_of_full_list (test_device_registry.LegacyCompatibilityTests) ... ok
+test_import_and_render_are_exact (test_device_registry.LegacyCompatibilityTests) ... ok
+test_accepts_200_unique_devices (test_device_registry.RegistryValidationTests) ... ok
+test_deployment_subset_only_accepts_acquisition_enabled_devices (test_device_registry.RegistryValidationTests) ... ok
+test_json_round_trip (test_device_registry.RegistryValidationTests) ... ok
+test_rejects_duplicate_ip_and_noncontiguous_order (test_device_registry.RegistryValidationTests) ... ok
+test_waits_for_file_then_waits_for_stable_size (test_device_ssh_retry.DeviceSshRetryTests) ... ok
+test_candidate_registry_cannot_send_connected_capture (test_experimental_ui_smoke.ExperimentalUiSmokeTests) ... ok
+test_candidate_registry_renders_383_devices_without_network (test_experimental_ui_smoke.ExperimentalUiSmokeTests) ... ok
+test_capture_monitor_keeps_task_after_timeouts_and_blocks_resubmission (test_experimental_ui_smoke.ExperimentalUiSmokeTests) ... ok
+test_capture_monitor_reports_terminal_success (test_experimental_ui_smoke.ExperimentalUiSmokeTests) ... ok
+test_combined_display_area_sends_original_sections (test_experimental_ui_smoke.ExperimentalUiSmokeTests) ... ok
+test_demo_buttons_complete_without_network (test_experimental_ui_smoke.ExperimentalUiSmokeTests) ... ok
+test_operator_display_keeps_new_devices_out_of_capture (test_experimental_ui_smoke.ExperimentalUiSmokeTests) ... ok
+test_invalid_request_is_rejected (test_fake_zmq_loop.FakeZmqLoopTests) ... ok
+test_legacy_adapter_is_exact (test_fake_zmq_loop.FakeZmqLoopTests) ... ok
+test_partial_failure_exception_and_cancel_are_terminal (test_fake_zmq_loop.FakeZmqLoopTests) ... ok
+test_success_history_and_duplicate_request_are_idempotent (test_fake_zmq_loop.FakeZmqLoopTests) ... ok
+test_timeout_is_explicit (test_fake_zmq_loop.FakeZmqLoopTests) ... ok
+test_available_devices_excludes_missing_waveform_files (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_candidate_history_contract_is_formal_and_legacy_is_separate (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_capture_double_timeout_preserves_request_id (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_capture_timeout_recovers_persisted_running_task_without_resending (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_capture_uses_frequency_read_by_waveform_server (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_local_catalog_alignment_and_export (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_malformed_metadata_responses_have_stable_runtime_errors (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_precise_segment_queries_cache_download_and_export (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_pv_failure_does_not_submit_capture (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_selected_frequency_must_match_live_pv (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_time_query_uses_candidate_metadata (test_formal_candidate_backend.FormalCandidateBackendTests) ... ok
+test_archiver_handoff_preview_matches_profile_reset_behavior (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_device_waveform_callback_is_invalidated_by_plot_mode_change (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_frequency_is_displayed_after_startup_query (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_history_diagnostic_accepts_unassessed_preview (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_history_layout_and_normal_diagnostic_stays_quiet (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_history_selection_ignores_capture_area_selection (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+ok
+test_history_spectrum_handoff_tracks_task_rate_and_real_segment_identity (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+ok
+test_invalid_spectrum_config_does_not_block_history_alignment (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_offline_window_marks_frequency_unavailable (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_raw_step_warning_requires_dialog_confirmation_and_rejects_stale_continue (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+This plugin does not support propagateSizeHints()
+ok
+test_spectrum_warning_escape_keeps_history_page (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... This plugin does not support propagateSizeHints()
+ok
+test_two_runs_and_stale_history_callbacks (test_formal_history_bpm_selection.FormalHistorySelectionTests) ... ok
+test_auto_export_uses_legacy_when_complete_and_v2_when_masked (test_gui_alignment_adapter.AlignmentResultAdapterTests) ... ok
+test_distribution_keeps_all_devices_with_sparse_wrapped_labels (test_gui_alignment_adapter.AlignmentResultAdapterTests) ... ok
+test_plot_uses_valid_mask_but_keeps_real_zero (test_gui_alignment_adapter.AlignmentResultAdapterTests) ... ok
+test_remote_adapter_orders_known_devices_and_reports_unknown (test_gui_alignment_adapter.AlignmentResultAdapterTests) ... ok
+test_single_device_plot_uses_bunch_id_as_x_axis (test_gui_alignment_adapter.AlignmentResultAdapterTests) ... ok
+test_same_query_reuses_one_result_and_clear_invalidates_it (test_gui_alignment_adapter.AlignmentResultCacheTests) ... ok
+test_candidate_registry_groups_all_383_devices (test_gui_beamline_selection.BeamlineAreaSelectionTests) ... ok
+test_current_registry_groups_by_beamline_section (test_gui_beamline_selection.BeamlineAreaSelectionTests) ... ok
+test_display_areas_follow_reference_without_losing_devices (test_gui_beamline_selection.BeamlineAreaSelectionTests) ... ok
+test_multiple_areas_preserve_registry_order (test_gui_beamline_selection.BeamlineAreaSelectionTests) ... ok
+test_selection_expands_whole_area_only (test_gui_beamline_selection.BeamlineAreaSelectionTests) ... ok
+test_selection_model_scales_to_400_devices (test_gui_beamline_selection.BeamlineAreaSelectionTests) ... ok
+test_success_failure_and_safe_boundary_cancel (test_gui_controller_workers.BackgroundWorkerTests) ... ok
+test_actions_are_injected_and_do_not_depend_on_widgets (test_gui_controller_workers.GuiControllerTests) ... ok
+test_mainwindow_has_no_direct_h5py_or_paramiko_import (test_gui_controller_workers.GuiControllerTests) ... ok
+test_second_running_task_is_rejected (test_gui_controller_workers.GuiControllerTests) ... ok
+test_success_failure_and_cancel_transitions (test_gui_controller_workers.GuiControllerTests) ... ok
+test_current_registry_drives_order_names_and_defaults (test_gui_device_selection.DeviceButtonSpecTests) ... ok
+test_every_default_device_has_a_current_ui_button (test_gui_device_selection.DeviceButtonSpecTests) ... ok
+test_legacy_widget_name_rejects_ambiguous_ids (test_gui_device_selection.DeviceButtonSpecTests) ... ok
+test_rejects_wrong_schema_version (test_hdf5_io.AlignmentV2RoundTripTests) ... ok
+test_v2_round_trip_preserves_mask_parameters_and_uint64 (test_hdf5_io.AlignmentV2RoundTripTests) ... ok
+test_legacy_writer_refuses_missing_values (test_hdf5_io.LegacyMergedRoundTripTests) ... ok
+test_reader_detects_metadata_row_mismatch (test_hdf5_io.LegacyMergedRoundTripTests) ... ok
+test_round_trip_preserves_large_ids_and_filtered_device_metadata (test_hdf5_io.LegacyMergedRoundTripTests) ... ok
+test_atomic_writer_preserves_verified_raw_schema (test_hdf5_io.SingleDeviceHdf5Tests) ... ok
+test_reads_verified_production_shape (test_hdf5_io.SingleDeviceHdf5Tests) ... ok
+test_rejects_length_mismatch (test_hdf5_io.SingleDeviceHdf5Tests) ... ok
+test_capture_remains_disabled_across_busy_lifecycle (test_history_smoke_preflight.HistorySmokePreflightTests) ... ok
+test_no_warning_does_not_click_or_claim_manual_confirmation (test_history_smoke_preflight.HistorySmokePreflightTests) ... ok
+test_records_identity_and_explicitly_continues_preflight (test_history_smoke_preflight.HistorySmokePreflightTests) ... ok
+test_wrapped_device_label_preserves_identifier_characters (test_history_smoke_preflight.HistorySmokePreflightTests) ... ok
+test_frequency_and_message_delegate_preserve_values (test_legacy_gui_capture_adapter.LegacyGuiCaptureAdapterTests) ... ok
+test_create_hdf5_preserves_uint64_and_filtered_metadata (test_legacy_gui_export.LegacyGuiExportTests) ... ok
+test_structured_context_is_present_and_credentials_are_omitted (test_logging_config.LoggingConfigTests) ... ok
+test_mongo_aggregates_before_task_lookup_and_preserves_naive_utc (test_metadata_mongodb.CaptureHistoryRepositoryTests) ... ok
+test_runs_segments_partial_devices_orphans_and_exact_identity (test_metadata_mongodb.CaptureHistoryRepositoryTests) ... ok
+test_capture_metadata_service_records_every_capture_cycle (test_metadata_mongodb.MemoryRepositoryTests) ... ok
+test_capture_metadata_service_records_hdf5_path_for_queries (test_metadata_mongodb.MemoryRepositoryTests) ... ok
+test_file_query_filters_orders_and_excludes_failures (test_metadata_mongodb.MemoryRepositoryTests) ... ok
+test_historical_directory_import_is_validated_and_idempotent (test_metadata_mongodb.MemoryRepositoryTests) ... ok
+test_historical_import_rejects_device_attribute_mismatch (test_metadata_mongodb.MemoryRepositoryTests) ... ok
+test_partial_cycles_count_devices_with_saved_files (test_metadata_mongodb.MemoryRepositoryTests) ... ok
+test_task_lifecycle_and_missing_update (test_metadata_mongodb.MemoryRepositoryTests) ... ok
+test_naive_datetime_and_duplicate_devices_are_rejected (test_metadata_mongodb.MetadataModelTests) ... ok
+test_registry_snapshot_is_compact_and_credential_free_by_contract (test_metadata_mongodb.MetadataModelTests) ... ok
+test_task_document_uses_request_id_and_bson_datetimes (test_metadata_mongodb.MetadataModelTests) ... ok
+test_waveform_record_contains_path_without_waveform_arrays (test_metadata_mongodb.MetadataModelTests) ... ok
+test_indexes_are_explicit_and_writes_are_idempotent_upserts (test_metadata_mongodb.MongoRepositoryContractTests) ... ok
+test_legacy_file_uniqueness_index_is_replaced (test_metadata_mongodb.MongoRepositoryContractTests) ... ok
+test_status_update_pushes_history_and_ping_uses_admin_command (test_metadata_mongodb.MongoRepositoryContractTests) ... ok
+test_disabled_by_default_and_uri_is_not_public (test_metadata_mongodb.MongoSettingsTests) ... ok
+test_enabled_requires_uri_and_required_requires_enabled (test_metadata_mongodb.MongoSettingsTests) ... ok
+test_capture_is_offline_v2_round_trip_with_atomic_area_ids (test_operator_backend.DemoOperatorBackendTests) ... ok
+test_demo_retrieval_alignment_export_and_raw_download (test_operator_backend.DemoOperatorBackendTests) ... ok
+test_connected_preview_accepts_gui_options (test_operator_launchers.OperatorLauncherTests) ... ok
+test_current_release_uses_resolved_path_and_preserves_previous_bundle (test_operator_launchers.OperatorLauncherTests) ... ok
+test_desktop_definition_routes_to_launcher_not_a_version_binary (test_operator_launchers.OperatorLauncherTests) ... ok
+test_desktop_prefers_local_bundle_and_forwards_gui_options (test_operator_launchers.OperatorLauncherTests) ... ok
+test_explicit_executable_override_is_preserved (test_operator_launchers.OperatorLauncherTests) ... ok
+test_missing_local_bundle_falls_back_to_existing_desktop_bundle (test_operator_launchers.OperatorLauncherTests) ... ok
+test_partial_catalog_protocol_gui_alignment_raw_and_export (test_partial_history_integration.PartialHistoryIntegrationTests) ... This plugin does not support propagateSizeHints()
+ok
+test_activation_verifies_artifacts_and_keeps_rollback_release (test_release_waveform.ReleaseActivationTests) ... ok
+test_cache_uses_all_four_query_dimensions_and_can_be_cleared (test_retrieval_service.RetrievalServiceTests) ... ok
+test_export_injects_writer_and_preserves_filename_contract (test_retrieval_service.RetrievalServiceTests) ... ok
+test_fake_storage_end_to_end_orders_filters_aligns_and_reports (test_retrieval_service.RetrievalServiceTests) ... ok
+test_no_intersection_remains_a_structured_empty_result (test_retrieval_service.RetrievalServiceTests) ... ok
+test_preflight_retains_missing_file_diagnostic (test_retrieval_service.RetrievalServiceTests) ... ok
+test_prepare_and_strict_alignment_share_one_raw_read (test_retrieval_service.RetrievalServiceTests) ... ok
+test_query_cache_key_contains_complete_device_list (test_retrieval_service.RetrievalServiceTests) ... ok
+test_segment_identity_separates_cache_even_at_same_time (test_retrieval_service.RetrievalServiceTests) ... ok
+test_credentials_are_not_represented_or_serialized (test_settings.AppSettingsTests) ... ok
+test_defaults_preserve_current_application_values (test_settings.AppSettingsTests) ... ok
+test_existing_environment_names_are_parsed (test_settings.AppSettingsTests) ... ok
+test_invalid_port_timeout_and_export_format_are_rejected (test_settings.AppSettingsTests) ... ok
+test_optional_ports_and_timeouts_are_validated (test_settings.AppSettingsTests) ... ok
+test_bom_value_fallback_and_zip_use_real_utc_times (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_id_gap_is_not_compressed_and_bad_row_labels_fail (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_old_hdf_requires_rate_and_conflicting_rate_fails (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_three_hdf_layouts_keep_all_channels_and_rate (test_spectrum_analysis.SpectrumLoadersTests) ... ok
+test_display_status_policy_covers_all_five_states_and_keeps_invalid_separate (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_drifting_block_peaks_do_not_become_repeated_candidate (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_explicit_double_zero_policy_preserves_time_axis (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_high_band_welch_uses_20_seconds_overall_and_five_second_blocks (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_high_frequency_evidence_flows_into_display_status_deterministically (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_long_gap_and_nyquist_and_constant_are_invalid (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_low_frequency_display_status_separates_peak_evidence_from_v2_stability (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_low_frequency_matches_original_algorithm_golden (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_resolution_aware_peak_formatter (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_same_peak_and_physical_windows_at_500_and_1000_hz (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_shorter_record_uses_available_welch_data_with_20_second_request (test_spectrum_analysis.SpectrumNumericsTests) ... ok
+test_empty_input_and_cancelled_run_leave_no_partial_result (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_live_manager_cannot_be_mistaken_for_a_restarted_service (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_pre_v2_results_reload_with_conservative_legacy_observation_status (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_report_rounds_peak_for_people_but_machine_outputs_keep_full_precision (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_restart_retains_completed_results_and_marks_interrupted_jobs (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_result_manifest_and_files_and_async_status (test_spectrum_analysis.SpectrumTaskTests) ... ok
+test_block_hits_toggle_only_changes_visibility_and_preserves_results (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_common_parameters_and_collapsed_advanced_parameters (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_filters_combine_and_empty_results_clear_the_previous_plot (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_history_rate_validation_reset_and_rehandoff (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_history_reset_without_alignment_clears_metadata_but_keeps_file_results (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_history_result_package_name_uses_real_capture_sequence_and_resets (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_known_history_rate_auto_handoff_and_uses_shared_service (test_spectrum_gui.SpectrumGuiTests) ... This plugin does not support propagateSizeHints()
+ok
+test_missing_history_rate_requires_manual_input_and_uses_shared_service (test_spectrum_gui.SpectrumGuiTests) ... This plugin does not support propagateSizeHints()
+ok
+test_numeric_sorting_preserves_channel_identity_and_peak_annotation (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_peak_display_uses_resolution_and_preserves_raw_sort_and_plot_values (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_plot_export_default_name_tracks_channel_and_display_mode_without_analysis (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_resolution_aware_peak_table_and_annotation_examples (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_result_package_filename_adapts_to_input_and_sanitizes_names (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_third_navigation_runs_file_analysis_and_exports_results (test_spectrum_gui.SpectrumGuiTests) ... ok
+test_shared_job_and_download_and_allowlisted_input (test_spectrum_http_api.SpectrumApiTests) ... 127.0.0.1 - - [26/Oct/2026 15:11:57] "POST /api/analysis/jobs HTTP/1.1" 202 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "GET /api/analysis/jobs/baf5c692-6861-4201-9452-16d45bf01954 HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "GET /api/analysis/jobs/baf5c692-6861-4201-9452-16d45bf01954 HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "GET /api/analysis/jobs/baf5c692-6861-4201-9452-16d45bf01954 HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "GET /api/analysis/jobs/baf5c692-6861-4201-9452-16d45bf01954 HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "GET /api/analysis/jobs/baf5c692-6861-4201-9452-16d45bf01954 HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "GET /api/analysis/jobs/baf5c692-6861-4201-9452-16d45bf01954 HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "GET /api/analysis/jobs/baf5c692-6861-4201-9452-16d45bf01954 HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "GET /api/analysis/jobs/baf5c692-6861-4201-9452-16d45bf01954 HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "GET /api/analysis/jobs/baf5c692-6861-4201-9452-16d45bf01954/artifacts/results.zip HTTP/1.1" 200 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "POST /api/analysis/jobs HTTP/1.1" 403 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "GET /api/analysis/jobs/baf5c692-6861-4201-9452-16d45bf01954/artifacts/secret.json HTTP/1.1" 404 -
+127.0.0.1 - - [26/Oct/2026 15:11:57] "POST /api/analysis/jobs HTTP/1.1" 403 -
+ok
+test_connection_error_is_structured_and_client_is_closed (test_ssh_storage.SshStorageTests) ... ok
+test_exact_catalog_paths_are_downloaded_without_find (test_ssh_storage.SshStorageTests) ... ok
+test_file_discovery_keeps_path_and_device_paired_and_closes (test_ssh_storage.SshStorageTests) ... ok
+test_history_download_reuses_control_socket_without_new_login (test_ssh_storage.SshStorageTests) ... ok
+test_sftp_subprocess_exit_does_not_spin_on_eof (test_ssh_storage.SshStorageTests) ... ok
+test_sftp_subprocess_restores_host_libraries (test_ssh_storage.SshStorageTests) ... ok
+test_alignment_cache_key_contains_all_query_dimensions (test_stage0_characterization.GuiEntryCharacterizationTests) ... ok
+test_current_button_action_binding_table_is_complete (test_stage0_characterization.GuiEntryCharacterizationTests) ... ok
+test_date_time_and_remote_path_format_are_fixed (test_stage0_characterization.GuiEntryCharacterizationTests) ... ok
+test_legacy_capture_message_keeps_python_list_representation (test_stage0_characterization.GuiEntryCharacterizationTests) ... ok
+test_remote_time_query_uses_h5_filename_time_field (test_stage0_characterization.GuiEntryCharacterizationTests) ... ok
+test_legacy_overlap_wrappers_remain_importable (test_stage0_characterization.RemoteReadPairingCharacterizationTests) ... ok
+test_middle_read_failure_does_not_shift_later_device_path (test_stage0_characterization.RemoteReadPairingCharacterizationTests) ... ok
+test_agent_queue_is_bounded (test_waveform_agent_api.AgentV1Tests) ... ok
+test_artifact_security_unknown_job_and_read_only_router (test_waveform_agent_api.AgentV1Tests) ... ok
+test_async_resolution_failures_preserve_domain_errors (test_waveform_agent_api.AgentV1Tests) ... ok
+test_basic_argument_errors_are_synchronous (test_waveform_agent_api.AgentV1Tests) ... ok
+test_classification_invalid_is_succeeded_but_infrastructure_failure_is_failed (test_waveform_agent_api.AgentV1Tests) ... ok
+test_complete_v1_catalog_to_peak_download_and_provenance (test_waveform_agent_api.AgentV1Tests) ... ok
+test_fast_accept_lifecycle_and_concurrent_idempotency (test_waveform_agent_api.AgentV1Tests) ... ok
+test_hdf_conflict_and_unreadable_are_job_failures (test_waveform_agent_api.AgentV1Tests) ... ok
+test_health_real_candidate_closed_and_unreachable (test_waveform_agent_api.AgentV1Tests) ... ok
+test_restart_incomplete_job_fails_without_replay (test_waveform_agent_api.AgentV1Tests) ... ok
+test_restart_recovers_idempotency_and_result (test_waveform_agent_api.AgentV1Tests) ... ok
+test_single_registry_owner_and_closed_service (test_waveform_agent_api.AgentV1Tests) ... ok
+test_acquisition_restart_via_http_does_not_replay (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_alignment_spectrum_artifacts_real_http_e2e (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_all_post_idempotency_and_conflict (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_analysis_sampling_rate_conflict_is_explicit (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_approval_previous_secret_rotation_window (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_approval_signature_scope_expiry_hash_and_replay (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_auth_scope_isolation_and_default_disabled (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_bounded_analysis_queue_and_errors (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_catalog_schema_version_legacy_and_future_rejection (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_control_start_status_cancel_duplicate_request_and_limits (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_data_preview_target_parameter_and_version_conflicts (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_data_preview_update_delete_restore_overwrite_and_versions (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_data_same_target_concurrency_has_single_commit (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_hdf5_external_links_are_not_followed_by_analysis (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_http_rate_limits_scope_window_and_write_quota (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_interrupted_download_closes_without_second_response (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_job_cancellation_is_idempotent_and_reports_actual_state (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_openapi_approval_and_provenance_contract (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_operation_lists_filter_page_sanitize_and_scope (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_overlay_scope_and_original_v1_view (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_preview_expiry_change_in_source_and_checksum_mismatch (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_preview_mutation_snapshot_counts_and_overwrite_scope (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_preview_without_approval_and_single_mutation_approval (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_raw_exact_identity_checksum_limits_and_escaping (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_read_runs_captures_devices_and_v1_compatibility (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_restart_journal_preserves_versions_and_never_replays (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_slow_job_read_allows_status_and_detects_mutation (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_source_checksum_change_during_job_read_is_conflict (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_unmutated_versions_use_live_source_and_safe_read_errors (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_v2_only_environment_and_startup_warning (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_versions_after_preview_before_mutation_are_read_only (test_waveform_agent_v2.AgentV2Tests) ... ok
+test_desktop_mode_reconnects_then_retries_failed_query (test_waveform_log_query.DashboardTaskDetailsTests) ... ok
+test_device_stage_provenance_and_sensitive_error_redaction (test_waveform_log_query.DashboardTaskDetailsTests) ... ok
+test_missing_task_state_is_explicit (test_waveform_log_query.DashboardTaskDetailsTests) ... ok
+test_server_mode_queries_local_mongodb_without_ssh (test_waveform_log_query.DashboardTaskDetailsTests) ... ok
+test_tasks_date_uses_one_task_wide_segment_aggregation (test_waveform_log_query.DashboardTaskDetailsTests) ... ok
+
+----------------------------------------------------------------------
+Ran 286 tests in 36.161s
+
+OK
+get time_sec: 120721
+valid registry: 47 devices, 12 acquisition-enabled
+legacy files match registry exactly
+source quality: no bare except or print in non-legacy modules
+secret heuristic: scanned 712 tracked files
+local quality gate: OK

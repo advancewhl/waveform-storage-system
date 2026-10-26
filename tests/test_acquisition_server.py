@@ -527,13 +527,13 @@ class ServerSettingsTests(unittest.TestCase):
         self.assertEqual(
             {
                 frequency: capture_interval_seconds(frequency)
-                for frequency in (1000, 100, 50, 5, 2)
+                for frequency in (1000, 100, 50, 10, 5, 2)
             },
-            {1000: 2, 100: 12, 50: 22, 5: 4200, 2: 512},
+            {1000: 2, 100: 12, 50: 22, 10: 2100, 5: 4200, 2: 512},
         )
         self.assertEqual(capture_interval_seconds(500), 4)
         with self.assertRaisesRegex(ServerSettingsError, "supported"):
-            capture_interval_seconds(10)
+            capture_interval_seconds(20)
         self.assertTrue(callable(ProductionCaptureRunner._connect_device))
         self.assertTrue(callable(ProductionCaptureRunner.cancel))
 

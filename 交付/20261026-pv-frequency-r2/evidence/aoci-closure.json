@@ -1,0 +1,7 @@
+{
+  "observed_review_transaction": "593fd34ebe67d6d07637afb1",
+  "observed_review_status": "applied",
+  "semantic_index_update": "not_executed",
+  "reason": "Automatic approval review rejected further aoci_maintain due to possible concurrent or replayed governance transactions; no bypass attempted",
+  "remaining": "Synchronize affected semantic entries through the approved AOCI governance workflow"
+}

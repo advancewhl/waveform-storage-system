@@ -688,13 +688,6 @@ class OperatorMainWindow(QMainWindow):
             self.duration_combo.addItem(f"{minutes} 分钟", minutes)
         self.duration_combo.setCurrentIndex(4)
         control_layout.addWidget(self.duration_combo)
-        control_layout.addWidget(self._field_label("采集频率"))
-        self.frequency_combo = QComboBox()
-        self.frequency_combo.addItem("跟随当前频率 PV", None)
-        for hz in (1000, 500, 100, 50, 5, 2):
-            self.frequency_combo.addItem(f"{hz} Hz", float(hz))
-        self.frequency_combo.setToolTip("指定频率须与服务端实时频率 PV 一致")
-        control_layout.addWidget(self.frequency_combo)
         frequency_display = QFrame()
         frequency_display.setObjectName("frequencyDisplay")
         frequency_layout = QHBoxLayout(frequency_display)
@@ -705,7 +698,7 @@ class OperatorMainWindow(QMainWindow):
         self.frequency_value.setObjectName("frequencyValue")
         self.frequency_value.setProperty("available", False)
         self.frequency_value.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.frequency_value.setToolTip("程序启动时读取；采集前会重新核对")
+        self.frequency_value.setToolTip("服务端定时 PV 的读数；采集前重新读取并跟随该频率")
         frequency_layout.addWidget(self.frequency_value)
         control_layout.addWidget(frequency_display)
         control_layout.addStretch(1)
@@ -1412,19 +1405,14 @@ class OperatorMainWindow(QMainWindow):
                 )
                 return
         duration_seconds = int(self.duration_combo.currentData()) * 60
-        requested_frequency = self.frequency_combo.currentData()
         if self.backend.mode is not OperatorMode.DEMO:
-            frequency_text = (
-                f"{requested_frequency:g} Hz" if requested_frequency is not None
-                else "跟随频率 PV"
-            )
             reply = QMessageBox.question(
                 self,
                 "确认发送采集请求",
                 (
                     f"将向 {self.backend.mode.value} 后台发送采集请求。\n"
                     f"{len(area_ids)} 个束线区域，{len(devices)} 台BPM，"
-                    f"时长 {duration_seconds // 60} 分钟，频率 {frequency_text}。\n\n"
+                    f"时长 {duration_seconds // 60} 分钟，频率跟随服务端当前 PV。\n\n"
                     "是否继续？"
                 ),
                 QMessageBox.Yes | QMessageBox.No,
@@ -1499,7 +1487,7 @@ class OperatorMainWindow(QMainWindow):
         self._run_task(
             "采集请求",
             lambda: self.backend.start_capture(
-                area_ids, devices, duration_seconds, requested_frequency
+                area_ids, devices, duration_seconds
             ),
             accepted,
         )

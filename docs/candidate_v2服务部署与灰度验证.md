@@ -189,14 +189,11 @@ python tools/acquisition_v2_client.py cancel <request_id> --yes
 
 取消在安全边界生效，不会强行中断正在进行的 SSH 文件传输。
 
-工作站无法访问定时 PV 时，可在已确认实际机器频率后显式设置：
+正式 GUI 仅显示服务端定时 PV 的当前频率，不提供频率选择。启动时读取并显示；
+采集前重新读取 PV，并使用新读数提交。读取失败时阻止采集，不能用环境变量覆盖。
+服务端仍核对请求频率与实际 PV 是否一致。
 
-```bash
-export WAVEFORM_CAPTURE_FREQUENCY_HZ=100
-```
-
-该变量只覆盖 GUI 读取定时 PV 的步骤，不改变服务端支持频率和等待规则。单台真实请求也可
-直接从运维客户端发送；`--yes` 是必需的防误触确认：
+运维客户端保留显式频率参数；该值必须与当前 PV 一致。真实请求必须带 `--yes`：
 
 ```bash
 python tools/acquisition_v2_client.py start \

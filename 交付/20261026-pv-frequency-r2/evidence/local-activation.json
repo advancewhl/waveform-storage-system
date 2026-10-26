@@ -1,0 +1,6 @@
+{
+  "activated_at": "2026-10-26T15:43:12.168837+08:00",
+  "previous_operator_release": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261017-history-wording-r6-local/waveform-operator",
+  "current": "/home/whloong/waveform-storage/waveform-storage-system/outputs/operator-local/releases/20261026-pv-frequency-r2/waveform-operator",
+  "verification": "current symlink only; no SHA-256, manifest, binary identity or real desktop smoke"
+}

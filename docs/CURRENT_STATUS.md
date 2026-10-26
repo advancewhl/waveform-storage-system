@@ -1,4 +1,54 @@
-# 波形存储当前状态（2026-10-22）
+# 波形存储当前状态（2026-10-26）
+
+## 2026-10-26 当前频率只读显示（r2）
+
+采集页已移除频率下拉框，仅显示服务端定时 PV 的读数。启动时读取；
+采集前重新读取并跟随最新值。读取失败时阻止采集，服务端继续执行频率一致性校验。
+这项修改不改变采集协议、设备授权、分段身份或历史分析的采样率来源。
+
+本机前端已构建并激活 `20261026-pv-frequency-r2`，回滚版本为
+`20261017-history-wording-r6-local`。41 项定向回归及 1 项采集提交补测通过，源码及打包程序离屏界面检查通过。
+使用既有 endpoint 的打包界面已显示实际 PV 读数 `10 Hz`，未发送采集请求。
+远程兼容包已构建，共享启动器已切换至 r2。desktop-user-a 离屏界面显示 `10 Hz`，结果见[本轮交付记录](../交付/20261026-pv-frequency-r2/README.md)。
+
+现场服务端本轮只读确认仍为 `20261026-timing-10hz-r1`，systemd active，未发现
+accepted/running 任务。未修改或重启服务端。`desktop-user-a` 可更新公共启动器；`desktop-user-b` 私有目录
+不可由该账号读取，独立会话验证待完成。未执行 SHA-256、完整 manifest、二进制身份、
+真实桌面 smoke、完整发布验收或额外全量测试。
+
+AOCI 收尾：两份测试文件的 observe 复核事务已应用，正式语义索引仍待同步。后续维护调用被自动审批拒绝，理由是可能存在并发或重放风险；本次保留该待办，未绕过审批。
+
+以下带日期的条目保留各次交付时的事实。当前版本以本节、版本表和本轮交付记录为准。
+
+## 2026-10-26 支持 10 Hz 机器频率（服务端已发布）
+
+正式前端「当前频率」显示「暂不可用」。根因不在隧道、ZMQ、systemd 或 EPICS 连接：定时 PV
+`AC-LA-INJ1-TIM:WRN1:MCFQ8` 已读取成功并返回 10 Hz，但
+`capture_interval_seconds()` 的支持表只有 1000/500/100/50/5/2 Hz，`read_timing_frequency()`
+在返回前用该表做白名单校验，10 Hz 查不到即失败，服务端返回
+`TIMING_FREQUENCY_FAILED: unsupported capture frequency 10 Hz`，GUI 捕获后显示「暂不可用」。
+同一校验也挡在 GUI `start_capture`、Agent API v2 `control/captures` 和服务端 `handle()`，
+因此当时 10 Hz 下整条 v2 采集通道不可用。10 Hz 从未被支持：legacy 代理只有
+100/50/1000/2 分支，500 与 5 为后补，原测试明确断言 10 Hz 必须被拒绝。
+
+`_CAPTURE_INTERVAL_SECONDS` 新增 `10.0: 2100`。2100 s 由操作员确认，目标为每段
+20000 个触发并保留采集余量。该表属于现场规则，不可插值。r1 同步在 GUI 下拉框和
+`docs/agent-api-v2.openapi.json` 中加入 `10 Hz`。后续 r2 已移除 GUI 下拉框；
+服务端的 10 Hz 支持保持有效，协议和 capability 未变化。
+
+构建 `20261026-timing-10hz-r1` 版本对，完整质量门 286 项通过（授权构建的内置步骤）；
+受影响定向测试 61 项通过。服务端已切换到该版本，`MainPID=1991109`，切换前确认无
+accepted/running 任务。协议 smoke（2026-10-12）通过：1 任务、5 段、125 个精确文件。
+切换后从 GUI 同一路径调用 `get_timing_frequency`，保存的响应返回
+`frequency_hz=10.0, source=timing_pv`，「当前频率」恢复。旧版本
+`20261008-history-release-r4` 完整保留可回滚。
+
+尚未验证：真实桌面 GUI 界面复验（记录状态为 `GUI SMOKE PENDING`）；未发送任何真实采集
+请求，10 Hz 下 2100 s 分段的实际采集、下载与 HDF5 落盘未经验证，首次 10 Hz 采集建议人工
+核对分段文件大小；全量 manifest 校验、二进制身份核验与完整发布验收按任务范围限制未执行。
+operator 二进制已构建但**未激活**，`outputs/operator-local/current` 仍指向
+`20261017-history-wording-r6-local`，这是 r1 发布时的状态；后续 r2 已移除频率下拉框。
+详情见[本轮交付记录](../交付/20261026-timing-10hz-r1/README.md)。
 
 ## 2026-10-22 Agent API v2 Git 源码归档
 
@@ -155,18 +205,18 @@ Production desktop frontend releases apply to both desktop-user-a and desktop-us
 
 2026-10-09 本机 r6 已激活，仍等待用户对本机开发环境进行人工桌面验收。本段状态仅指本机开发环境；现场桌面机验收状态见下表和 r6 现场发布记录。
 
-## 版本与部署状态
+## 当前版本与部署状态
 
 | 组件 | 最近记录的 release | current 或部署位置 | 状态 | 验证日期 |
 | --- | --- | --- | --- | --- |
-| 当前 Git 源码 | Agent API v2 加固与源码归档（无二进制 release） | 当前分支 | 43 项定向、286 项质量门及最终审计边界补测通过；本轮仅文档与 Git 归档，尚未部署 | 2026-10-22 |
-| 本机最近已记录 release | `20261017-history-wording-r6-local` | `outputs/operator-local/current → releases/20261017-history-wording-r6-local/waveform-operator` | 本机激活入口仍指向 r6；本次未重建二进制，当前源码比该 release 更新 | 2026-10-19（仅检查链接） |
-| 现场 operator（desktop-user-a、desktop-user-b） | `waveform-operator-r6-20261009` | `/home/site-user/work/StreamDataPro_new/waveform-operator-r6-20261009` | 2026-10-09 历史记录为双账号验收通过；本轮未连接复核，未由本任务部署 | 2026-10-09（历史记录） |
-| 现场 acquisition server | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/current → releases/20261008-history-release-r4` | 2026-10-08 历史记录为 packaged/current 和 systemd active；本轮未连接复核 | 2026-10-08（历史记录） |
+| 当前 Git 源码 | 10 Hz 支持及 PV 频率只读显示 | 当前分支 | 41 项定向回归及 1 项采集提交补测通过；提交和 push 以 Git 记录为准 | 2026-10-26 |
+| 本机 operator | `20261026-pv-frequency-r2` | `outputs/operator-local/current → releases/20261026-pv-frequency-r2/waveform-operator` | 已构建并激活；打包离屏界面显示 PV 10 Hz，真实桌面 smoke 未执行 | 2026-10-26 |
+| 现场 operator（desktop-user-a、desktop-user-b 共用安装） | `20261026-pv-frequency-r2` | `/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026` | 共享启动器已切换；desktop-user-a 离屏界面显示 10 Hz；desktop-user-b 独立会话未验证 | 2026-10-26 |
+| 现场 acquisition server | `20261026-timing-10hz-r1` | `/home/storage-user/waveform-storage-v2/current → releases/20261026-timing-10hz-r1` | 本轮只读确认 current 与 active，未切换服务 | 2026-10-26 |
 | 日志 dashboard | `20261008-history-release-r4` | `/home/storage-user/waveform-storage-v2/dashboard/tools/` | 2026-10-08 历史记录中的 HTTP/Mongo 验收通过；本轮未连接复核 | 2026-10-08（历史记录） |
 | MongoDB | `mongo:8.0.29` | 现有 `waveform-mongodb` 容器 | 2026-10-08 历史记录为运行且查询正常；本轮未连接复核 | 2026-10-08（历史记录） |
 
-旧窗口继续使用启动时加载的版本。激活前未发现本机 operator 进程。desktop-user-a 从原桌面入口启动 r6 并保持运行、以及用户确认 desktop-user-b 可使用共享前端，均属于 2026-10-09 的历史记录；本轮没有连接现场账号复核这些情况。
+旧窗口继续使用启动时加载的版本，重新启动才会使用新入口。远程切换前未发现 operator 进程。2026-10-09 的双账号人工验收属于历史记录，不能代替本次 desktop-user-b 独立会话验证。
 
 ## 当前入口
 
@@ -181,7 +231,9 @@ Production desktop frontend releases apply to both desktop-user-a and desktop-us
 | 正式交付 | [20261008-history-release-r4](../交付/20261008-history-release-r4/README.md) |
 | 固定发布规范 | [RELEASE_CHECKLIST](RELEASE_CHECKLIST.md) |
 
-## 版本对与验收证据
+## 历史版本对与验收证据
+
+当前 r2 的版本对、切换与最小验证证据见[本轮交付目录](../交付/20261026-pv-frequency-r2/README.md)。以下保留历史记录。
 
 2026-10-08 发布的 r4 版本对使用 `v2 + history-run-segment extension`。该 operator 需要同时支持下列命令的 server。前后端必须按版本对部署并验证，不能只更新源码或其中一端。
 
@@ -201,9 +253,11 @@ Production desktop frontend releases apply to both desktop-user-a and desktop-us
 
 完整证据位于交付目录的 [evidence/](../交付/20261008-history-release-r4/evidence/)。构建前质量门通过 205 项测试；补齐部分成功段整链路测试后，最终质量门通过 206 项测试。
 
-## 回滚版本
+## 当前回滚与历史记录
 
-- 当前本机审阅版 r6 的回滚目标：`outputs/operator-local/releases/20261017-history-compact-r5-local/waveform-operator/`。本轮未执行校验和检查；r5 与 r6 均保留。
+本次本机回滚目标为 `20261017-history-wording-r6-local`；远程共享前端回滚目标为 `waveform-operator-r6-20261009`，启动器备份为 `/home/site-user/bin/startWaveform.sh.backup-20261026-pv-frequency-r2`。本次未切换服务端。以下为历史回滚记录。
+
+- 2026-10-17 本机审阅版 r6 的历史回滚目标：`outputs/operator-local/releases/20261017-history-compact-r5-local/waveform-operator/`。本轮未执行校验和检查；r5 与 r6 均保留。
 - 上一轮本机审阅版 r5 的回滚目标：`outputs/operator-local/releases/20261017-history-display-r4-local/waveform-operator/`。本轮未执行校验和检查；r4 与 r5 均保留。
 - 上一轮本机审阅版 r4 的回滚目标：`outputs/operator-local/releases/20261017-history-controls-r3-local/waveform-operator/`。本轮未执行校验和检查；r3 与 r4 均保留。
 - 上一轮本机审阅版 r3 的回滚目标：`outputs/operator-local/releases/20261017-history-ui-layout-r2-local/waveform-operator/`。本轮未执行校验和检查；r2 与 r3 均保留。
