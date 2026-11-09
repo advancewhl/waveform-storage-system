@@ -22,15 +22,21 @@ class EpicsGateway:
         timeout=10,
         pulse_seconds=5,
         waiter=time.sleep,
+        env_lock=None,
     ):
         self._context_factory = context_factory
+        self._env_lock = env_lock
         self._batch_factory = batch_factory
         self._timeout = timeout
         self._pulse_seconds = pulse_seconds
         self._waiter = waiter
 
     def trigger(self, device_pvs):
-        context = self._context_factory()
+        if self._env_lock is None:
+            context = self._context_factory()
+        else:
+            with self._env_lock:
+                context = self._context_factory()
         connected = []
         results_by_device = {}
         try:

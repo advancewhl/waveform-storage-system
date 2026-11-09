@@ -224,8 +224,8 @@ class ExperimentalUiSmokeTests(unittest.TestCase):
             capture_registry=capture_registry,
             journal_path=Path(temporary.name) / "operator-ui.jsonl",
         )
-        self.assertEqual(window.area_model.rowCount(), 24)
-        self.assertEqual(sum(a.device_count for a in window.area_model.areas), 383)
+        self.assertEqual(window.area_model.rowCount(), 18)
+        self.assertEqual(sum(a.device_count for a in window.area_model.areas), 211)
         inj1_row = next(
             index for index, area in enumerate(window.area_model.areas)
             if area.area_id == "BI"
@@ -241,14 +241,15 @@ class ExperimentalUiSmokeTests(unittest.TestCase):
             self.wait_for_workers(window)
         request = json.loads(backend.last_request_json)
         self.assertEqual(request["area_ids"], ["INJ1"])
-        self.assertEqual(len(request["devices"]), 20)
-        self.assertEqual(
-            set(request["devices"]),
-            {
-                device.id for device in capture_registry.devices
-                if device.section == "INJ1"
-            },
-        )
+        enabled_ids = {
+            device.id for device in display_registry.devices if device.enabled
+        }
+        expected_inj1 = {
+            device.id for device in capture_registry.devices
+            if device.section == "INJ1" and device.id in enabled_ids
+        }
+        self.assertEqual(len(request["devices"]), len(expected_inj1))
+        self.assertEqual(set(request["devices"]), expected_inj1)
         window.area_model.item(inj1_row, 0).setCheckState(Qt.Unchecked)
         l2_row = next(
             index for index, area in enumerate(window.area_model.areas)

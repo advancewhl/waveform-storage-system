@@ -18,6 +18,7 @@ GET_STATUS = "get_status"
 HEALTH = "health"
 CANCEL = "cancel"
 GET_TIMING_FREQUENCY = "get_timing_frequency"
+GET_BEAM_STATUS = "get_beam_status"
 LIST_CAPTURE_TIMES = "list_capture_times"
 FIND_WAVEFORM_FILES = "find_waveform_files"
 LIST_CAPTURE_RUNS = "list_capture_runs"
@@ -164,12 +165,12 @@ class ControlRequest:
 
     version: int
     request_id: str
-    command: Literal["get_status", "health", "cancel", "get_timing_frequency"]
+    command: Literal["get_status", "health", "cancel", "get_timing_frequency", "get_beam_status"]
 
     def __post_init__(self) -> None:
         _validate_version(self.version)
         _validate_request_id(self.request_id)
-        if self.command not in {GET_STATUS, HEALTH, CANCEL, GET_TIMING_FREQUENCY}:
+        if self.command not in {GET_STATUS, HEALTH, CANCEL, GET_TIMING_FREQUENCY, GET_BEAM_STATUS}:
             raise ProtocolValidationError(
                 f"unsupported command: {self.command!r}"
             )
@@ -397,7 +398,7 @@ def decode_service_request(
             area_ids=tuple(area_ids),
             devices=tuple(devices),
         )
-    if command in {GET_STATUS, HEALTH, CANCEL, GET_TIMING_FREQUENCY}:
+    if command in {GET_STATUS, HEALTH, CANCEL, GET_TIMING_FREQUENCY, GET_BEAM_STATUS}:
         _require_exact_fields(payload, _CONTROL_REQUEST_FIELDS)
         return ControlRequest(
             version=payload["version"],

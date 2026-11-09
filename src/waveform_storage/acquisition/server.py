@@ -21,6 +21,7 @@ from waveform_storage.acquisition.protocol import (
     CANCEL,
     GET_STATUS,
     GET_TIMING_FREQUENCY,
+    GET_BEAM_STATUS,
     HEALTH,
     FIND_WAVEFORM_FILES,
     LIST_CAPTURE_TIMES,
@@ -493,14 +494,18 @@ class CandidateAcquisitionServer:
         context=None,
         metadata=None,
         frequency_reader: Callable[[], float] | None = None,
+        beam_reader: Callable[[], dict] | None = None,
     ) -> None:
         self.endpoint = endpoint
         self.policy = policy
         self.tasks = tasks
         self.metadata = metadata
         self.frequency_reader = frequency_reader
+        self.beam_reader = beam_reader
         self._frequency_lock = threading.Lock()
         self._frequency_probe: threading.Thread | None = None
+        self._beam_lock = threading.Lock()
+        self._beam_probe: threading.Thread | None = None
         self.context = context or zmq.Context.instance()
         self._socket = None
 
@@ -539,6 +544,8 @@ class CandidateAcquisitionServer:
                 return self.tasks.cancel(request.request_id)
             if request.command == GET_TIMING_FREQUENCY:
                 return self._handle_timing_frequency(request)
+            if request.command == GET_BEAM_STATUS:
+                return self._handle_beam_status(request)
 
         if isinstance(request, (MetadataQueryRequest, CaptureSegmentQueryRequest)):
             return self._handle_metadata_query(request)
@@ -585,6 +592,9 @@ class CandidateAcquisitionServer:
                     f"from timing PV {actual_frequency:g} Hz",
                     "FREQUENCY_MISMATCH",
                 )
+        # Beam status is display-only: the MPS chain does not gate acquisition.
+        # A capture started during a beam stop can still collect data; the lack
+        # of beam only shows up later as misaligned/empty device files.
         return self.tasks.submit(request)
 
     def _handle_timing_frequency(
@@ -644,6 +654,58 @@ class CandidateAcquisitionServer:
         if "error" in outcome:
             raise outcome["error"]
         return float(outcome["value"])
+
+    def _handle_beam_status(
+        self, request: ControlRequest
+    ) -> MetadataQueryResponse:
+        if self.beam_reader is None:
+            return MetadataQueryResponse(
+                PROTOCOL_VERSION, request.request_id, False,
+                "beam status reader is not configured", {},
+                "BEAM_STATUS_UNAVAILABLE",
+            )
+        try:
+            payload = self._read_beam_bounded()
+        except Exception as exc:
+            return MetadataQueryResponse(
+                PROTOCOL_VERSION, request.request_id, False,
+                str(exc) or type(exc).__name__, {}, "BEAM_STATUS_FAILED",
+            )
+        return MetadataQueryResponse(
+            PROTOCOL_VERSION, request.request_id, True,
+            "beam status read from the MPS PV on the waveform server",
+            payload, None,
+        )
+
+    def _read_beam_bounded(self) -> dict:
+        """Keep a stalled MPS PV read from blocking the service's REP socket."""
+
+        reader = self.beam_reader
+        if reader is None:
+            raise RuntimeError("beam status reader is not configured")
+        completed = threading.Event()
+        outcome: dict[str, object] = {}
+
+        def probe() -> None:
+            try:
+                outcome["value"] = reader()
+            except Exception as exc:
+                outcome["error"] = exc
+            finally:
+                completed.set()
+
+        with self._beam_lock:
+            if self._beam_probe is not None and self._beam_probe.is_alive():
+                raise TimeoutError("previous beam status PV read is still pending")
+            self._beam_probe = threading.Thread(
+                target=probe, name="waveform-beam-pv", daemon=True
+            )
+            self._beam_probe.start()
+        if not completed.wait(FREQUENCY_PV_RESPONSE_TIMEOUT_SECONDS):
+            raise TimeoutError("beam status PV read exceeded 20 seconds")
+        if "error" in outcome:
+            raise outcome["error"]
+        return outcome["value"]
 
     def _handle_metadata_query(
         self,

@@ -14,7 +14,7 @@ import sys
 from zoneinfo import ZoneInfo
 
 ROOT = Path(__file__).resolve().parents[1]
-CAPABILITIES = ['health', 'list_capture_runs', 'list_capture_segments', 'find_waveform_files_by_segment']
+CAPABILITIES = ['health', 'get_timing_frequency', 'get_beam_status', 'list_capture_runs', 'list_capture_segments', 'find_waveform_files_by_segment']
 
 
 def digest(path):

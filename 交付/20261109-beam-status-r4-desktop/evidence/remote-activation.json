@@ -1,0 +1,60 @@
+{
+  "recorded_at": "2026-11-09T19:40:51.323815+11:00",
+  "host": "AC-GT-CN-S2-OPI21",
+  "current": "/home/site-user/work/StreamDataPro_new/waveform-operator-beam-status-r4-20261109",
+  "launcher": "/home/site-user/bin/startWaveform.sh",
+  "launcher_contents": "#!/usr/bin/env bash\nset -e\nexec /home/site-user/work/StreamDataPro_new/waveform-operator-beam-status-r4-20261109/run-operator.sh \"$@\"\n",
+  "previous_release": "/home/site-user/work/StreamDataPro_new/waveform-operator-pv-frequency-r2-20261026",
+  "launcher_backup": "/home/site-user/bin/startWaveform.sh.backup-20261109-beam-status-r4",
+  "accounts": {
+    "desktop-user-a": {
+      "uid": 1001,
+      "offscreen_beam_display": "允许 (beam_permitted=true, beam_stop_alarm=off)",
+      "real_desktop_smoke": "not_run"
+    },
+    "desktop-user-b": {
+      "uid": 1003,
+      "shared_installation": "updated; public path access recorded",
+      "private_session": "not_verified_no_authorized_login_available"
+    }
+  },
+  "permissions": [
+    {
+      "path": "/home",
+      "mode": "0o755"
+    },
+    {
+      "path": "/home/site-user",
+      "mode": "0o755"
+    },
+    {
+      "path": "/home/site-user/bin",
+      "mode": "0o755"
+    },
+    {
+      "path": "/home/site-user/bin/startWaveform.sh",
+      "mode": "0o755"
+    },
+    {
+      "path": "/home/site-user/work",
+      "mode": "0o775"
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new",
+      "mode": "0o755"
+    },
+    {
+      "path": "/home/site-user/work/StreamDataPro_new/waveform-operator-beam-status-r4-20261109",
+      "mode": "0o755"
+    }
+  ],
+  "kept_versions": [
+    "waveform-operator-beam-status-r4-20261109 (current)",
+    "waveform-operator-pv-frequency-r2-20261026 (previous)",
+    "waveform-operator-direct-offline-20261004 (connection.env/credentials source)"
+  ],
+  "removed_versions": [
+    "waveform-operator-r6-20261009",
+    "startWaveform.sh.backup-20261009-r6"
+  ]
+}

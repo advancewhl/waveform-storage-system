@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Mapping
 
 import paramiko
+from caproto import ChannelType
 from caproto.threading.client import Batch, Context
 
 from waveform_storage.acquisition.protocol import CaptureRequest
@@ -278,6 +279,7 @@ class ProductionCaptureRunner:
             Batch,
             timeout=self.settings.epics_connect_timeout_seconds,
             pulse_seconds=self.settings.epics_pulse_seconds,
+            env_lock=EPICS_ENV_LOCK,
         )
         downloader = DeviceSshGateway(
             self._connect_device,
@@ -285,6 +287,9 @@ class ProductionCaptureRunner:
                 self.settings.ssh_max_workers,
                 len(selected),
             ),
+            # Cancellation must also break the per-device file wait;
+            # otherwise a missing file keeps a capture running for hours.
+            waiter=self._wait_interruptibly,
         )
         expected_points = {
             item.id: item.expected_points for item in selected
@@ -408,8 +413,9 @@ class ProductionCaptureRunner:
         addresses = sorted(
             {f"{item.epics_host}:{item.epics_port}" for item in selected}
         )
-        os.environ["EPICS_CA_ADDR_LIST"] = " ".join(addresses)
-        os.environ["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
+        with EPICS_ENV_LOCK:
+            os.environ["EPICS_CA_ADDR_LIST"] = " ".join(addresses)
+            os.environ["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
 
     def _download_requests(
         self,
@@ -420,26 +426,32 @@ class ProductionCaptureRunner:
         frequency_hz: float = 1000,
     ) -> list[DeviceDownload]:
         staging = self.settings.staging_root / request_id / f"S{sequence:05d}"
-        return [
-            DeviceDownload(
-                item.id,
-                item.ssh_host,
-                item.remote_data_dir,
-                staging / f"{item.id}.txt",
-                file_pattern=item.file_pattern,
-                # SFTP mtime is often integral seconds; preserve files created
-                # during the trigger second without admitting earlier cycles.
-                not_before_epoch=int(started_epoch),
-                settle_seconds=(
-                    self.settings.remote_file_settle_seconds
-                ),
-                wait_timeout_seconds=min(
-                    float(getattr(self.settings, "max_capture_seconds", 4200)),
-                    max(15.0, item.expected_points / frequency_hz + 12.0),
-                ),
+        queued_at = time.monotonic()
+        requests = []
+        for item in selected:
+            wait_timeout = min(
+                float(getattr(self.settings, "max_capture_seconds", 4200)),
+                max(15.0, item.expected_points / frequency_hz + 12.0),
             )
-            for item in selected
-        ]
+            requests.append(
+                DeviceDownload(
+                    item.id,
+                    item.ssh_host,
+                    item.remote_data_dir,
+                    staging / f"{item.id}.txt",
+                    file_pattern=item.file_pattern,
+                    # SFTP mtime is often integral seconds; preserve files
+                    # created during the trigger second without admitting
+                    # earlier cycles.
+                    not_before_epoch=int(started_epoch),
+                    settle_seconds=(
+                        self.settings.remote_file_settle_seconds
+                    ),
+                    wait_timeout_seconds=wait_timeout,
+                    deadline_monotonic=queued_at + wait_timeout,
+                )
+            )
+        return requests
 
     def _connect_device(self, request: DeviceDownload):
         device = self.devices[request.device_id]
@@ -503,37 +515,117 @@ _CAPTURE_INTERVAL_SECONDS = {
 TIMING_FREQUENCY_PV = "AC-LA-INJ1-TIM:WRN1:MCFQ8"
 TIMING_EPICS_ADDRESS = "192.0.2.1:6310"
 
+# MPS beam-stop chain served by the injector MPS IOC (confirmed by cainfo).
+BEAM_STOP_ALARM_PV = "AC-LA-INJ1-MPS:MPS00:STPBEAM_ALARM"
+BEAM_STATUS_DETAIL_PVS = (
+    "AC-LA-INJ1-MPS:MPS00:BEAMSTP_FM_BC2",
+    "AC-LA-INJ1-MPS:MPS00:BEAMSTP_FM_EXT",
+    "AC-LA-INJ1-MPS:MPS00:BEAMSTP_FM_L3",
+    "AC-LA-INJ1-MPS:MPS00:BEAMSTP_FM_L4",
+    "AC-LA-INJ1-MPS:MPS00:BEAMSTP_FM_UN",
+    "AC-LA-INJ1-MPS:MPS00:BEAMSTP_FROM_BC1",
+    "AC-LA-INJ1-MPS:MPS00:BEAMSTP_FROM_FPGA01",
+    "AC-LA-INJ1-MPS:MPS00:BEAMSTP_TO_FPGA",
+)
+MPS_EPICS_ADDRESS = "192.0.2.51:6310"
+
+# Serializes EPICS_CA_ADDR_LIST changes with capture triggering.
+EPICS_ENV_LOCK = threading.Lock()
+
 
 def read_timing_frequency(*, context_factory=Context, timeout_seconds: int = 10) -> float:
     """Read the machine rate on the waveform server before a capture request."""
 
-    previous = {
-        name: os.environ.get(name)
-        for name in ("EPICS_CA_ADDR_LIST", "EPICS_CA_AUTO_ADDR_LIST")
-    }
-    os.environ["EPICS_CA_ADDR_LIST"] = TIMING_EPICS_ADDRESS
-    os.environ["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
-    context = None
+    with EPICS_ENV_LOCK:
+        previous = {
+            name: os.environ.get(name)
+            for name in ("EPICS_CA_ADDR_LIST", "EPICS_CA_AUTO_ADDR_LIST")
+        }
+        os.environ["EPICS_CA_ADDR_LIST"] = TIMING_EPICS_ADDRESS
+        os.environ["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
+        context = None
+        try:
+            context = context_factory()
+            pv = context.get_pvs(TIMING_FREQUENCY_PV)[0]
+            pv.wait_for_connection(timeout=timeout_seconds)
+            frequency = float(pv.read(timeout=timeout_seconds).data[0])
+            if not math.isfinite(frequency) or frequency <= 0:
+                raise ServerSettingsError("timing-system frequency PV returned an invalid value")
+            capture_interval_seconds(frequency)
+            return frequency
+        finally:
+            if context is not None:
+                try:
+                    context.disconnect()
+                except AttributeError:
+                    pass
+            for name, value in previous.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+
+
+def _read_pv_text(pv, timeout_seconds: float) -> str:
+    """Read a PV as its string representation (enum labels included)."""
+
     try:
-        context = context_factory()
-        pv = context.get_pvs(TIMING_FREQUENCY_PV)[0]
-        pv.wait_for_connection(timeout=timeout_seconds)
-        frequency = float(pv.read(timeout=timeout_seconds).data[0])
-        if not math.isfinite(frequency) or frequency <= 0:
-            raise ServerSettingsError("timing-system frequency PV returned an invalid value")
-        capture_interval_seconds(frequency)
-        return frequency
-    finally:
-        if context is not None:
-            try:
-                context.disconnect()
-            except AttributeError:
-                pass
-        for name, value in previous.items():
-            if value is None:
-                os.environ.pop(name, None)
-            else:
-                os.environ[name] = value
+        value = pv.read(
+            timeout=timeout_seconds, data_type=ChannelType.STRING
+        ).data[0]
+    except TypeError:
+        value = pv.read(timeout=timeout_seconds).data[0]
+    if isinstance(value, bytes):
+        return value.decode("utf-8", "replace")
+    return str(value)
+
+
+def read_beam_status(*, context_factory=Context, timeout_seconds: int = 10) -> dict:
+    """Read the MPS beam-stop chain on the waveform server (read-only)."""
+
+    with EPICS_ENV_LOCK:
+        previous = {
+            name: os.environ.get(name)
+            for name in ("EPICS_CA_ADDR_LIST", "EPICS_CA_AUTO_ADDR_LIST")
+        }
+        os.environ["EPICS_CA_ADDR_LIST"] = MPS_EPICS_ADDRESS
+        os.environ["EPICS_CA_AUTO_ADDR_LIST"] = "NO"
+        context = None
+        try:
+            context = context_factory()
+            names = (BEAM_STOP_ALARM_PV,) + BEAM_STATUS_DETAIL_PVS
+            pvs = context.get_pvs(*names)
+            for pv in pvs:
+                pv.wait_for_connection(timeout=timeout_seconds)
+            values = {
+                name: _read_pv_text(pv, timeout_seconds)
+                for name, pv in zip(names, pvs)
+            }
+        finally:
+            if context is not None:
+                try:
+                    context.disconnect()
+                except AttributeError:
+                    pass
+            for name, value in previous.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
+    alarm = values.pop(BEAM_STOP_ALARM_PV, None)
+    normalized = (alarm or "").strip().lower()
+    if normalized in {"on", "stopped", "beam_stop"}:
+        permitted = False
+    elif normalized in {"off", "normal", "ok", "permitted"}:
+        permitted = True
+    else:
+        permitted = None
+    return {
+        "beam_permitted": permitted,
+        "beam_stop_alarm": alarm,
+        "details": values,
+        "source": "mps_pv",
+    }
 
 
 def capture_interval_seconds(frequency_hz: float) -> int:

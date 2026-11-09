@@ -7,6 +7,7 @@ from uuid import uuid4
 from waveform_storage.acquisition.protocol import (
     GET_STATUS,
     GET_TIMING_FREQUENCY,
+    GET_BEAM_STATUS,
     FIND_WAVEFORM_FILES,
     LIST_CAPTURE_TIMES,
     PROTOCOL_VERSION,
@@ -80,6 +81,12 @@ class CaptureRequestTests(unittest.TestCase):
         )
         self.assertEqual(
             decode_service_request(encode_control_request(timing)), timing
+        )
+        beam = ControlRequest(
+            PROTOCOL_VERSION, str(uuid4()), GET_BEAM_STATUS
+        )
+        self.assertEqual(
+            decode_service_request(encode_control_request(beam)), beam
         )
         payload = json.loads(encode_control_request(request))
         payload["extra"] = True

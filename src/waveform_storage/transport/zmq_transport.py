@@ -12,6 +12,7 @@ from waveform_storage.acquisition.protocol import (
     FIND_WAVEFORM_FILES,
     GET_STATUS,
     GET_TIMING_FREQUENCY,
+    GET_BEAM_STATUS,
     HEALTH,
     LIST_CAPTURE_TIMES,
     LIST_CAPTURE_RUNS, LIST_CAPTURE_SEGMENTS, FIND_WAVEFORM_FILES_BY_SEGMENT,
@@ -65,6 +66,14 @@ class ZmqTransport:
             PROTOCOL_VERSION,
             request_id,
             GET_TIMING_FREQUENCY,
+        )
+        return self._exchange_metadata(encode_control_request(request))
+
+    def get_beam_status(self, request_id):
+        request = ControlRequest(
+            PROTOCOL_VERSION,
+            request_id,
+            GET_BEAM_STATUS,
         )
         return self._exchange_metadata(encode_control_request(request))
 

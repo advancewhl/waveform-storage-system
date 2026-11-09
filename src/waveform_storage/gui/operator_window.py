@@ -501,6 +501,10 @@ class OperatorMainWindow(QMainWindow):
         self._capture_timer = QTimer(self)
         self._capture_timer.setInterval(2000)
         self._capture_timer.timeout.connect(self._poll_capture_status)
+        self._beam_probe_active = False
+        self._beam_timer = QTimer(self)
+        self._beam_timer.setInterval(15000)
+        self._beam_timer.timeout.connect(self._poll_beam_status)
         self.alignment_result = None
         self._quality_result = None
         self.history_selected_devices: tuple[str, ...] = ()
@@ -546,6 +550,8 @@ class OperatorMainWindow(QMainWindow):
         elif self.backend.mode is OperatorMode.CANDIDATE_V2:
             QTimer.singleShot(0, self._load_initial_frequency)
             QTimer.singleShot(0, self._resume_capture_monitor)
+            QTimer.singleShot(0, self._poll_beam_status)
+            self._beam_timer.start()
 
     def _bind_analysis_preview_invalidation(self) -> None:
         panel = self.spectrum_panel
@@ -1091,11 +1097,13 @@ class OperatorMainWindow(QMainWindow):
         )
         self.selected_area_metric = self._metric("已选区域", "0")
         self.selected_device_metric = self._metric("已选BPM", "0")
+        self.beam_metric = self._metric("束流状态", "未知")
         for card in (
             self.area_metric,
             self.device_metric,
             self.selected_area_metric,
             self.selected_device_metric,
+            self.beam_metric,
         ):
             layout.addWidget(card)
         return layout
@@ -1338,6 +1346,64 @@ class OperatorMainWindow(QMainWindow):
         self.frequency_value.setProperty("available", available)
         self.frequency_value.style().unpolish(self.frequency_value)
         self.frequency_value.style().polish(self.frequency_value)
+
+    def _poll_beam_status(self) -> None:
+        if self.ui_only or self._beam_probe_active:
+            return
+        query = getattr(self.backend, "get_beam_status", None)
+        if not callable(query):
+            self._set_beam_display("暂不可用", available=False)
+            return
+        self._beam_probe_active = True
+        worker = BackgroundWorker(query)
+        self._active_workers.add(worker)
+        worker.signals.completed.connect(self._beam_status_received)
+        worker.signals.failed.connect(self._beam_status_failed)
+        worker.signals.completed.connect(
+            lambda _value, current=worker: self._finish_beam_worker(current)
+        )
+        worker.signals.failed.connect(
+            lambda _error, current=worker: self._finish_beam_worker(current)
+        )
+        self.thread_pool.start(worker)
+
+    def _finish_beam_worker(self, worker: BackgroundWorker) -> None:
+        self._beam_probe_active = False
+        self._finish_worker(worker)
+
+    def _beam_status_received(self, status) -> None:
+        if not isinstance(status, dict):
+            self._set_beam_display("未知", available=False)
+            return
+        permitted = status.get("beam_permitted")
+        alarm = status.get("beam_stop_alarm")
+        if permitted is True:
+            self._set_beam_display("允许", available=True)
+        elif permitted is False:
+            self._set_beam_display("禁止", available=False)
+        else:
+            self._set_beam_display(f"未知（{alarm}）", available=False)
+        tip = self.beam_metric.findChild(QLabel, "metricValue")
+        if tip is not None:
+            tip.setToolTip(
+                f"MPS 束停报警：{alarm}\n"
+                f"明细：{status.get('details') or {}}"
+            )
+
+    def _beam_status_failed(self, exc: Exception) -> None:
+        self._set_beam_display("暂不可用", available=False)
+        value = self.beam_metric.findChild(QLabel, "metricValue")
+        if value is not None:
+            value.setToolTip(str(exc) or "束流状态读取失败")
+
+    def _set_beam_display(self, text: str, *, available: bool) -> None:
+        value = self.beam_metric.findChild(QLabel, "metricValue")
+        if value is None:
+            return
+        value.setText(text)
+        value.setProperty("available", available)
+        value.style().unpolish(value)
+        value.style().polish(value)
 
     def _request_start(self) -> None:
         if self.ui_only:
@@ -1639,6 +1705,10 @@ class OperatorMainWindow(QMainWindow):
         self.task_progress.setValue(100 if succeeded or partial else 0)
         detail = f"{status} · {message} · 请求 {request_id}"
         self._record_task("采集任务", "部分成功" if partial else "成功" if succeeded else "失败", detail)
+        # The server blocks timing/beam PV reads while a capture is active.
+        # Refresh both once the task reaches a terminal state.
+        self._load_initial_frequency()
+        self._poll_beam_status()
         if succeeded or partial:
             QMessageBox.information(
                 self,

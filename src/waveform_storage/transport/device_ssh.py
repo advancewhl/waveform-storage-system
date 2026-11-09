@@ -20,6 +20,10 @@ class DeviceDownload:
     settle_seconds: float = 2
     wait_timeout_seconds: float = 0
     poll_seconds: float = 2
+    # Absolute monotonic cutoff shared by every device in one capture cycle.
+    # Without it, later worker batches each restart the full wait window and a
+    # missing file can stretch a 70-minute capture into many hours.
+    deadline_monotonic: float | None = None
 
 
 @dataclass(frozen=True)
@@ -53,6 +57,8 @@ class DeviceSshGateway:
             client = self._connector(request)
             sftp = client.open_sftp()
             deadline = time.monotonic() + request.wait_timeout_seconds
+            if request.deadline_monotonic is not None:
+                deadline = min(deadline, request.deadline_monotonic)
             while True:
                 if self._file_selector is None:
                     filename = self._select_completed_file(sftp, request)

@@ -24,6 +24,7 @@ from waveform_storage.acquisition.runtime import (
     AcquisitionServerSettings,
     ProductionCaptureRunner,
     load_server_registry,
+    read_beam_status,
     read_timing_frequency,
 )
 from waveform_storage.acquisition.server import (
@@ -144,6 +145,9 @@ def main() -> int:
         tasks,
         metadata=metadata,
         frequency_reader=lambda: read_timing_frequency(
+            timeout_seconds=settings.epics_connect_timeout_seconds
+        ),
+        beam_reader=lambda: read_beam_status(
             timeout_seconds=settings.epics_connect_timeout_seconds
         ),
     )

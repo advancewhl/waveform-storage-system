@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -157,6 +158,74 @@ class DeviceSshGatewayTests(unittest.TestCase):
 
         self.assertTrue(result.success)
         self.assertEqual(events[0], ("/data/new.txt", "local.txt"))
+
+    def test_cancel_breaks_the_device_file_wait(self):
+        from waveform_storage.acquisition.task import CaptureCancelled
+
+        class Sftp:
+            def listdir_attr(self, remote_dir):
+                return []
+
+            def close(self):
+                pass
+
+        class Client:
+            def open_sftp(self):
+                return Sftp()
+
+            def close(self):
+                pass
+
+        def cancelled_waiter(_seconds):
+            raise CaptureCancelled()
+
+        gateway = DeviceSshGateway(
+            lambda host: Client(),
+            max_workers=1,
+            waiter=cancelled_waiter,
+        )
+        request = DeviceDownload(
+            "BPM_A", "host", "/data", Path("local.txt"),
+            wait_timeout_seconds=4012,
+        )
+        result = gateway.download_one(request)
+        self.assertFalse(result.success)
+
+    def test_wait_deadline_is_anchored_to_the_capture_cycle(self):
+        events = []
+
+        class Sftp:
+            def listdir_attr(self, remote_dir):
+                return []
+
+            def close(self):
+                events.append("sftp-close")
+
+        class Client:
+            def open_sftp(self):
+                return Sftp()
+
+            def close(self):
+                events.append("client-close")
+
+        gateway = DeviceSshGateway(
+            lambda host: Client(),
+            max_workers=1,
+            waiter=lambda seconds: events.append("wait"),
+        )
+        request = DeviceDownload(
+            "BPM_A",
+            "host",
+            "/data",
+            Path("local.txt"),
+            wait_timeout_seconds=4012,
+            deadline_monotonic=time.monotonic() - 1,
+        )
+        result = gateway.download_one(request)
+
+        self.assertFalse(result.success)
+        self.assertIn("no completed matching file", result.error)
+        self.assertNotIn("wait", events)
 
 
 class CaptureServiceTests(unittest.TestCase):

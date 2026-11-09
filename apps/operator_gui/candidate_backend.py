@@ -150,6 +150,16 @@ class CandidateOperatorBackend:
             raise RuntimeError("服务器返回的频率PV读数无效，未发送采集请求")
         return float(frequency)
 
+    def get_beam_status(self) -> dict:
+        reply = self._candidate_transport(timeout_ms=25000).get_beam_status(
+            str(uuid4())
+        )
+        if not reply.accepted:
+            raise RuntimeError(
+                f"服务器读取束流状态失败：{reply.error_code}: {reply.message}"
+            )
+        return dict(reply.payload)
+
     def check_health(self) -> bool:
         """Probe only Candidate liveness, without capture or metadata mutations."""
         return self._candidate_transport(timeout_ms=1000).health(str(uuid4())).accepted

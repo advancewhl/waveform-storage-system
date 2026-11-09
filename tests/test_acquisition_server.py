@@ -17,6 +17,7 @@ import paramiko
 from waveform_storage.acquisition.protocol import (
     GET_STATUS,
     GET_TIMING_FREQUENCY,
+    GET_BEAM_STATUS,
     HEALTH,
     FIND_WAVEFORM_FILES,
     LIST_CAPTURE_TIMES,
@@ -35,8 +36,10 @@ from waveform_storage.acquisition.runtime import (
     AcquisitionServerSettings,
     ProductionCaptureRunner,
     ServerSettingsError,
+    BEAM_STATUS_DETAIL_PVS,
     capture_interval_seconds,
     load_server_registry,
+    read_beam_status,
     read_timing_frequency,
 )
 from waveform_storage.acquisition.task import CaptureCancelled
@@ -235,6 +238,56 @@ class PersistentServerTests(unittest.TestCase):
         ))
         self.assertFalse(busy.accepted)
         self.assertEqual(busy.error_code, "SERVICE_BUSY")
+
+    def test_beam_status_query_returns_mps_payload(self):
+        payload = {
+            "beam_permitted": False,
+            "beam_stop_alarm": "on",
+            "details": {"AC-LA-INJ1-MPS:MPS00:BEAMSTP_FM_L3": "error"},
+            "source": "mps_pv",
+        }
+        self.server.beam_reader = lambda: dict(payload)
+        reply = self.handle(
+            ControlRequest(PROTOCOL_VERSION, str(uuid4()), GET_BEAM_STATUS)
+        )
+        self.assertTrue(reply.accepted)
+        self.assertEqual(reply.payload, payload)
+        self.assertIsNone(reply.error_code)
+
+    def test_capture_proceeds_when_beam_stop_is_active(self):
+        self.server.beam_reader = lambda: {
+            "beam_permitted": False,
+            "beam_stop_alarm": "on",
+            "details": {},
+            "source": "mps_pv",
+        }
+        request = capture_request()
+        response = self.handle(request)
+        self.assertTrue(response.accepted)
+        self.assertEqual(response.status, "accepted")
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not self.calls:
+            time.sleep(0.01)
+        self.assertEqual(self.calls, [request.request_id])
+
+    def test_capture_proceeds_when_beam_is_permitted(self):
+        self.server.beam_reader = lambda: {
+            "beam_permitted": True,
+            "beam_stop_alarm": "off",
+            "details": {},
+            "source": "mps_pv",
+        }
+        response = self.handle(capture_request())
+        self.assertTrue(response.accepted)
+        self.assertEqual(response.status, "accepted")
+
+    def test_beam_status_query_reports_unavailable_reader(self):
+        self.server.beam_reader = None
+        reply = self.handle(
+            ControlRequest(PROTOCOL_VERSION, str(uuid4()), GET_BEAM_STATUS)
+        )
+        self.assertFalse(reply.accepted)
+        self.assertEqual(reply.error_code, "BEAM_STATUS_UNAVAILABLE")
 
     def test_timing_pv_error_does_not_create_capture(self):
         self.server.frequency_reader = lambda: (_ for _ in ()).throw(
@@ -523,6 +576,33 @@ class ServerSettingsTests(unittest.TestCase):
             self.assertEqual(os.environ["EPICS_CA_ADDR_LIST"], "other:6310")
         self.assertEqual(pv.timeout, 3)
 
+    def test_beam_status_read_uses_mps_pv_and_restores_epics_settings(self):
+        class FakePv:
+            def __init__(self, value):
+                self.value = value
+
+            def wait_for_connection(self, timeout):
+                self.timeout = timeout
+
+            def read(self, timeout, data_type=None):
+                return SimpleNamespace(data=[self.value])
+
+        values = [b"on"] + [b"error"] * len(BEAM_STATUS_DETAIL_PVS)
+        pvs = [FakePv(value) for value in values]
+        context = SimpleNamespace(
+            get_pvs=lambda *names: pvs,
+            disconnect=lambda: None,
+        )
+        with patch.dict(os.environ, {"EPICS_CA_ADDR_LIST": "other:6310"}):
+            result = read_beam_status(
+                context_factory=lambda: context, timeout_seconds=3
+            )
+            self.assertEqual(os.environ["EPICS_CA_ADDR_LIST"], "other:6310")
+        self.assertFalse(result["beam_permitted"])
+        self.assertEqual(result["beam_stop_alarm"], "on")
+        self.assertEqual(result["source"], "mps_pv")
+        self.assertEqual(len(result["details"]), len(BEAM_STATUS_DETAIL_PVS))
+
     def test_capture_intervals_match_legacy_field_rules(self):
         self.assertEqual(
             {
@@ -716,6 +796,12 @@ class WireServerTests(unittest.TestCase):
                 tasks,
                 context=context,
                 frequency_reader=lambda: 5.0,
+                beam_reader=lambda: {
+                    "beam_permitted": False,
+                    "beam_stop_alarm": "on",
+                    "details": {},
+                    "source": "mps_pv",
+                },
             )
             stop = threading.Event()
             thread = threading.Thread(
@@ -737,6 +823,9 @@ class WireServerTests(unittest.TestCase):
                 timing = ZmqTransport(endpoint, context=context).get_timing_frequency(
                     str(uuid4())
                 )
+                beam = ZmqTransport(endpoint, context=context).get_beam_status(
+                    str(uuid4())
+                )
             finally:
                 socket.close()
                 stop.set()
@@ -746,6 +835,8 @@ class WireServerTests(unittest.TestCase):
 
         self.assertEqual(response.status, "succeeded")
         self.assertEqual(timing.payload["frequency_hz"], 5.0)
+        self.assertFalse(beam.payload["beam_permitted"])
+        self.assertEqual(beam.payload["beam_stop_alarm"], "on")
         self.assertFalse(thread.is_alive())
 
 
