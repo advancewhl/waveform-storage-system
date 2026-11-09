@@ -25,7 +25,7 @@
 | release manifest | 8,368 项，通过 `sha256sum -c MANIFEST.sha256` |
 | Python | 3.10.20 |
 | PyInstaller | 6.22.3 |
-| 二进制归档 | [waveform-operator-20261009-spectrum-ui-r2.tar.gz](waveform-operator-20261009-spectrum-ui-r2.tar.gz) |
+| 二进制归档 | waveform-operator-20261009-spectrum-ui-r2.tar.gz（原附件未纳入远程仓库） |
 | 归档 SHA-256 | `be4a2e4d800c62d9893edfc6c5df9606423bd7b06f1cee3503abdf4ca76bc1b7` |
 
 `BUILD-INFO`、`MANIFEST.sha256` 和 `SOURCE-MANIFEST.json` 位于 operator 目录。构建前后 operator 输入源码清单一致。
@@ -47,13 +47,13 @@ Codex 未打开 GUI，也未尝试调用桌面入口。用户可从桌面图标�
 
 ## 交付证据
 
-- [完整质量门日志](evidence/full-quality.log)
-- [频谱 GUI 测试日志](evidence/spectrum-gui-tests.log)
-- [频谱分析测试日志](evidence/spectrum-analysis-tests.log)
-- [PyInstaller 构建日志](evidence/operator-build.log)
+- 完整质量门日志（原附件未纳入远程仓库）
+- 频谱 GUI 测试日志（原附件未纳入远程仓库）
+- 频谱分析测试日志（原附件未纳入远程仓库）
+- PyInstaller 构建日志（原附件未纳入远程仓库）
 - [构建记录](evidence/build-record.json)
 - [source manifest 构建前快照](evidence/source-manifest-before-build.json)
-- [release manifest 校验日志](evidence/manifest-check.log)
+- release manifest 校验日志（原附件未纳入远程仓库）
 - [激活前检查](evidence/pre-activation-checks.json)
 - [正式激活结果](evidence/activation.json)
 - [激活后与桌面入口验证](evidence/activation-verification.json)

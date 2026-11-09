@@ -44,7 +44,14 @@ class WaveformAgentV2:
         self.closed = False
         self.mutation_lock = Lock()
         from waveform_storage.processing import alignment
-        self.alignment_source_hash = hashlib.sha256(Path(alignment.__file__).read_bytes()).hexdigest()
+        alignment_source = Path(alignment.__file__)
+        # PyInstaller records __file__ as .pyc while loading code from its archive.
+        # The packaged release includes the corresponding source for provenance.
+        if not alignment_source.is_file() and alignment_source.suffix == ".pyc":
+            source_candidate = alignment_source.with_suffix(".py")
+            if source_candidate.is_file():
+                alignment_source = source_candidate
+        self.alignment_source_hash = hashlib.sha256(alignment_source.read_bytes()).hexdigest()
 
     def close(self):
         with self.repo.lock:

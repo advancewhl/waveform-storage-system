@@ -20,7 +20,7 @@ import numpy as np
 
 from test_waveform_agent_api import agent_fixture, ROOT, REQUEST_ID, DEVICE
 from waveform_storage.acquisition.task import CaptureCancelled
-from waveform_storage.application.agent_http_api import make_server
+from waveform_storage.application.agent_fastapi import make_server
 from waveform_storage.application.agent_v2_contract import AccessPolicy, action_hash, sign_approval, APIError
 from waveform_storage.application.agent_v2_service import WaveformAgentV2
 from waveform_storage.config.registry import load_registry

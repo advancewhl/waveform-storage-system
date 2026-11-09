@@ -1,9 +1,11 @@
 # 交付版本索引
 
-当前本机和现场共享前端为 [20261026-pv-frequency-r2](20261026-pv-frequency-r2/README.md)。现场目标为 `AC-GT-CN-S2-OPI21` 的 `desktop-user-a` 与 `desktop-user-b` 共用安装。共享启动器已切换；desktop-user-a 完成新包离屏界面检查，desktop-user-b 的独立桌面会话尚未验证。上一现场版本 [20261009-spectrum-ui-r6-desktop](20261009-spectrum-ui-r6-desktop/README.md) 保留可回滚。当前 acquisition server 为 [20261026-timing-10hz-r1](20261026-timing-10hz-r1/README.md)，上一服务端版本 [20261008-history-release-r4](20261008-history-release-r4/README.md) 保留可回滚。
+当前生产版本及最近检查范围见 [当前状态](../docs/CURRENT_STATUS.md)。本索引中的交付材料记录对应日期的事实，不代表当前运行状态。
 
-本机开发或审阅版本可能高于现场生产版本；本机源码、激活 release 和 Git 状态以 `docs/CURRENT_STATUS.md` 为准。
+- [2026 年 10 月 30 日 Agent API FastAPI 迁移](20261030-agent-fastapi-r1/README.md)
+- [2026 年 10 月 26 日前端频率显示](20261026-pv-frequency-r2/README.md)和[采集服务 10 Hz 支持](20261026-timing-10hz-r1/README.md)
+- [2026 年 10 月 16—17 日本机历史页审阅记录摘要](../docs/history/local-reviews-20261016-17.md)
+- [2026 年 10 月 9 日现场桌面前端](20261009-spectrum-ui-r6-desktop/README.md)
+- [2026 年 10 月 8 日历史检索发布](20261008-history-release-r4/README.md)
 
-`前端更新-20261005/`、`前端安装-20261004/` 和 `服务端留档-20261004/` 保留为历史部署快照，不代表当前生产桌面版本。后续部署应以各版本目录中的验收记录及 `docs/CURRENT_STATUS.md` 为准。
-
-`outputs/` 保留本机构建基线和 release 产物；中间修改但未使用的版本集中在 [archive/build-artifacts](../archive/build-artifacts/README.md)，本次未删除任何包。
+各交付目录保留当时的部署和验证记录。未纳入远程仓库的本地构建产物、原始数据及验收附件不能从本索引下载。回滚前必须重新核实版本、配置、备份和现场任务状态。

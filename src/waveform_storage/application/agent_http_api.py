@@ -9,15 +9,13 @@ from waveform_storage.analysis.service import _json_value
 from .agent_service import AgentError, HTTP_STATUS, PREFIX, translate_error
 
 
-def make_server(service, address=('127.0.0.1', 8771), *, v2=None, v2_only=None):
+def make_handler(service, *, v2=None, v2_only=None):
     if v2_only is None:
         v2_only = os.environ.get('WAVEFORM_AGENT_V2_ONLY', 'false').lower() == 'true'
     if v2_only and v2 is None:
         raise ValueError('V2_ONLY requires an enabled v2 service')
     if v2 is not None and not v2_only:
         logging.getLogger(__name__).warning('v1 无认证，必须由网络 ACL/代理限制；生产推荐 WAVEFORM_AGENT_V2_ONLY=true 或独立端口')
-    if address[0] not in ('127.0.0.1', 'localhost', '::1'):
-        raise ValueError('Agent HTTP must bind loopback; use a TLS reverse proxy for remote access')
     class Handler(BaseHTTPRequestHandler):
         timeout = 30
 
@@ -84,17 +82,20 @@ def make_server(service, address=('127.0.0.1', 8771), *, v2=None, v2_only=None):
                     return
                 if len(parts) == 4 and parts[0] == 'jobs' and parts[2] == 'artifacts':
                     path = service.artifact_path(parts[1], parts[3])
-                    with path.open('rb') as stream:
-                        self.headers_sent = True
-                        self.send_response(200)
-                        self.send_header('Content-Type', 'application/octet-stream')
-                        self.send_header('Content-Length', str(path.stat().st_size))
-                        self.send_header('Content-Disposition', f'attachment; filename="{parts[3]}"')
-                        self.end_headers()
-                        while block := stream.read(1024 * 1024):
-                            self.wfile.write(block)
+                    self.send_artifact(path, parts[3])
                     return
             raise AgentError('NOT_FOUND', 'Endpoint not found')
+
+        def send_artifact(self, path, name):
+            with path.open('rb') as stream:
+                self.headers_sent = True
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/octet-stream')
+                self.send_header('Content-Length', str(path.stat().st_size))
+                self.send_header('Content-Disposition', f'attachment; filename="{name}"')
+                self.end_headers()
+                while block := stream.read(1024 * 1024):
+                    self.wfile.write(block)
 
         def _handle(self, method):
             self.headers_sent = False
@@ -126,4 +127,10 @@ def make_server(service, address=('127.0.0.1', 8771), *, v2=None, v2_only=None):
         def do_PATCH(self):
             self._handle('PATCH')
 
-    return ThreadingHTTPServer(address, Handler)
+    return Handler
+
+
+def make_server(service, address=('127.0.0.1', 8771), *, v2=None, v2_only=None):
+    if address[0] not in ('127.0.0.1', 'localhost', '::1'):
+        raise ValueError('Agent HTTP must bind loopback; use a TLS reverse proxy for remote access')
+    return ThreadingHTTPServer(address, make_handler(service, v2=v2, v2_only=v2_only))

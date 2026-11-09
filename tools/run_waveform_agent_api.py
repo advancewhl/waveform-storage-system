@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT / 'apps/operator_gui'))
 from candidate_backend import CandidateOperatorBackend
 from waveform_storage.analysis.service import AnalysisJobs
 from waveform_storage.application.agent_service import WaveformAgentService
-from waveform_storage.application.agent_http_api import make_server
+from waveform_storage.application.agent_fastapi import make_server
 from waveform_storage.config.settings import AppSettings
 from waveform_storage.config.registry import load_registry
 from waveform_storage.application.agent_v2_contract import AccessPolicy

@@ -7,6 +7,7 @@
 | 直接连接离线前端 | `build-direct-operator-offline.py` |
 | 前端可执行构建 | `build-operator-executable-debian10.sh` |
 | 服务端可执行构建 | `build-acquisition-v2-debian10.sh` |
+| Agent API 可执行构建 | `build-agent-api-debian10.sh`，依赖见 `requirements-agent-api-build.txt` |
 | 前端可执行交付包 | `package-operator-executable.py` |
 | 服务端更新包 | `build-live-server-pv-package.py`、`package-server-20261005.py` |
 

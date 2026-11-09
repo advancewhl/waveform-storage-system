@@ -16,6 +16,7 @@ dependencies = [
 [project.optional-dependencies]
 mongodb = ["pymongo>=4"]
 spectrum = ["pandas>=2.0", "scipy>=1.10"]
+agent-api = ["fastapi==0.162.0", "uvicorn==0.54.0"]
 
 [tool.setuptools]
 package-dir = {"" = "src"}

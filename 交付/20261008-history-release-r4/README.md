@@ -23,7 +23,7 @@
 
 每个归档包含真实二进制、依赖、BUILD-INFO 和 manifest。先核对归档 SHA-256，再在解包目录执行 `sha256sum -c MANIFEST.sha256`。源码快照中的全部输入哈希与最终工作目录一致，未改写既有版本的 BUILD-INFO。
 
-最终质量门通过 206 项测试及全部后续检查。结果见 [final-quality.log](evidence/final-quality.log)。
+最终质量门通过 206 项测试及全部后续检查。结果见 final-quality.log（原附件未纳入远程仓库）。
 
 ## 验收结果
 

@@ -6,7 +6,7 @@
 - `deployment/`：有明确日期的部署与更新记录
 - `audits/`：设备排查及未部署候选证据
 - `handoffs/`：集成交接与历史任务记录；Agent 当前契约见下方入口
-- `history/`：历史 README、7 月重构、现场调查和过程文档
+- `history/`：历史状态快照、本机审阅摘要、7 月重构与过程文档
 - `ui-preview/`：界面预览；`ui-preview/references/` 为参考照片
 - `references/`：论文 DOC 等原始资料，仅本地保存
 

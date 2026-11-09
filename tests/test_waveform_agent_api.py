@@ -25,7 +25,7 @@ from waveform_storage.analysis.service import AnalysisJobs
 from waveform_storage.application.agent_service import (
     AgentError, WaveformAgentService, HTTP_STATUS, translate_error,
 )
-from waveform_storage.application.agent_http_api import make_server
+from waveform_storage.application.agent_fastapi import make_server
 from waveform_storage.config.registry import load_registry
 from waveform_storage.config.settings import AppSettings
 from waveform_storage.metadata.memory_repository import InMemoryMetadataRepository

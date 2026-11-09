@@ -53,6 +53,9 @@ def _body(handler):
 
 
 def _send_download(handler, blob):
+    if hasattr(handler, 'send_download'):
+        handler.send_download(blob)
+        return
     try:
         handler.headers_sent = True
         handler.send_response(200)

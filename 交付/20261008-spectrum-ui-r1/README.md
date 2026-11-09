@@ -26,8 +26,8 @@
 
 - Offscreen 初始页面：[offscreen-spectrum-startup.png](evidence/offscreen-spectrum-startup.png)
 - Offscreen 分析结果：[offscreen-hdf-analysis.png](evidence/offscreen-hdf-analysis.png)
-- 完整质量门日志：[quality.log](evidence/quality.log)
-- PyInstaller 日志：[operator-build.log](evidence/operator-build.log)
+- 完整质量门日志：quality.log（原附件未纳入远程仓库）
+- PyInstaller 日志：operator-build.log（原附件未纳入远程仓库）
 - 构建记录：[build-record.json](evidence/build-record.json)
 - 切换前检查：[pre-activation-checks.json](evidence/pre-activation-checks.json)
 
