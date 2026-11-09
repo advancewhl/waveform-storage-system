@@ -48,7 +48,7 @@ r3 在挡束（`beam_permitted=false`）时于采集入口返回 `NO_BEAM` 拒�
 已删除 r3（束流阻拦版）：
 
 - 本机：`outputs/operator-local/releases/20261109-beam-status-r3`、`outputs/server-releases/20261109-beam-status-r3`、`outputs/release-pairs/20261109-beam-status-r3`
-- 服务端：`releases/20261109-beam-status-r3`、`incoming/20261109-beam-status-r3.tar.gz`、`incoming/20261109-beam-status-r3.deploy.sh`；记录追加到服务端 `.deleted-20261109.txt`
+- 服务端：`releases/20261109-beam-status-r3`、`incoming/20261109-beam-status-r3.tar.gz`、`incoming/20261109-beam-status-r3.deploy.sh`；删除清单只保存在本机 `outputs/deletion-records/`（不提交仓库）
 
 服务端按用户要求只保留当前版本与上一版：保留 `releases/20261026-timing-10hz-r1`（上一版）；更早的 `releases/20261008-history-release-r4` 已删除（timing 发布记录曾把它列为回滚目标，现以 `20261026-timing-10hz-r1` 为唯一回滚版本）。本机保留 `20261026-pv-frequency-r2`。其他组件与其他项目的发布、构建产物未触碰。
 

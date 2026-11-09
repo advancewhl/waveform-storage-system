@@ -77,3 +77,4 @@ dist/
 /outputs/operator-desktop/
 /outputs/bpm-reachability-*/
 /outputs/history-ui-validation-*/
+/outputs/deletion-records/

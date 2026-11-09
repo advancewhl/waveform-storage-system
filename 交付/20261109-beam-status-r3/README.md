@@ -70,7 +70,7 @@ BEAMSTP_FM_BC2/EXT/L3/UN = "error", FM_L4 = "normal", FROM_BC1 = "error", FROM_F
 已删除：
 
 - 本机：`outputs/operator-local/releases/20261109-beam-status-r1`、`-r2`；`outputs/server-releases/20261109-beam-status-r1`、`-r2`；`outputs/release-pairs/20261109-beam-status-r1`、`-r2`
-- 服务端：`releases/20261109-beam-status-r2`（135M）、`incoming/20261109-beam-status-r2.tar.gz`、`incoming/20261109-beam-status-r2.deploy.sh`；记录写入服务端 `.deleted-20261109.txt`
+- 服务端：`releases/20261109-beam-status-r2`（135M）、`incoming/20261109-beam-status-r2.tar.gz`、`incoming/20261109-beam-status-r2.deploy.sh`；删除清单只保存在本机 `outputs/deletion-records/`（不提交仓库）
 
 保留未动：服务端 `releases/20261026-timing-10hz-r1`（上一个稳定版）、`releases/20261008-history-release-r4`（timing 发布记录中的回滚目标）；本机 `20261026-pv-frequency-r2`（正在运行的界面版本）。其他组件与其他项目的发布、构建产物未触碰。
 
