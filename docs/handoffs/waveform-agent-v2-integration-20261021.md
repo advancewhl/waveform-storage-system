@@ -1,3 +1,5 @@
+> 历史交接：本文件记录当时的状态，当前部署与验证范围见 [当前状态](../CURRENT_STATUS.md)。
+
 # accelerator-rag Waveform API v2 Integration Handoff
 
 交接日期：2026-10-21；加固更新：2026-10-22。当前交付为源码，现场部署状态为 NO。服务端方案、字段、错误与启动配置见 [API 手册](../agent-api-v2.md)，机器契约见 [OpenAPI](../agent-api-v2.openapi.json)。

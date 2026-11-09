@@ -6,7 +6,7 @@
 
 2026-10-22 加固补充：`WAVEFORM_AGENT_V2_ONLY` 默认 `false`，保留匿名 v1；设为 `true` 后 v1 路径返回 404，`/health` 和认证 v2 继续可用。生产推荐 v2-only 或独立进程、端口与网络 ACL；该开关不会给 v1 客户端静默增加 token 要求。
 
-正式 contract 为 **Waveform Agent HTTP API v1**。唯一业务路由前缀是 `/api/agent/v1/waveform`，不保留未版本化 alias。`GET /health` 是独立的版本就绪检查入口。源码已实现，尚未部署现场服务；accelerator-rag、Qwen 和 RAG 集成均未实施。
+正式 contract 为 **Waveform Agent HTTP API v1**。唯一业务路由前缀是 `/api/agent/v1/waveform`，不保留未版本化 alias。`GET /health` 是独立的版本就绪检查入口。此文描述兼容契约；生产环境的 v1 启用状态和当前部署以 [当前状态](CURRENT_STATUS.md)及[交付记录](../交付/20261030-agent-fastapi-r1/README.md)为准。
 
 调用链保持为 `WaveformAgentService → CandidateOperatorBackend → RetrievalService → AlignmentResult → AnalysisJobs → run_analysis → ChannelResult`。本轮只调整 Agent 任务编排、持久化、接口和 provenance，不修改 catalog、retrieval/alignment 算法、科学参数、Mongo/HDF5 schema 或采集 protocol v2。
 

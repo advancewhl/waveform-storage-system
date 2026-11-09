@@ -1,6 +1,6 @@
 # SHINE Waveform Storage
 
-波形存储基础可用阶段于 2026-10-07 确认。本机与桌面机可执行采集、历史检索、BPM 选择、bunchID 对齐、绘图和 HDF5 导出，日志前端已独立出来。最新源码、版本和部署状态以 [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) 为准；具体批次、设备和账号的现场证据保留在各次记录中。
+波形存储用于波形采集、历史检索与分析。本机与桌面机可执行采集、历史检索、BPM 选择、bunchID 对齐、绘图和 HDF5 导出，日志前端已独立出来。最新源码、版本和部署状态以 [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) 为准；具体批次、设备和账号的现场证据保留在各次记录中。
 
 ## 从这里开始
 
@@ -12,7 +12,7 @@
 - [统一频谱分析架构](docs/spectrum-analysis-design.md)
 - [Agent API v2 接入与安全边界](docs/agent-api-v2.md)、[OpenAPI](docs/agent-api-v2.openapi.json)
 - [Agent API v1 兼容契约](docs/waveform-agent-api.md)
-- [Agent API v2 交付与验证记录](交付/20261021-waveform-agent-v2/README.md)
+- [Agent API FastAPI 迁移与验证记录](交付/20261030-agent-fastapi-r1/README.md)
 - [中间构建包归档索引](archive/build-artifacts/README.md)
 - [本次整理记录](docs/工作目录整理_2026-10-07.md)
 

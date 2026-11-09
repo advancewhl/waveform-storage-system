@@ -1,3 +1,5 @@
+> 历史交接：本文件记录当时的状态，当前部署与验证范围见 [当前状态](../CURRENT_STATUS.md)。
+
 # accelerator-rag WaveformStorageClient Integration Handoff
 
 交接日期：2026-10-20。源码完成，部署状态为 NO。本文只定义 waveform-storage v1，不声明 accelerator-rag/Qwen 已接入。

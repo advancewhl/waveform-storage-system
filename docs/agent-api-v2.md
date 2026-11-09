@@ -2,7 +2,7 @@
 
 ## 状态与边界
 
-本版本包含 2026-10-22 的加固修复。v1 继续使用 `/api/agent/v1/waveform`，请求与响应语义保持兼容。v2 使用 `/api/agent/v2`，增加独立认证、受控采集和数据版本目录。现场尚未部署，accelerator-rag 客户端的修改不属于本仓库。
+本版本包含 2026 年 10 月 22 日的加固修复，并于 2026 年 10 月 30 日迁移至 FastAPI。v2 使用 `/api/agent/v2`，提供独立认证、受控采集和数据版本目录。v1 兼容接口及其启用状态见 [v1 契约](waveform-agent-api.md)。当前部署状态见 [当前状态](CURRENT_STATUS.md)。
 
 本服务复用 Candidate protocol v2、RetrievalService、HDF5 reader/writer、alignment 和 AnalysisJobs。采集通过既有 ZMQ 服务进入 `RegistryPolicy → PersistentTaskExecutor → JsonTaskStore → ProductionCaptureRunner`。HTTP 进程不另建采集执行器，不改变采集协议和科学算法。
 
@@ -307,7 +307,7 @@ accelerator-rag 可以继续使用原 v1。迁移到 v2 时，增加对应 scope
 
 ## 剩余边界
 
-本机 HTTP fixture 通过不代表现场 EPICS、SSH、MongoDB、TLS 代理或真实设备验收。当前没有生产部署、压力测试、远端 SFTP fixture 或现场采集测试。快照读取有超时，HTTP 发送使用 socket 超时，不提供整个任务的统一硬 deadline。
+本机 HTTP fixture 和服务健康检查不能替代现场采集、数据修改、远端 SFTP、压力及重启验收。各项已执行检查和未验证范围见 [FastAPI 交付记录](../交付/20261030-agent-fastapi-r1/README.md)与[当前状态](CURRENT_STATUS.md)。快照读取有超时，后台任务没有统一的执行期限。
 
 物理删除、任意上传覆盖、采集科学字段修改、外部依赖全量枚举和跨服务版本同步均未开放。关闭 control/data 或不满足整数 writer 能力时返回 `CAPABILITY_UNAVAILABLE`，不会伪造成功。
 

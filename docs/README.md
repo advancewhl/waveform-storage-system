@@ -21,4 +21,4 @@
 - [v1 兼容契约](waveform-agent-api.md)：旧客户端的端点、响应和重试语义。
 - [v2 Integration Handoff](handoffs/waveform-agent-v2-integration-20261021.md)、[源码交付与验证证据](../交付/20261021-waveform-agent-v2/README.md)。
 
-v2 已完成源码与本机 fixture 验证，尚未部署现场。生产接入推荐 `WAVEFORM_AGENT_V2_ONLY=true`；保留 v1 时须独立施加代理或网络 ACL。data preview 无需审批，mutation 需一次签名确认。数据修改仅影响 v2 overlay，原 Mongo/HDF5 和 v1/GUI 视图保留。
+Agent API 已于 2026 年 10 月 30 日迁移至 FastAPI；2026 年 11 月 9 日只读检查确认 API 容器运行。当前版本及验证边界见 [当前状态](CURRENT_STATUS.md)。生产接入推荐 `WAVEFORM_AGENT_V2_ONLY=true`；保留 v1 时须独立施加代理或网络 ACL。data preview 无需审批，mutation 需一次签名确认。数据修改仅影响 v2 overlay，原 Mongo/HDF5 和 v1/GUI 视图保留。
