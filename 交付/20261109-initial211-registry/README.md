@@ -53,6 +53,8 @@ sudo systemctl restart waveform-acquisition-v2
 
 旧 `devices.probe47.json` 与 `known_hosts.probe47` 均保留未动。
 
+2026-11-10 更新：删除 12 台反馈/联锁/DMP 设备并把全部设备标记为“已配置”，采集表调整为 199 台，见[设备表清理记录](../20261110-registry-cleanup/README.md)。
+
 ## 边界与未验证
 
 - 主机密钥通过 `ssh-keyscan` 从波形服务器采集，**未做带外身份核验**；多台设备共享同一公钥材料时，不能单独证明每台主机身份。
